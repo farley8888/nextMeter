@@ -1,0 +1,5 @@
+<resources>
+    <!--string name="app_name">AtElectric</string-->
+    <string name="action_settings">Settings</string>
+    <string name="serial_path">/dev/ttyMT0</string>
+</resources>
