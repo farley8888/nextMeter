@@ -1,4 +1,4 @@
-package di
+package com.vismo.cablemeter.module
 
 import dagger.Module
 import dagger.Provides

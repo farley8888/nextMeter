@@ -2,8 +2,6 @@ package com.vismo.cablemeter.repository
 
 import android.content.Context
 import android.os.Environment
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android_serialport_api.Command
 import com.ilin.atelec.BusModel
@@ -12,26 +10,142 @@ import com.ilin.util.Config
 import com.ilin.util.ShellUtils
 import com.serial.opt.UartWorkerCH
 import com.serial.port.ByteUtils
+import com.vismo.cablemeter.model.DeviceIdData
+import com.vismo.cablemeter.model.MCUMessage
 import com.vismo.cablemeter.util.MeasureBoardUtils
+import com.vismo.cablemeter.util.MeasureBoardUtils.ABNORMAL_PULSE
+import com.vismo.cablemeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
+import com.vismo.cablemeter.util.MeasureBoardUtils.ONGOING_HEARTBEAT
+import com.vismo.cablemeter.util.MeasureBoardUtils.PARAMETERS_ENQUIRY
+import com.vismo.cablemeter.util.MeasureBoardUtils.READ_DEVICE_ID_DATA
+import com.vismo.cablemeter.util.MeasureBoardUtils.REQUEST_UPGRADE_FIRMWARE
+import com.vismo.cablemeter.util.MeasureBoardUtils.TRIP_SUMMARY
+import com.vismo.cablemeter.util.MeasureBoardUtils.UPGRADING_FIRMWARE
+import com.vismo.cablemeter.util.MeasureBoardUtils.getResultType
+import com.vismo.cablemeter.module.IoDispatcher
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.IOException
 import java.math.BigDecimal
 import java.util.Date
 import javax.inject.Inject
 
 class MeasureBoardRepository @Inject constructor(
-    private val context: Context
+    private val context: Context,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
     private val TAG = javaClass.simpleName
     private var mBusModel: BusModel? = null
     private var mWorkCh3: UartWorkerCH? = null
-    private val handler = Handler(Looper.getMainLooper())
+
+    private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
+    private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
+
+    private val _deviceIdData = MutableStateFlow<DeviceIdData?>(null)
+    val deviceIdData = _deviceIdData
+
+    private fun startMessageProcessor() {
+        CoroutineScope(ioDispatcher).launch {
+            for (msg in messageChannel) {
+                when (msg.what) {
+                    IAtCmd.W_MSG_DISPLAY -> {
+                        val receiveData = msg.obj?.toString() ?: continue
+                        checkStatues(receiveData)
+                    }
+                    WHAT_PRINT_STATUS -> {
+                        val st = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio73/value")
+                        addTask {
+                            delay(1800)
+                            sendMessage(MCUMessage(WHAT_PRINT_STATUS, null))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun sendMessage(msg: MCUMessage) {
+        CoroutineScope(ioDispatcher).launch {
+            messageChannel.send(msg)
+        }
+    }
+
+    private fun startTaskProcessor() {
+        CoroutineScope(ioDispatcher).launch {
+            for (task in taskChannel) {
+                task()
+            }
+        }
+    }
+
+    private fun addTask(task: suspend () -> Unit) {
+        CoroutineScope(ioDispatcher).launch {
+            taskChannel.send(task)
+        }
+    }
 
     init {
+        startTaskProcessor()
+        startMessageProcessor()
+        addTask {
+            openCommonUart()
+            setReceiveEvalDataLs()
+        }
         initHardwares()
-        openCommonUart()
-        setReceiveEvalDataLs()
+        addTask {
+            readMeasureBoardDeviceId()
+        }
+    }
+
+    private fun checkStatues(result: String) {
+        when(getResultType(result)) {
+            READ_DEVICE_ID_DATA -> {
+                Log.d("checkStatues", "READ_DEVICE_ID_DATA")
+                val measureBoardDeviceId = result.substring(18, 18 + 10)
+                val licensePlateHex = result.substring(76, 76 + 16)
+                val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
+
+                Log.d(
+                    TAG,
+                    "setSystemPreferences: $measureBoardDeviceId -> $licensePlateHex -> $licensePlate-> $result"
+                )
+                _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
+            }
+
+            TRIP_SUMMARY -> {
+
+            }
+
+            IDLE_HEARTBEAT -> {
+                Log.d("checkStatues", "IDLE_HEARTBEAT")
+            }
+
+            PARAMETERS_ENQUIRY -> {
+
+            }
+
+            ABNORMAL_PULSE -> {
+
+            }
+
+            ONGOING_HEARTBEAT -> {
+
+            }
+
+            REQUEST_UPGRADE_FIRMWARE -> {
+
+            }
+
+            UPGRADING_FIRMWARE -> {
+
+            }
+
+            else -> {
+
+            }
+        }
     }
 
     private fun initHardwares() {
@@ -41,7 +155,7 @@ class MeasureBoardRepository @Inject constructor(
 
     private fun setReceiveEvalDataLs() {
         mBusModel?.setListener { data: String ->
-            handler.sendMessage(handler.obtainMessage(IAtCmd.W_MSG_DISPLAY, data))
+            sendMessage(MCUMessage(IAtCmd.W_MSG_DISPLAY, data))
             Log.d("setReceiveEvalDataLs", "setReceiveEvalDataLs $data")
         }
     }
@@ -64,7 +178,7 @@ class MeasureBoardRepository @Inject constructor(
         mBusModel?.write(MeasureBoardUtils.getUpdateTimeCmd(formattedDateStr))
     }
 
-    fun readMeasureBoardDeviceId(): Boolean {
+    private fun readMeasureBoardDeviceId(): Boolean {
         return mBusModel?.write(MeasureBoardUtils.getMeasureBoardDeviceIdCmd()) ?: false
     }
 
@@ -145,7 +259,7 @@ class MeasureBoardRepository @Inject constructor(
         try {
             mWorkCh3 = UartWorkerCH(Config.SERIAL_CH3, Config.BATE_CH, 0, "CH3")
             mWorkCh3?.setOnReceiveListener(UartWorkerCH.OnReceiveListener { data: String ->
-                handler.post {
+                CoroutineScope(ioDispatcher).launch {
                     println("CH3.Opt receive = $data")
                 }
             })
@@ -189,5 +303,9 @@ class MeasureBoardRepository @Inject constructor(
             sb.append(" ")
         }
         return sb.toString()
+    }
+
+    companion object {
+        private const val WHAT_PRINT_STATUS: Int = 110
     }
 }

@@ -14,6 +14,24 @@ import kotlin.math.pow
 
 object MeasureBoardUtils {
     const val BEEP_SOUND_LENGTH =  10 // the unit is 0.01s
+    const val WHAT_PRINT_STATUS: Int = 110
+    const val READ_DEVICE_ID_DATA = "AC"
+    const val TRIP_SUMMARY = "E4"
+    const val IDLE_HEARTBEAT = "E2"
+    const val PARAMETERS_ENQUIRY = "A4"
+    const val ABNORMAL_PULSE = "E5"
+    const val ONGOING_HEARTBEAT = "E3"
+    const val REQUEST_UPGRADE_FIRMWARE = "A8"
+    const val UPGRADING_FIRMWARE = "E1"
+
+
+    fun  getResultType(result: String): String? {
+        return if (result.startsWith("55AA") && result.endsWith("55AA") && result.length > 16) result.substring(
+            14,
+            14 + 2
+        )
+        else null
+    }
 
     fun getUpdateExtrasCmd(amounts: String): String {
         //beep sound
