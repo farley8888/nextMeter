@@ -35,8 +35,6 @@ class MeasureBoardRepository @Inject constructor(
     private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
-
-    private val TAG = javaClass.simpleName
     private var mBusModel: BusModel? = null
     private var mWorkCh3: UartWorkerCH? = null
 
@@ -55,7 +53,7 @@ class MeasureBoardRepository @Inject constructor(
                         checkStatues(receiveData)
                     }
                     WHAT_PRINT_STATUS -> {
-                        val st = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio73/value")
+                        ShellUtils.execShellCmd("cat /sys/class/gpio/gpio73/value")
                         addTask {
                             delay(1800)
                             sendMessage(MCUMessage(WHAT_PRINT_STATUS, null))
@@ -236,10 +234,10 @@ class MeasureBoardRepository @Inject constructor(
 
                 data = data.replace(" ", "")
                 val bytes = ByteUtils.hexStr2Byte(data)
-                mWorkCh3?.getWriter()?.writeData(bytes)
+                mWorkCh3?.writer?.writeData(bytes)
             } catch (e: Exception) {
                 e.printStackTrace()
-                Log.d("sendPrintCmd", "sendPrintCmd: exception: ${e.toString()}")
+                Log.d("sendPrintCmd", "sendPrintCmd: exception: $e")
             }
         }
     }
@@ -307,5 +305,6 @@ class MeasureBoardRepository @Inject constructor(
 
     companion object {
         private const val WHAT_PRINT_STATUS: Int = 110
+        private const val TAG = "MeasureBoardRepository"
     }
 }

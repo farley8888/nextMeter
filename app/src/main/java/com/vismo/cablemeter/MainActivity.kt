@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.vismo.cablemeter.ui.meter.MeterOpsScreen
 import com.vismo.cablemeter.ui.theme.CableMeterTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -43,13 +44,14 @@ class MainActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Greeting("Dash")
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Button(onClick = { viewModel.sendPrintCmd() }) {
-                            Text(text = "Send Print Command")
-                        }
+//                        Greeting("Dash")
+//
+//                        Spacer(modifier = Modifier.height(16.dp))
+//
+//                        Button(onClick = { viewModel.sendPrintCmd() }) {
+//                            Text(text = "Send Print Command")
+//                        }
+                        MeterOpsScreen()
                     }
                 }
             }
