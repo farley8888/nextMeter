@@ -111,7 +111,7 @@ object MeasureBoardUtils {
         val repeatCountHex = decimalToHex(0).padStart(2,'0')
 
         val CMD_END = "00 08 00 00 10 A3 01 $durationHex $intervalHex $repeatCountHex"
-        //55 AA 00 0B 00 00 10 A3 20 23 02 25 20 47 01 FA 55 AA //TODO: verify the format
+        //55 AA 00 0B 00 00 10 A3 20 23 02 25 20 47 01 FA 55 AA
         val checkSum = xorHexStrings(CMD_END.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
         cmdStringBuilder.append("55 AA ").append(CMD_END).append(checkSum).append(" 55 AA")
