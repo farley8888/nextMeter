@@ -1,6 +1,8 @@
 package com.vismo.cablemeter
 
 import android.os.Bundle
+import android.util.Log
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -60,12 +62,64 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.someFlow.collect {
-                        // Handle the flow
+                    viewModel.measureBoardData.collect { measureBoardData ->
+                        measureBoardData?.let {
+
+                        }
                     }
                 }
             }
         }
+    }
+//
+//    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+//        val code = event.scanCode
+//
+//        fun isWithinRange(code: Int): Boolean {
+//            return code in 248..255
+//        }
+//
+//        fun isLongPress(repeatCount: Int): Boolean {
+//            return repeatCount > 0
+//        }
+//
+//        if (isWithinRange(code)) {
+//            if (isLongPress(event.repeatCount)) {
+//                onButtonLongPressed(code, event.repeatCount)
+//            } else {
+//                onButtonPressed(code)
+//            }
+//        }
+//        return super.onKeyDown(keyCode, event)
+//
+//    }
+
+    private fun onButtonPressed(code: Int) {
+        when(code) {
+            248 -> {
+                // ready for hire
+                Log.d(TAG, "onButtonPressed: ready for hire")
+            }
+            249 -> {
+                // start/resume trip
+            }
+            250 -> {
+                // pause trip
+            }
+            253 -> {
+                // add extras - $10
+            }
+            254 -> {
+                // add extras - $1
+            }
+            255 -> {
+                // print receipt
+            }
+        }
+    }
+
+    private fun onButtonLongPressed(code: Int, repeatCount: Int) {
+
     }
 
     companion object {

@@ -3,6 +3,7 @@ package com.vismo.cablemeter.util
 import android.util.Log
 import java.io.File
 import java.io.RandomAccessFile
+import java.math.BigDecimal
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
@@ -10,13 +11,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
 import kotlin.math.ceil
-import kotlin.math.pow
 
 object MeasureBoardUtils {
     const val BEEP_SOUND_LENGTH =  10 // the unit is 0.01s
     const val WHAT_PRINT_STATUS: Int = 110
     const val READ_DEVICE_ID_DATA = "AC"
-    const val TRIP_SUMMARY = "E4"
+    const val TRIP_END_SUMMARY = "E4"
     const val IDLE_HEARTBEAT = "E2"
     const val PARAMETERS_ENQUIRY = "A4"
     const val ABNORMAL_PULSE = "E5"
@@ -24,6 +24,25 @@ object MeasureBoardUtils {
     const val REQUEST_UPGRADE_FIRMWARE = "A8"
     const val UPGRADING_FIRMWARE = "E1"
 
+    fun getTimeInSeconds(duration: String): Long =
+        if (duration.length == 6) {
+            val hour = duration.substring(0, 2)
+            val min = duration.substring(2, 4)
+            val sec = duration.substring(4, 6)
+            (hour.toLong()) * 60 * 60 + (min.toLong()) * 60 + sec.toLong()
+        } else {
+            0
+        }
+
+    fun getPaidMin(duration: String): BigDecimal =
+        if (duration.length == 6) {
+            val hour = duration.substring(0, 2)
+            val min = duration.substring(2, 4)
+            val sec = duration.substring(4, 6)
+            BigDecimal(hour.toInt() * 60 + min.toInt() + sec.toDouble() / 60)
+        } else {
+            BigDecimal(0)
+        }
 
     fun  getResultType(result: String): String? {
         return if (result.startsWith("55AA") && result.endsWith("55AA") && result.length > 16) result.substring(

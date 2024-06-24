@@ -7,6 +7,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -16,8 +19,14 @@ class MainViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel(){
 
-    private val _someFlow = MutableStateFlow<String?>(null)
-    val someFlow = _someFlow
+    val measureBoardData = combine(measureBoardRepository.deviceIdData, measureBoardRepository.tripStatus) {
+            deviceIdData, tripStatus ->
+        deviceIdData?.let {
+            tripStatus?.let {
+                Pair(deviceIdData, tripStatus)
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun sendPrintCmd() {
         viewModelScope.launch(ioDispatcher) {
