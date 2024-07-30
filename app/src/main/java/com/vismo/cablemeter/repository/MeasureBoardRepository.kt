@@ -232,6 +232,18 @@ class MeasureBoardRepository @Inject constructor(
         }
     }
 
+    fun addExtras(extrasAmount: Int) {
+        val currentOngoingTrip = tripStatus.value as? MCUTripStatus.Ongoing
+        currentOngoingTrip?.let {
+            val totalExtras = currentOngoingTrip.extra.toInt() + extrasAmount
+            if (totalExtras < 1000) {
+                addTask {
+                    mBusModel?.write(MeasureBoardUtils.getUpdateExtrasCmd("$totalExtras"))
+                }
+            }
+        }
+    }
+
     private fun setSwitchLs(isChecked: Boolean) {
         Log.d("setSwitchLs", "setSwitchLs: isChecked: $isChecked")
         // isChecked: 落旗

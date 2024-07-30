@@ -7,7 +7,6 @@ import com.vismo.cablemeter.model.Hired
 import com.vismo.cablemeter.model.MCUTripStatus
 import com.vismo.cablemeter.model.MeterOpsUiData
 import com.vismo.cablemeter.model.Paused
-import com.vismo.cablemeter.model.TripStateInMeterOpsUI
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -90,12 +89,25 @@ class MeterOpsViewModel @Inject constructor(
             }
             253 -> {
                 // add extras - $10
+                addExtras(10)
             }
             254 -> {
                 // add extras - $1
+                addExtras(1)
             }
             255 -> {
                 // print receipt
+            }
+        }
+    }
+
+    private fun addExtras(extrasAmount: Int) {
+        viewModelScope.launch(ioDispatcher) {
+            _currentTripState.value?.let {
+                if (it is MCUTripStatus.Ongoing) {
+                    measureBoardRepository.addExtras(extrasAmount)
+                    return@launch
+                }
             }
         }
     }

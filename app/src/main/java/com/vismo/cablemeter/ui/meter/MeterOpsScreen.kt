@@ -80,7 +80,7 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
         Spacer(modifier = Modifier.height(8.dp))
         PriceSeparatedLine()
         Spacer(modifier = Modifier.height(8.dp))
-        MetricGroup(uiState.value.status)
+        MetricGroup(uiState.value.status, uiState.value.distanceInKM, uiState.value.duration)
     }
 
     // Request focus when the composable is first composed
@@ -218,17 +218,19 @@ fun FareDetails(fareValue: String) {
                 .fillMaxWidth()
                 .height(160.dp),
         ) {
-            Text(
-                text = fareValue,
-                color = Red,
-                fontSize = 78.sp,
-                modifier =
-                Modifier
-                    .weight(1f)
+            val fareValueInt = fareValue.toDoubleOrNull()
+            if (fareValueInt != null && fareValueInt > 0) {
+                Text(
+                    text = fareValue,
+                    color = Red,
+                    fontSize = 78.sp,
+                    modifier =
+                    Modifier
+                        .weight(1f)
 //                    .padding(top = (-30).dp)
-                    .align(Alignment.CenterVertically),
-            )
-            // Image composable for the fare label
+                        .align(Alignment.CenterVertically),
+                )
+            }
         }
     }
 }
@@ -245,7 +247,7 @@ fun PriceSeparatedLine() {
 }
 
 @Composable
-fun MetricGroup(tripState: TripStateInMeterOpsUI) {
+fun MetricGroup(tripState: TripStateInMeterOpsUI, distance: String, time: String) {
     Row(
         modifier =
             Modifier
@@ -259,7 +261,7 @@ fun MetricGroup(tripState: TripStateInMeterOpsUI) {
                     .weight(1f)
                     .padding(horizontal = 8.dp),
             label = "DIST. ( K M )",
-            value = "",
+            value = distance,
             valueColor = LightGray,
         )
         MetricItem(
@@ -268,7 +270,7 @@ fun MetricGroup(tripState: TripStateInMeterOpsUI) {
                     .weight(1f)
                     .padding(horizontal = 8.dp),
             label = "TIME",
-            value = "",
+            value = time,
             valueColor = LightGray,
         )
         MeterGoButton(
