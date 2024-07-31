@@ -125,9 +125,9 @@ object MeasureBoardUtils {
 
     fun getEndTripCmd(): String {
         //beep sound
-        val durationHex = decimalToHex(0).padStart(2,'0')
+        val durationHex = decimalToHex(BEEP_SOUND_LENGTH).padStart(2,'0')
         val intervalHex = decimalToHex(0).padStart(2,'0')
-        val repeatCountHex = decimalToHex(0).padStart(2,'0')
+        val repeatCountHex = decimalToHex(1).padStart(2,'1')
 
         val CMD_END = "00 08 00 00 10 A3 01 $durationHex $intervalHex $repeatCountHex"
         //55 AA 00 0B 00 00 10 A3 20 23 02 25 20 47 01 FA 55 AA

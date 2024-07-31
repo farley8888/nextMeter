@@ -137,7 +137,7 @@ class MeasureBoardRepository @Inject constructor(
                 _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
                 _mcuTime.value = currentTime
 
-                val currentOngoingTrip = tripStatus.value as? MCUTripStatus.Ongoing
+                val currentOngoingTrip = _tripStatus.value as? MCUTripStatus.Ongoing
                 currentOngoingTrip?.let {
                     _tripStatus.value = MCUTripStatus.Ongoing(
                         tripId = currentOngoingTrip.tripId,
@@ -163,7 +163,7 @@ class MeasureBoardRepository @Inject constructor(
                 val extras = result.substring(136, 136 + 6)
                 val totalFare = result.substring(142, 142 + 6)
 
-                val currentOngoingTrip = tripStatus.value as? MCUTripStatus.Ongoing
+                val currentOngoingTrip = _tripStatus.value as? MCUTripStatus.Ongoing
                 currentOngoingTrip?.let {
                     _tripStatus.value = MCUTripStatus.Ended(
                         tripId = it.tripId,
@@ -210,7 +210,7 @@ class MeasureBoardRepository @Inject constructor(
     fun endTrip() {
         addTask {
             mBusModel?.write(MeasureBoardUtils.getEndTripCmd())
-            delay(300)
+            delay(200)
             setSwitchLs(false)
         }
     }
@@ -224,16 +224,16 @@ class MeasureBoardRepository @Inject constructor(
 
     fun startAndPauseTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
+        _tripStatus.value = MCUTripStatus.Ongoing(tripId = tripId, startTime = Date())
         addTask {
             mBusModel?.write(MeasureBoardUtils.getStartPauseTripCmd(tripId))
             delay(200)
-            emitBeepSound(10, 0, 1)
             setSwitchLs(true)
         }
     }
 
     fun addExtras(extrasAmount: Int) {
-        val currentOngoingTrip = tripStatus.value as? MCUTripStatus.Ongoing
+        val currentOngoingTrip = _tripStatus.value as? MCUTripStatus.Ongoing
         currentOngoingTrip?.let {
             val totalExtras = currentOngoingTrip.extra.toInt() + extrasAmount
             if (totalExtras < 1000) {
