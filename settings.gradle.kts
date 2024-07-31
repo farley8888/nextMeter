@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "CableMeter"
 include(":app")
 include(":measure-board-module")
+include(":NxGnFirebaseModule")
