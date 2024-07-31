@@ -1,9 +1,24 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.kotlinAndroidKsp)
     alias(libs.plugins.hiltAndroid)
     alias(libs.plugins.detekt)
+}
+
+fun getVersionName(): String {
+    val properties = Properties()
+    properties.load(file("gradle.properties").inputStream())
+    return properties.getProperty("VERSION_NAME") ?: "1.0"
+}
+
+fun getVersionCode() : Int {
+    val properties = Properties()
+    properties.load(file("gradle.properties").inputStream())
+    return properties.getProperty("VERSION_CODE")?.toInt() ?: 1
 }
 
 android {
@@ -14,8 +29,8 @@ android {
         applicationId = "com.vismo.cablemeter"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = getVersionCode()
+        versionName = getVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -24,8 +39,13 @@ android {
     }
 
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+            isDebuggable = true
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -55,6 +75,26 @@ android {
         allRules = false
         config.setFrom("$projectDir/config/detekt/config.yml")
         baseline = file("$projectDir/config/detekt/baseline.xml")
+    }
+
+    flavorDimensions.add("env")
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            archivesName = "cablemeter-$${getVersionName()}(${getVersionCode()})"
+        }
+        create("qa") {
+            dimension = "env"
+            applicationIdSuffix = ".qa"
+            versionNameSuffix = "-qa"
+            archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
+        }
+        create("prod") {
+            dimension = "env"
+            archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
+        }
     }
 }
 
