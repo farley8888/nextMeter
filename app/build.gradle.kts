@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinAndroidKsp)
     alias(libs.plugins.hiltAndroid)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.googleServices)
 }
 
 fun getVersionName(): String {
