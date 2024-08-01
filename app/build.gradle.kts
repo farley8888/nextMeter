@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.hiltAndroid)
     alias(libs.plugins.detekt)
     alias(libs.plugins.googleServices)
+    alias(libs.plugins.crashlyticsGradle)
 }
 
 fun getVersionName(): String {

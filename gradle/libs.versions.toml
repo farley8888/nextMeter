@@ -17,6 +17,7 @@ appcompat = "1.7.0"
 material = "1.12.0"
 firebase-bom = "33.1.2"
 google-services = "4.4.2"
+crashlytics-gradle = "3.0.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,10 +43,10 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
-firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
-firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
-firebase-storage = { group = "com.google.firebase", name = "firebase-storage-ktx" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 
 
 [plugins]
@@ -56,4 +57,5 @@ hiltAndroid = { id = "com.google.dagger.hilt.android", version.ref ="hiltVersion
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt"}
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
+crashlyticsGradle = { id = "com.google.firebase.crashlytics", version.ref = "crashlytics-gradle" }
 

@@ -670,6 +670,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "214538821348-8s76j8q81mqkc9rtf5j56kvej1a5htnk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vismo.cablemeter.dev",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
           "client_id": "214538821348-7tpeuslcl9o3rbv292chhf77mgrdkb3d.apps.googleusercontent.com",
           "client_type": 3
         }

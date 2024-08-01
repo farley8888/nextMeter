@@ -62,11 +62,11 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.measureBoardData.collect { measureBoardData ->
-                        measureBoardData?.let {
-
-                        }
-                    }
+//                    viewModel.measureBoardData.collect { measureBoardData ->
+//                        measureBoardData?.let {
+//
+//                        }
+//                    }
                 }
             }
         }

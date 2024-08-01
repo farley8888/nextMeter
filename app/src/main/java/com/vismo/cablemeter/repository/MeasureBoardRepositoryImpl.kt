@@ -9,17 +9,20 @@ import com.ilin.util.Config
 import com.ilin.util.ShellUtils
 import com.serial.opt.UartWorkerCH
 import com.serial.port.ByteUtils
+import com.vismo.cablemeter.datastore.TripDataStore
+import com.vismo.cablemeter.interfaces.MeasureBoardRepository
 import com.vismo.cablemeter.model.DeviceIdData
 import com.vismo.cablemeter.model.MCUMessage
-import com.vismo.cablemeter.model.MCUTripStatus
+import com.vismo.cablemeter.model.TripData
+import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.util.MeasureBoardUtils
 import com.vismo.cablemeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
 import com.vismo.cablemeter.util.MeasureBoardUtils.ONGOING_HEARTBEAT
 import com.vismo.cablemeter.util.MeasureBoardUtils.TRIP_END_SUMMARY
-import com.vismo.cablemeter.util.MeasureBoardUtils.getPaidMin
 import com.vismo.cablemeter.util.MeasureBoardUtils.getResultType
 import com.vismo.cablemeter.util.MeasureBoardUtils.getTimeInSeconds
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -33,10 +36,10 @@ import java.util.logging.Logger
 import javax.inject.Inject
 
 @Suppress("detekt.TooManyFunctions")
-class MeasureBoardRepository @Inject constructor(
-    private val context: Context,
+class MeasureBoardRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-) {
+) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
     private var mWorkCh3: UartWorkerCH? = null
 
@@ -46,11 +49,9 @@ class MeasureBoardRepository @Inject constructor(
     private val _deviceIdData = MutableStateFlow<DeviceIdData?>(null)
     val deviceIdData = _deviceIdData
 
-    private val _tripStatus = MutableStateFlow<MCUTripStatus?>(null)
-    val tripStatus = _tripStatus
-
     private val _mcuTime = MutableStateFlow<String?>(null)
     val mcuTime = _mcuTime
+
 
     private fun startMessageProcessor() {
         CoroutineScope(ioDispatcher).launch {
@@ -105,7 +106,7 @@ class MeasureBoardRepository @Inject constructor(
         setSwitchLs(false)
     }
 
-    private fun checkStatues(result: String) {
+    private suspend fun checkStatues(result: String) {
         when (getResultType(result)) {
             IDLE_HEARTBEAT -> {
                 val measureBoardDeviceId = result.substring(52, 52 + 10)
@@ -113,8 +114,13 @@ class MeasureBoardRepository @Inject constructor(
                 val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
                 _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
-                _tripStatus.value = MCUTripStatus.ForHire
                 _mcuTime.value = result.substring(40, 40 + 12)
+
+                TripDataStore.tripData.value?.tripStatus?.let { tripStatus ->
+                    if (tripStatus == TripStatus.ENDED) {
+                        TripDataStore.clearTripData()
+                    }
+                }
 
                 Log.d(TAG, "IDLE_HEARTBEAT: $result")
             }
@@ -137,21 +143,19 @@ class MeasureBoardRepository @Inject constructor(
                 _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
                 _mcuTime.value = currentTime
 
-                val currentOngoingTrip = _tripStatus.value as? MCUTripStatus.Ongoing
-                currentOngoingTrip?.let {
-                    _tripStatus.value = MCUTripStatus.Ongoing(
-                        tripId = currentOngoingTrip.tripId,
-                        startTime = currentOngoingTrip.startTime,
-                        isPaused = isStopped,
-                        isLocked = overSpeedLockupDuration > 0,
-                        fare = BigDecimal(fare).divide(BigDecimal("100")).toDouble(),
-                        extra = BigDecimal(extras).divide(BigDecimal("100")).toDouble(),
-                        totalFare = BigDecimal(totalFare).divide(BigDecimal("100")).toDouble(),
-                        distanceInMeter = BigDecimal(distance).multiply(BigDecimal("10")).toDouble(),
-                        waitDurationInSeconds = getTimeInSeconds(duration),
-                        overSpeedDurationInSeconds = overSpeedLockupDuration
-                    )
-                }
+                val currentOngoingTrip = TripData(
+                    tripId = null,
+                    startTime = null,
+                    tripStatus = if (isStopped) TripStatus.PAUSED else TripStatus.HIRED,
+                    isLocked = overSpeedLockupDuration > 0,
+                    fare = BigDecimal(fare).divide(BigDecimal("100")).toDouble(),
+                    extra = BigDecimal(extras).divide(BigDecimal("100")).toDouble(),
+                    totalFare = BigDecimal(totalFare).divide(BigDecimal("100")).toDouble(),
+                    distanceInMeter = BigDecimal(distance).multiply(BigDecimal("10")).toDouble(),
+                    waitDurationInSeconds = getTimeInSeconds(duration),
+                    overSpeedDurationInSeconds = overSpeedLockupDuration,
+                )
+                TripDataStore.updateTripDataValue(currentOngoingTrip)
 
                 Log.d(TAG, "ONGOING_HEARTBEAT: $result")
             }
@@ -163,19 +167,19 @@ class MeasureBoardRepository @Inject constructor(
                 val extras = result.substring(136, 136 + 6)
                 val totalFare = result.substring(142, 142 + 6)
 
-                val currentOngoingTrip = _tripStatus.value as? MCUTripStatus.Ongoing
-                currentOngoingTrip?.let {
-                    _tripStatus.value = MCUTripStatus.Ended(
-                        tripId = it.tripId,
-                        startTime = it.startTime,
-                        fare = BigDecimal(fare).divide(BigDecimal("100")).toDouble(),
-                        extra = BigDecimal(extras).divide(BigDecimal("100")).toDouble(),
-                        totalFare = BigDecimal(totalFare).divide(BigDecimal("100")).toDouble(),
-                        distanceInMeter = BigDecimal(distance).multiply(BigDecimal("10")).toDouble(),
-                        waitDurationInSeconds = getTimeInSeconds(duration),
-                        endTime = Date(),
-                    )
-                }
+                val currentOngoingTrip = TripData(
+                    tripId = null,
+                    startTime = null,
+                    tripStatus = TripStatus.ENDED,
+                    fare = BigDecimal(fare).divide(BigDecimal("100")).toDouble(),
+                    extra = BigDecimal(extras).divide(BigDecimal("100")).toDouble(),
+                    totalFare = BigDecimal(totalFare).divide(BigDecimal("100")).toDouble(),
+                    distanceInMeter = BigDecimal(distance).multiply(BigDecimal("10")).toDouble(),
+                    waitDurationInSeconds = getTimeInSeconds(duration),
+                    endTime = Date()
+                )
+                TripDataStore.updateTripDataValue(currentOngoingTrip)
+
                 addTask {
                     // after a trip ends, MCU will only continue sending IDLE heartbeats after it receives this response
                     mBusModel?.write(Command.CMD_END_RESPONSE)
@@ -197,9 +201,7 @@ class MeasureBoardRepository @Inject constructor(
         mBusModel?.write(MeasureBoardUtils.getBeepSoundCmd(duration, interval, repeatCount))
     }
 
-    fun startTrip() {
-        val tripId = MeasureBoardUtils.generateTripId()
-        _tripStatus.value = MCUTripStatus.Ongoing(tripId = tripId, startTime = Date())
+    override fun writeStartTripCommand(tripId: String) {
         addTask {
             mBusModel?.write(MeasureBoardUtils.getStartTripCmd(tripId = tripId))
             delay(200)
@@ -207,7 +209,14 @@ class MeasureBoardRepository @Inject constructor(
         }
     }
 
-    fun endTrip() {
+    override fun writeResumeTripCommand() {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getContinueTripCmd())
+            delay(200)
+        }
+    }
+
+    override fun writeEndTripCommand() {
         addTask {
             mBusModel?.write(MeasureBoardUtils.getEndTripCmd())
             delay(200)
@@ -215,16 +224,14 @@ class MeasureBoardRepository @Inject constructor(
         }
     }
 
-    fun pauseTrip() {
+    override fun writePauseTripCommand() {
         addTask {
             mBusModel?.write(MeasureBoardUtils.getPauseTripCmd())
             delay(200)
         }
     }
 
-    fun startAndPauseTrip() {
-        val tripId = MeasureBoardUtils.generateTripId()
-        _tripStatus.value = MCUTripStatus.Ongoing(tripId = tripId, startTime = Date())
+    override fun writeStartAndPauseTripCommand(tripId: String) {
         addTask {
             mBusModel?.write(MeasureBoardUtils.getStartPauseTripCmd(tripId))
             delay(200)
@@ -232,15 +239,9 @@ class MeasureBoardRepository @Inject constructor(
         }
     }
 
-    fun addExtras(extrasAmount: Int) {
-        val currentOngoingTrip = _tripStatus.value as? MCUTripStatus.Ongoing
-        currentOngoingTrip?.let {
-            val totalExtras = currentOngoingTrip.extra.toInt() + extrasAmount
-            if (totalExtras < 1000) {
-                addTask {
-                    mBusModel?.write(MeasureBoardUtils.getUpdateExtrasCmd("$totalExtras"))
-                }
-            }
+    override fun writeAddExtrasCommand(extrasAmount: Int) {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getUpdateExtrasCmd("$extrasAmount"))
         }
     }
 
@@ -282,17 +283,12 @@ class MeasureBoardRepository @Inject constructor(
         }
     }
 
-    suspend fun sendPrintCmd(
-        fare: String,
-        extras: String,
-        duration: String,
-        distance: String,
-        totalFare: String,
-    ) {
+    override suspend fun writePrintReceiptCommand() {
+        // TODO: Implement this method - take trip details from flow and send to printer
         if (mWorkCh3 == null) {
             openCH3()
             delay(2000)
-            sendPrintCmd(fare, extras, duration, distance, totalFare)
+            writePrintReceiptCommand()
         } else {
             try {
                 ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
@@ -303,10 +299,10 @@ class MeasureBoardRepository @Inject constructor(
                 val licensePlate = "CABLE03T"
                 val startDateTime = Date()
                 val endDateTime = Date()
-                val paidKm = String.format("%.2f", BigDecimal(distance).divide(BigDecimal("100")))
-                val paidMin = String.format("%.2f", getPaidMin(duration))
-                val surcharge = String.format("%.2f", BigDecimal(extras).divide(BigDecimal("100")))
-                val total = String.format("%.2f", BigDecimal(totalFare).divide(BigDecimal("100")))
+//                val paidKm = String.format("%.2f", BigDecimal(distance).divide(BigDecimal("100")))
+//                val paidMin = String.format("%.2f", getPaidMin(duration))
+//                val surcharge = String.format("%.2f", BigDecimal(extras).divide(BigDecimal("100")))
+//                val total = String.format("%.2f", BigDecimal(totalFare).divide(BigDecimal("100")))
 
                 var data = Config.getSPIData()
                 data =
@@ -319,11 +315,11 @@ class MeasureBoardRepository @Inject constructor(
                             .replace("FF", "20"),
                         Config.getSPIDateTime(startDateTime),
                         Config.getSPIDateTime(endDateTime),
-                        Config.getSPIDecimal(paidKm, 6),
-                        Config.getSPIDecimal(paidKm, 6),
-                        Config.getSPIDecimal(paidMin, 6),
-                        Config.getSPIDecimal(surcharge, 7),
-                        Config.getSPIDecimal(total, 7),
+//                        Config.getSPIDecimal(paidKm, 6),
+//                        Config.getSPIDecimal(paidKm, 6),
+//                        Config.getSPIDecimal(paidMin, 6),
+//                        Config.getSPIDecimal(surcharge, 7),
+//                        Config.getSPIDecimal(total, 7),
                     )
 
                 data = data.replace(" ", "")
@@ -353,7 +349,6 @@ class MeasureBoardRepository @Inject constructor(
 
     fun stopCommunication() {
         mBusModel?.stopCommunicate()
-
     }
 
     companion object {

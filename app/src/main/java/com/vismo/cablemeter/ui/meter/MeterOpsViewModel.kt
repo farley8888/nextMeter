@@ -2,13 +2,16 @@ package com.vismo.cablemeter.ui.meter
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vismo.cablemeter.datastore.TripDataStore
+import com.vismo.cablemeter.interfaces.TripRepository
 import com.vismo.cablemeter.model.ForHire
 import com.vismo.cablemeter.model.Hired
-import com.vismo.cablemeter.model.MCUTripStatus
+import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.MeterOpsUiData
 import com.vismo.cablemeter.model.Paused
+import com.vismo.cablemeter.model.TripStateInMeterOpsUI
+import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
-import com.vismo.cablemeter.repository.MeasureBoardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,11 +20,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MeterOpsViewModel @Inject constructor(
-    private val measureBoardRepository: MeasureBoardRepository,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val tripRepository: TripRepository
 ) : ViewModel() {
 
-    private val _currentTripState = MutableStateFlow<MCUTripStatus?>(null)
+    private val _currentTrip = MutableStateFlow<TripData?>(null)
 
     private val _uiState = MutableStateFlow<MeterOpsUiData>(
         MeterOpsUiData(
@@ -36,36 +39,38 @@ class MeterOpsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            measureBoardRepository.tripStatus.collect { tripStatus ->
-                _currentTripState.value = tripStatus
-                when(tripStatus) {
-                    is MCUTripStatus.Ongoing -> {
-                        if (tripStatus.isPaused) {
-                            _uiState.value = MeterOpsUiData(
-                                status = Paused,
-                                extras = MeterOpsUtil.formatToNDecimalPlace(tripStatus.extra, 1),
-                                fare = MeterOpsUtil.formatToNDecimalPlace(tripStatus.fare, 2),
-                                distanceInKM = MeterOpsUtil.getDistanceInKm(tripStatus.distanceInMeter),
-                                duration = MeterOpsUtil.getFormattedDurationFromSeconds(tripStatus.waitDurationInSeconds),
-                                )
-                        } else {
-                            _uiState.value = MeterOpsUiData(
-                                status = Hired,
-                                extras = MeterOpsUtil.formatToNDecimalPlace(tripStatus.extra, 1),
-                                fare = MeterOpsUtil.formatToNDecimalPlace(tripStatus.fare, 2),
-                                distanceInKM = MeterOpsUtil.getDistanceInKm(tripStatus.distanceInMeter),
-                                duration = MeterOpsUtil.getFormattedDurationFromSeconds(tripStatus.waitDurationInSeconds),
+            TripDataStore.tripData.collect { trip ->
+                _currentTrip.value = trip
+                if (trip != null) {
+                    val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
+                        TripStatus.HIRED -> {
+                            Hired
+                        }
 
-                            )
+                        TripStatus.PAUSED -> {
+                            Paused
+                        }
+
+                        TripStatus.ENDED, null -> {
+                            ForHire
                         }
                     }
-                    else -> {
+                    if (status == ForHire) {
                         _uiState.value = MeterOpsUiData(
-                            status = ForHire,
+                            status = status,
                             fare = "",
                             extras = "",
                             distanceInKM = "",
                             duration = "",
+                        )
+                        return@collect
+                    } else {
+                        _uiState.value = MeterOpsUiData(
+                            status = status,
+                            extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
+                            fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
+                            distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
+                            duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
                         )
                     }
                 }
@@ -81,7 +86,7 @@ class MeterOpsViewModel @Inject constructor(
             }
             249 -> {
                 // start/resume trip
-                startTrip()
+                startOrResumeTrip()
             }
             250 -> {
                 // pause/start-and-pause trip
@@ -103,54 +108,38 @@ class MeterOpsViewModel @Inject constructor(
 
     private fun addExtras(extrasAmount: Int) {
         viewModelScope.launch(ioDispatcher) {
-            _currentTripState.value?.let {
-                if (it is MCUTripStatus.Ongoing) {
-                    measureBoardRepository.addExtras(extrasAmount)
-                    return@launch
-                }
-            }
+            tripRepository.addExtras(extrasAmount)
         }
     }
 
-    private fun startTrip() {
+    private fun startOrResumeTrip() {
         viewModelScope.launch(ioDispatcher) {
-            _currentTripState.value?.let {
-                if (it == MCUTripStatus.ForHire) {
-                    measureBoardRepository.startTrip()
-                    return@launch
-                }
+            if (_currentTrip.value == null) {
+                tripRepository.startTrip()
+                return@launch
+            } else {
+                tripRepository.resumeTrip()
             }
         }
     }
 
     private fun pauseTrip() {
         viewModelScope.launch(ioDispatcher) {
-            _currentTripState.value?.let {
-                if (it == MCUTripStatus.ForHire) {
-                    measureBoardRepository.startAndPauseTrip()
-                    return@launch
-                } else if (it is MCUTripStatus.Ongoing && !it.isPaused) {
-                    measureBoardRepository.pauseTrip()
-                    return@launch
-                }
+            if (_currentTrip.value == null) {
+                tripRepository.startAndPauseTrip()
+                return@launch
+            } else {
+                tripRepository.pauseTrip()
             }
         }
     }
 
     private fun endTripAndReadyForHire() {
         viewModelScope.launch(ioDispatcher) {
-            _currentTripState.value?.let {
-                if (it is MCUTripStatus.Ongoing && it.isPaused) {
-                    measureBoardRepository.endTrip()
-                    return@launch
-                }
+            if (_currentTrip.value?.tripStatus == TripStatus.PAUSED) {
+                tripRepository.endTrip()
             }
         }
-    }
-
-    override fun onCleared() {
-        measureBoardRepository.stopCommunication()
-        super.onCleared()
     }
 
 }
