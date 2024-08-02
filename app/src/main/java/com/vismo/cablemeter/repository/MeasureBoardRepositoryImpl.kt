@@ -10,7 +10,6 @@ import com.ilin.util.ShellUtils
 import com.serial.opt.UartWorkerCH
 import com.serial.port.ByteUtils
 import com.vismo.cablemeter.datastore.TripDataStore
-import com.vismo.cablemeter.interfaces.MeasureBoardRepository
 import com.vismo.cablemeter.model.DeviceIdData
 import com.vismo.cablemeter.model.MCUMessage
 import com.vismo.cablemeter.model.TripData

@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.interfaces
+package com.vismo.cablemeter.repository
 
 interface MeasureBoardRepository {
 

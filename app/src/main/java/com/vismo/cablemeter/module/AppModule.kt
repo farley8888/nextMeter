@@ -5,10 +5,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-import com.vismo.cablemeter.interfaces.MeasureBoardRepository
+import com.vismo.cablemeter.network.api.MeterOApi
+import com.vismo.cablemeter.repository.FirebaseAuthRepository
+import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepositoryImpl
-import com.vismo.cablemeter.interfaces.TripRepository
+import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.repository.TripRepositoryImpl
+import com.vismo.nxgnfirebasemodule.DashManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,6 +40,20 @@ object AppModule {
     @Singleton
     fun providesFirebaseCrashlytics() = FirebaseCrashlytics.getInstance()
 
+    @Singleton
+    @Provides
+    fun provideFirebaseAuthRepository(
+        auth: FirebaseAuth,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        meterOApi: MeterOApi,
+    ): FirebaseAuthRepository {
+        return FirebaseAuthRepository(
+            auth = auth,
+            ioDispatcher = ioDispatcher,
+            meterOApi = meterOApi
+        )
+    }
+
     @Provides
     @Singleton
     fun provideMeasureBoardRepository(
@@ -52,16 +69,18 @@ object AppModule {
     @Singleton
     @Provides
     fun provideTripRepository(
-        auth: FirebaseAuth,
+        firebaseAuthRepository: FirebaseAuthRepository,
         firestore: FirebaseFirestore,
         measureBoardRepository: MeasureBoardRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        dashManager: DashManager
     ): TripRepository {
         return TripRepositoryImpl (
-            auth = auth,
+            firebaseAuthRepository = firebaseAuthRepository,
             firestore = firestore,
             ioDispatcher = ioDispatcher,
-            measureBoardRepository = measureBoardRepository
+            measureBoardRepository = measureBoardRepository,
+            dashManager = dashManager
         )
     }
 

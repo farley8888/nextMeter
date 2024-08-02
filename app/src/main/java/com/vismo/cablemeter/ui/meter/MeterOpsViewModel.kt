@@ -3,7 +3,7 @@ package com.vismo.cablemeter.ui.meter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.datastore.TripDataStore
-import com.vismo.cablemeter.interfaces.TripRepository
+import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.model.ForHire
 import com.vismo.cablemeter.model.Hired
 import com.vismo.cablemeter.model.TripData
