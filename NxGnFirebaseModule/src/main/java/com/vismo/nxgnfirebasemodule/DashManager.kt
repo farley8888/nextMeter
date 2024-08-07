@@ -84,7 +84,6 @@ class DashManager @Inject constructor(
             location = meterLocation.geoPoint,
             gpsType = meterLocation.gpsType.toString(),
             deviceTime = Timestamp.now(),
-            serverTime = FieldValue.serverTimestamp(),
             bearing = bearing,
             speed = speed
         )

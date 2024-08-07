@@ -5,4 +5,7 @@ object Constant {
     const val HEARTBEAT_COLLECTION = "heartbeat"
     const val DEFAULT_LICENSE_PLATE = "DASH-DEFAULT"
     const val TRIPS_COLLECTION = "trips"
+    const val SECONDS = "seconds"
+    const val NANOSECONDS = "nanoseconds"
+    const val SERVER_TIME = "server_time"
 }
