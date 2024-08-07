@@ -9,21 +9,34 @@ data class MeterFields(
 
 
 data class Settings(
-    @SerializedName("dash_fee_constant") val dashFeeConstant: Number,
-    @SerializedName("dash_fee_rate") val dashFeeRate: Number,
+    @SerializedName("dash_fee_constant") val dashFeeConstant: Int,
+    @SerializedName("dash_fee_rate") val dashFeeRate: Double,
     @SerializedName("heartbeat_interval") val heartbeatInterval: Int,
-    @SerializedName("meter_software_version") val model: String,
-    @SerializedName("sdk_version") val operatingArea: String,
+    @SerializedName("meter_software_version") val meterSoftwareVersion: String,
+    @SerializedName("sdk_version") val sdkVersion: String,
     @SerializedName("show_login_toggle") val showLoginToggle: Boolean,
     @SerializedName("sim_iccid") val simIccid: String,
+    @SerializedName("vehicle") val vehicle: Vehicle,
+    @SerializedName("operating_area") val operatingArea: OperatingArea,
 )
 
 data class McuInfo(
     @SerializedName("firmware_version") val firmwareVersion: String,
     @SerializedName("k_value") val kValue: String,
     @SerializedName("starting_distance") val startingDistance: String,
-    @SerializedName("starting_price") val startingPrice: String,
+    @SerializedName("start_price") val startingPrice: String,
     @SerializedName("step_price") val stepPrice: String,
-    @SerializedName("changed__step_price") val changedPriceAt: String,
+    @SerializedName("changed_step_price") val changedPriceAt: String,
     @SerializedName("step_price_change_at") val changedStepPrice: String,
 )
+
+data class Vehicle(
+    @SerializedName("make") val make: String,
+    @SerializedName("model") val model: String,
+)
+
+enum class OperatingArea {
+    LANTAU,
+    NT,
+    URBAN
+}

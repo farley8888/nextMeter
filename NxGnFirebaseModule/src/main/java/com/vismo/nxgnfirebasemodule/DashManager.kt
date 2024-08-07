@@ -1,7 +1,6 @@
 package com.vismo.nxgnfirebasemodule
 
 import com.google.firebase.Timestamp
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.google.gson.Gson
@@ -9,12 +8,16 @@ import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.Heartbeat
 import com.vismo.nxgnfirebasemodule.model.MeterFields
-import com.vismo.nxgnfirebasemodule.model.MeterLocation
+import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
+import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.HEARTBEAT_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METERS_COLLECTION
+import com.vismo.nxgnfirebasemodule.util.Constant.METER_SDK_DOCUMENT
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.util.UUID
 import javax.inject.Inject
 
@@ -23,6 +26,32 @@ class DashManager @Inject constructor(
     private val gson: Gson,
     private val dashManagerConfig: DashManagerConfig,
 ) {
+
+    init {
+        meterDocumentListener()
+        meterSdkConfigurationListener()
+    }
+
+    private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)
+    val meterFields: StateFlow<MeterFields?> = _meterFields
+
+    private val _meterSdkConfig: MutableStateFlow<MeterSdkConfiguration?> = MutableStateFlow(null)
+    val meterSdkConfig: StateFlow<MeterSdkConfiguration?> = _meterSdkConfig
+
+    private fun meterSdkConfigurationListener() {
+        firestore.collection(CONFIGURATIONS_COLLECTION)
+            .document(METER_SDK_DOCUMENT)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    val meterSdkConfigJson = gson.toJson(snapshot.data)
+                    _meterSdkConfig.value = gson.fromJson(meterSdkConfigJson, MeterSdkConfiguration::class.java)
+                }
+            }
+    }
 
     private fun meterDocumentListener() {
         firestore.collection(METERS_COLLECTION)
@@ -33,8 +62,8 @@ class DashManager @Inject constructor(
                 }
 
                 if (snapshot != null && snapshot.exists()) {
-                    val meterFields = snapshot.toObject(MeterFields::class.java)
-
+                    val meterFieldsJson = gson.toJson(snapshot.data)
+                    _meterFields.value = gson.fromJson(meterFieldsJson, MeterFields::class.java)
                 }
             }
     }
