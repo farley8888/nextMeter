@@ -1,6 +1,6 @@
 package com.vismo.cablemeter.repository
 
-import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.model.TripData
@@ -9,7 +9,10 @@ import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.util.MeasureBoardUtils
 import com.vismo.nxgnfirebasemodule.DashManager
 import kotlinx.coroutines.CoroutineDispatcher
-import java.util.Date
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class TripRepositoryImpl @Inject constructor(
@@ -24,14 +27,27 @@ class TripRepositoryImpl @Inject constructor(
 
     init {
         firebaseAuthRepository.initToken()
+        CoroutineScope(ioDispatcher).launch {
+            tripData.collect { trip ->
+                trip?.let {
+                    if (trip.requiresUpdateOnFirestore) {
+                        dashManager.updateTripOnFirestore(
+                            dashManager.convertToMeterTripInFirestore(
+                                it
+                            )
+                        )
+                        dashManager.sendHeartbeat()
+                    }
+                }
+            }
+        }
     }
 
     override fun startTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
-        val tripData = TripData(tripId = tripId, startTime = Date(), tripStatus = TripStatus.HIRED)
+        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED)
         TripDataStore.setTripData(tripData)
         measureBoardRepository.writeStartTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
-        dashManager.startTrip()
     }
 
     override fun resumeTrip() {
@@ -42,7 +58,7 @@ class TripRepositoryImpl @Inject constructor(
 
     override fun startAndPauseTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
-        val tripData = TripData(tripId = tripId, startTime = Date(), tripStatus = TripStatus.HIRED)
+        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED)
         TripDataStore.setTripData(tripData)
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
     }

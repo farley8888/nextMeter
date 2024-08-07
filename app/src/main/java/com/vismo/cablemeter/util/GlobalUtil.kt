@@ -6,6 +6,7 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import android.util.Base64
+import java.math.BigDecimal
 
 object GlobalUtils {
     fun loadPublicKey(pem: String): RSAPublicKey {
@@ -28,5 +29,13 @@ object GlobalUtils {
         val keySpec = PKCS8EncodedKeySpec(encoded)
         val keyFactory = KeyFactory.getInstance("RSA")
         return keyFactory.generatePrivate(keySpec) as RSAPrivateKey
+    }
+
+    fun String.divideBy100AndConvertToDouble(): Double {
+        return BigDecimal(this).divide(BigDecimal("100")).toDouble()
+    }
+
+    fun String.multiplyBy10AndConvertToDouble(): Double {
+        return BigDecimal(this).multiply(BigDecimal("10")).toDouble()
     }
 }

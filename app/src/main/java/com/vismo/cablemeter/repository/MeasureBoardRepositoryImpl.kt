@@ -3,6 +3,7 @@ package com.vismo.cablemeter.repository
 import android.content.Context
 import android.util.Log
 import android_serialport_api.Command
+import com.google.firebase.Timestamp
 import com.ilin.atelec.BusModel
 import com.ilin.atelec.IAtCmd
 import com.ilin.util.Config
@@ -15,12 +16,15 @@ import com.vismo.cablemeter.model.MCUMessage
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
+import com.vismo.cablemeter.util.GlobalUtils.divideBy100AndConvertToDouble
+import com.vismo.cablemeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
 import com.vismo.cablemeter.util.MeasureBoardUtils
 import com.vismo.cablemeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
 import com.vismo.cablemeter.util.MeasureBoardUtils.ONGOING_HEARTBEAT
 import com.vismo.cablemeter.util.MeasureBoardUtils.TRIP_END_SUMMARY
 import com.vismo.cablemeter.util.MeasureBoardUtils.getResultType
 import com.vismo.cablemeter.util.MeasureBoardUtils.getTimeInSeconds
+import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +42,7 @@ import javax.inject.Inject
 class MeasureBoardRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val dashManagerConfig: DashManagerConfig
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
     private var mWorkCh3: UartWorkerCH? = null
@@ -50,7 +55,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private val _mcuTime = MutableStateFlow<String?>(null)
     val mcuTime = _mcuTime
-
 
     private fun startMessageProcessor() {
         CoroutineScope(ioDispatcher).launch {
@@ -120,20 +124,21 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                         TripDataStore.clearTripData()
                     }
                 }
-
+                dashManagerConfig.setLicensePlate(licensePlate)
                 Log.d(TAG, "IDLE_HEARTBEAT: $result")
             }
 
             ONGOING_HEARTBEAT -> {
                 val measureBoardStatus = result.substring(16, 16 + 2)
                 val isStopped = (measureBoardStatus.toInt() == 1)
+                val tripStatus = if (isStopped) TripStatus.PAUSED else TripStatus.HIRED
                 val lockedDuration = result.substring(18, 18 + 4)
                 val overSpeedLockupDuration = MeasureBoardUtils.hexToDecimal(lockedDuration)
-                val distance = result.substring(22, 22 + 6)
+                val distance = result.substring(22, 22 + 6).multiplyBy10AndConvertToDouble()
                 val duration = result.substring(28, 28 + 6)
-                val extras = result.substring(38, 38 + 6)
-                val fare = result.substring(44, 44 + 6)
-                val totalFare = result.substring(50, 50 + 6)
+                val extras = result.substring(38, 38 + 6).divideBy100AndConvertToDouble()
+                val fare = result.substring(44, 44 + 6).divideBy100AndConvertToDouble()
+                val totalFare = result.substring(50, 50 + 6).divideBy100AndConvertToDouble()
                 val currentTime = result.substring(56, 56 + 12)
                 val measureBoardDeviceId = result.substring(68, 68 + 10)
                 val licensePlateHex = result.substring(126, 126 + 16)
@@ -142,40 +147,45 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
                 _mcuTime.value = currentTime
 
+                val currentTrip = TripDataStore.tripData.value
+                val requiresUpdate = currentTrip?.fare != fare || currentTrip.tripStatus != tripStatus
+
                 val currentOngoingTrip = TripData(
                     tripId = null,
                     startTime = null,
-                    tripStatus = if (isStopped) TripStatus.PAUSED else TripStatus.HIRED,
+                    tripStatus = tripStatus,
                     isLocked = overSpeedLockupDuration > 0,
-                    fare = BigDecimal(fare).divide(BigDecimal("100")).toDouble(),
-                    extra = BigDecimal(extras).divide(BigDecimal("100")).toDouble(),
-                    totalFare = BigDecimal(totalFare).divide(BigDecimal("100")).toDouble(),
-                    distanceInMeter = BigDecimal(distance).multiply(BigDecimal("10")).toDouble(),
+                    fare = fare,
+                    extra = extras,
+                    totalFare = totalFare,
+                    distanceInMeter = distance,
                     waitDurationInSeconds = getTimeInSeconds(duration),
                     overSpeedDurationInSeconds = overSpeedLockupDuration,
+                    requiresUpdateOnFirestore = requiresUpdate,
                 )
                 TripDataStore.updateTripDataValue(currentOngoingTrip)
-
+                dashManagerConfig.setLicensePlate(licensePlate)
                 Log.d(TAG, "ONGOING_HEARTBEAT: $result")
             }
 
             TRIP_END_SUMMARY -> {
-                val distance = result.substring(118, 118 + 4)
+                val distance = result.substring(118, 118 + 4).multiplyBy10AndConvertToDouble()
                 val duration = result.substring(124, 124 + 6)
-                val fare = result.substring(130, 130 + 6)
-                val extras = result.substring(136, 136 + 6)
-                val totalFare = result.substring(142, 142 + 6)
+                val fare = result.substring(130, 130 + 6).divideBy100AndConvertToDouble()
+                val extras = result.substring(136, 136 + 6).divideBy100AndConvertToDouble()
+                val totalFare = result.substring(142, 142 + 6).divideBy100AndConvertToDouble()
 
                 val currentOngoingTrip = TripData(
                     tripId = null,
                     startTime = null,
                     tripStatus = TripStatus.ENDED,
-                    fare = BigDecimal(fare).divide(BigDecimal("100")).toDouble(),
-                    extra = BigDecimal(extras).divide(BigDecimal("100")).toDouble(),
-                    totalFare = BigDecimal(totalFare).divide(BigDecimal("100")).toDouble(),
-                    distanceInMeter = BigDecimal(distance).multiply(BigDecimal("10")).toDouble(),
+                    fare = fare,
+                    extra = extras,
+                    totalFare = totalFare,
+                    distanceInMeter = distance,
                     waitDurationInSeconds = getTimeInSeconds(duration),
-                    endTime = Date()
+                    endTime = Timestamp.now(),
+                    requiresUpdateOnFirestore = true,
                 )
                 TripDataStore.updateTripDataValue(currentOngoingTrip)
 

@@ -27,7 +27,8 @@ object TripDataStore {
                 distanceInMeter = tripData.distanceInMeter,
                 waitDurationInSeconds = tripData.waitDurationInSeconds,
                 overSpeedDurationInSeconds = tripData.overSpeedDurationInSeconds,
-                endTime = tripData.endTime
+                endTime = tripData.endTime,
+                requiresUpdateOnFirestore = tripData.requiresUpdateOnFirestore
             )
             this._tripData.value = updatedTripData // Triggering the observers
         }
