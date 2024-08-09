@@ -33,6 +33,7 @@ class MeterOpsViewModel @Inject constructor(
             extras = "",
             distanceInKM = "",
             duration = "",
+            totalFare = "",
         )
     )
     val uiState = _uiState
@@ -62,6 +63,7 @@ class MeterOpsViewModel @Inject constructor(
                             extras = "",
                             distanceInKM = "",
                             duration = "",
+                            totalFare = "",
                         )
                         return@collect
                     } else {
@@ -71,6 +73,7 @@ class MeterOpsViewModel @Inject constructor(
                             fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
                             distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
                             duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
+                            totalFare =  MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
                         )
                     }
                 }

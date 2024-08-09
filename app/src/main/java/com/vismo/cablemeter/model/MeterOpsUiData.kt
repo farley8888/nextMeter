@@ -2,6 +2,7 @@ package com.vismo.cablemeter.model
 
 data class MeterOpsUiData(
     val status: TripStateInMeterOpsUI,
+    val totalFare: String,
     val fare: String,
     val extras: String,
     val distanceInKM: String,
