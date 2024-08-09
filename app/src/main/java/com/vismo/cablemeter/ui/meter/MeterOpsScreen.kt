@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,6 +20,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -63,7 +65,6 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
         ) {
             ExtrasGroup(
                 modifier =
@@ -79,7 +80,7 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
         }
         Spacer(modifier = Modifier.height(8.dp))
         PriceSeparatedLine()
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         MetricGroup(uiState.value.status, uiState.value.distanceInKM, uiState.value.duration)
     }
 
@@ -168,7 +169,7 @@ fun ExtrasDetails(extrasValue: String) {
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(160.dp),
+                    .height(145.dp),
         ) {
             Text(
                 text = extrasValue,
@@ -216,7 +217,7 @@ fun FareDetails(fareValue: String) {
             modifier =
             Modifier
                 .fillMaxWidth()
-                .height(160.dp),
+                .height(145.dp),
         ) {
             val fareValueInt = fareValue.toDoubleOrNull()
             if (fareValueInt != null && fareValueInt > 0) {
@@ -253,13 +254,12 @@ fun MetricGroup(tripState: TripStateInMeterOpsUI, distance: String, time: String
             Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-                .padding(vertical = 8.dp),
     ) {
         MetricItem(
             modifier =
                 Modifier
                     .weight(1f)
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 6.dp),
             label = "DIST. ( K M )",
             value = distance,
             valueColor = LightGray,
@@ -268,7 +268,7 @@ fun MetricGroup(tripState: TripStateInMeterOpsUI, distance: String, time: String
             modifier =
                 Modifier
                     .weight(1f)
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 6.dp),
             label = "TIME",
             value = time,
             valueColor = LightGray,
@@ -277,7 +277,8 @@ fun MetricGroup(tripState: TripStateInMeterOpsUI, distance: String, time: String
             modifier =
                 Modifier
                     .weight(1f)
-                    .padding(top = 12.dp, end = 8.dp, bottom = 8.dp)
+                    .padding(top = 8.dp, start = 8.dp, end = 8.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(color = Color.Gray),
             tripState = tripState
         )
@@ -339,13 +340,13 @@ fun MeterGoButton(modifier: Modifier, tripState: TripStateInMeterOpsUI) {
                 Text(
                     text = tripState.toStringCN(),
                     color = White,
-                    fontSize = 26.sp,
+                    fontSize = 30.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
                 Text(
                     text = tripState.toStringEN(),
                     color = White,
-                    fontSize = 26.sp,
+                    fontSize = 30.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
             }
