@@ -16,4 +16,6 @@ interface MeasureBoardRepository {
 
     suspend fun writePrintReceiptCommand()
 
+    fun updateKValue(kValue: Int)
+
 }

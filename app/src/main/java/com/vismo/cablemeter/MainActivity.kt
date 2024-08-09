@@ -67,6 +67,8 @@ class MainActivity : ComponentActivity() {
 //
 //                        }
 //                    }
+                    //TODO: dummy - remove later
+                    viewModel.sendPrintCmd()
                 }
             }
         }

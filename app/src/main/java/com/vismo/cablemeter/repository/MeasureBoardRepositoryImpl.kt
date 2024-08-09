@@ -10,8 +10,10 @@ import com.ilin.util.Config
 import com.ilin.util.ShellUtils
 import com.serial.opt.UartWorkerCH
 import com.serial.port.ByteUtils
+import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.model.DeviceIdData
+import com.vismo.cablemeter.model.MCUParams
 import com.vismo.cablemeter.model.MCUMessage
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
@@ -21,6 +23,7 @@ import com.vismo.cablemeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
 import com.vismo.cablemeter.util.MeasureBoardUtils
 import com.vismo.cablemeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
 import com.vismo.cablemeter.util.MeasureBoardUtils.ONGOING_HEARTBEAT
+import com.vismo.cablemeter.util.MeasureBoardUtils.PARAMETERS_ENQUIRY
 import com.vismo.cablemeter.util.MeasureBoardUtils.TRIP_END_SUMMARY
 import com.vismo.cablemeter.util.MeasureBoardUtils.getResultType
 import com.vismo.cablemeter.util.MeasureBoardUtils.getTimeInSeconds
@@ -33,7 +36,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
-import java.math.BigDecimal
 import java.util.Date
 import java.util.logging.Logger
 import javax.inject.Inject
@@ -194,6 +196,47 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                     mBusModel?.write(Command.CMD_END_RESPONSE)
                 }
             }
+
+            PARAMETERS_ENQUIRY -> {
+                //parameters enquiry
+                val firmwareVersion = result.substring(18, 18 + 8)
+                val parametersVersion = result.substring(26, 26 + 8)
+                val kValue = result.substring(34, 34 + 4)
+                val startDistance = result.substring(38, 38 + 4)
+                val startPrice = result.substring(42, 42 + 4) // 13
+                val peakPrice = result.substring(46, 46 + 4)
+                val stepPrice = result.substring(50, 50 + 4) // 17
+                val peakStepPrice = result.substring(54, 54 + 4)
+                val morningPeakStartTime = result.substring(58, 58 + 4)
+                val morningPeakEndTime = result.substring(62, 62 + 4)
+                val nightPeakStartTime = result.substring(66, 66 + 4)
+                val nightPeakEndTime = result.substring(70, 70 + 4)
+                val stepPriceChangedAt = result.substring(74, 74 + 4) // 29
+                val changedStepPrice = result.substring(78, 78 + 4)  // 31
+                val changedPeakStepPrice = result.substring(82, 82 + 4)
+                val distanceInterval = result.substring(86, 86 + 4)
+                val waitingTimeInterval = result.substring(90, 90 + 4)
+                val overSpeed = result.substring(94, 94 + 4)
+
+                val mcuData = MCUParams(
+                    parametersVersion = parametersVersion,
+                    firmwareVersion = firmwareVersion,
+                    kValue = kValue,
+                    startingDistance = startDistance,
+                    startingPrice = startPrice,
+                    stepPrice = stepPrice,
+                    changedPriceAt = stepPriceChangedAt,
+                    changedStepPrice = changedStepPrice,
+                )
+                MCUParamsDataStore.setMCUData(mcuData)
+            }
+        }
+    }
+
+    override fun updateKValue(kValue: Int) {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getUpdateKValueCmd(kValue = kValue))
+            delay(200)
         }
     }
 
@@ -251,6 +294,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     override fun writeAddExtrasCommand(extrasAmount: Int) {
         addTask {
             mBusModel?.write(MeasureBoardUtils.getUpdateExtrasCmd("$extrasAmount"))
+            delay(200)
         }
     }
 

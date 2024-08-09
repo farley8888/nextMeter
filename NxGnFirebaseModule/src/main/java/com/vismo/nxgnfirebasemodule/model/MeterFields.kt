@@ -9,7 +9,7 @@ data class MeterFields(
 
 
 data class Settings(
-    @SerializedName("dash_fee_constant") val dashFeeConstant: Int,
+    @SerializedName("dash_fee_constant") val dashFeeConstant: Double,
     @SerializedName("dash_fee_rate") val dashFeeRate: Double,
     @SerializedName("heartbeat_interval") val heartbeatInterval: Int,
     @SerializedName("meter_software_version") val meterSoftwareVersion: String,

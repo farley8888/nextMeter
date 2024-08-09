@@ -2,19 +2,26 @@ package com.vismo.nxgnfirebasemodule
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Source
 import com.google.gson.Gson
 import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.Heartbeat
+import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.MeterFields
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
+import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
+import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
 import com.vismo.nxgnfirebasemodule.util.Constant.HEARTBEAT_COLLECTION
+import com.vismo.nxgnfirebasemodule.util.Constant.MCU_INFO
 import com.vismo.nxgnfirebasemodule.util.Constant.METERS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_SDK_DOCUMENT
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
+import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,10 +33,17 @@ class DashManager @Inject constructor(
     private val gson: Gson,
     private val dashManagerConfig: DashManagerConfig,
 ) {
+    private val metersCollection = firestore.collection(METERS_COLLECTION)
+    private val meterDocument = metersCollection.document(dashManagerConfig.meterIdentifier)
+    private val mcuParamsUpdateCollection = meterDocument.collection(UPDATE_MCU_PARAMS)
+    private val tripsCollection = meterDocument.collection(TRIPS_COLLECTION)
+    private val heartBeatCollection = meterDocument.collection(HEARTBEAT_COLLECTION)
 
     init {
         meterDocumentListener()
         meterSdkConfigurationListener()
+        //TODO: needs to be called after code 682682 is entered - not like this
+        isMCUParamsUpdateRequired()
     }
 
     private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)
@@ -37,6 +51,34 @@ class DashManager @Inject constructor(
 
     private val _meterSdkConfig: MutableStateFlow<MeterSdkConfiguration?> = MutableStateFlow(null)
     val meterSdkConfig: StateFlow<MeterSdkConfiguration?> = _meterSdkConfig
+
+    private val _mcuParamsUpdateRequired: MutableStateFlow<UpdateMCUParamsRequest?> = MutableStateFlow(null)
+    val mcuParamsUpdateRequired: StateFlow<UpdateMCUParamsRequest?> = _mcuParamsUpdateRequired
+
+    private fun isMCUParamsUpdateRequired() {
+        mcuParamsUpdateCollection
+            .orderBy(CREATED_ON, Query.Direction.DESCENDING)
+            .limit(1)
+            .get(Source.SERVER)
+            .addOnSuccessListener { snapshot ->
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val latestDocument = snapshot.documents[0]
+                    var json = gson.toJson(latestDocument.data)
+                    // Manually add the document ID to the JSON string
+                    json = json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
+                    _mcuParamsUpdateRequired.value = gson.fromJson(json, UpdateMCUParamsRequest::class.java)
+                }
+            }
+    }
+
+    fun setMCUParamsUpdateComplete(updateRequest: UpdateMCUParamsRequest) {
+        val json = gson.toJson(updateRequest)
+        val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
+
+        mcuParamsUpdateCollection
+            .document(updateRequest.id)
+            .set(map, SetOptions.merge())
+    }
 
     private fun meterSdkConfigurationListener() {
         firestore.collection(CONFIGURATIONS_COLLECTION)
@@ -54,8 +96,7 @@ class DashManager @Inject constructor(
     }
 
     private fun meterDocumentListener() {
-        firestore.collection(METERS_COLLECTION)
-            .document(dashManagerConfig.meterIdentifier)
+        meterDocument
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
                     return@addSnapshotListener
@@ -68,14 +109,20 @@ class DashManager @Inject constructor(
             }
     }
 
+    fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
+        val json = gson.toJson(mcuInfo)
+        val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>)
+
+        meterDocument
+            .set(mapOf(MCU_INFO to map), SetOptions.merge())
+    }
+
 
     fun updateTripOnFirestore(trip: MeterTripInFirestore) {
         val json = gson.toJson(trip)
         val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
-        firestore.collection(METERS_COLLECTION)
-            .document(dashManagerConfig.meterIdentifier)
-            .collection(TRIPS_COLLECTION)
+        tripsCollection
             .document(trip.tripId)
             .set(map, SetOptions.merge())
     }
@@ -119,21 +166,15 @@ class DashManager @Inject constructor(
         val json = gson.toJson(heartbeat)
         val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
-        firestore.collection(METERS_COLLECTION)
-            .document(dashManagerConfig.meterIdentifier)
-            .collection(HEARTBEAT_COLLECTION)
+        heartBeatCollection
             .document(id)
             .set(map, SetOptions.merge())
     }
 
-    // Generic conversion function using Gson
-    fun <T> convertToMeterTripInFirestore(externalTrip: T): MeterTripInFirestore {
-        val json = Gson().toJson(externalTrip)
-        return Gson().fromJson(json, MeterTripInFirestore::class.java)
-    }
-
-    fun <T> convertToExternalTrip(meterTripInFirestore: MeterTripInFirestore, externalClass: Class<T>): T {
-        val json = Gson().toJson(meterTripInFirestore)
-        return Gson().fromJson(json, externalClass)
+    // Generic conversion to convert to classes supported by DashManager from external classes
+    inline fun <reified T, reified R> convertToType(externalObject: T): R {
+        val gson = Gson()
+        val json = gson.toJson(externalObject)
+        return gson.fromJson(json, R::class.java)
     }
 }

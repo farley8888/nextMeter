@@ -11,6 +11,8 @@ import com.vismo.cablemeter.network.api.MeterOApi
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepositoryImpl
+import com.vismo.cablemeter.repository.RemoteMCUControlRepository
+import com.vismo.cablemeter.repository.RemoteMCUControlRepositoryImpl
 import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.repository.TripRepositoryImpl
 import com.vismo.nxgnfirebasemodule.DashManager
@@ -74,18 +76,28 @@ object AppModule {
     @Singleton
     @Provides
     fun provideTripRepository(
-        firebaseAuthRepository: FirebaseAuthRepository,
-        firestore: FirebaseFirestore,
         measureBoardRepository: MeasureBoardRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManager: DashManager
     ): TripRepository {
         return TripRepositoryImpl (
-            firebaseAuthRepository = firebaseAuthRepository,
-            firestore = firestore,
             ioDispatcher = ioDispatcher,
             measureBoardRepository = measureBoardRepository,
             dashManager = dashManager
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesRemoteMCUControlRepository(
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        dashManager: DashManager,
+        measureBoardRepository: MeasureBoardRepository
+    ): RemoteMCUControlRepository {
+        return RemoteMCUControlRepositoryImpl(
+            ioDispatcher = ioDispatcher,
+            dashManager = dashManager,
+            measureBoardRepository = measureBoardRepository
         )
     }
 
