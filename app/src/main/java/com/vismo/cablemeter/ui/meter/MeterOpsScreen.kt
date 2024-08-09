@@ -127,7 +127,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             val fareDouble = fare.toDoubleOrNull()
             if (fareDouble != null && fareDouble > 0) {
                 Text(
-                    text = fare,
+                    text = fare.substring(0, uiState.fare.length - 1),
                     color = Color.Green,
                     fontSize = 60.sp,
                     fontWeight = FontWeight.Bold,
@@ -198,7 +198,7 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             Text(text = "TOTAL", color = Color.White)
             Text(text = "H.K.$", color = Color.White)
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Row (
             modifier = Modifier
                 .fillMaxWidth()
@@ -207,12 +207,18 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             horizontalArrangement = Arrangement.End
         ){
             val totalFare = uiState.totalFare
+            val size = totalFare.length
+            val fontSize = when {
+                size < 6 -> 150.sp
+                size < 7 -> 120.sp
+                else -> 100.sp
+            }
             val totalFareDouble = totalFare.toDoubleOrNull()
             if (totalFareDouble != null && totalFareDouble > 0) {
                 Text(
                     text = totalFare,
                     color = Color.Green,
-                    fontSize = 120.sp,
+                    fontSize = fontSize,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.End
                 )
