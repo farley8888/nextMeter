@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -94,10 +95,10 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
 fun FareGroup(modifier: Modifier, fareValue: String) {
     Column(
         modifier =
-            modifier
-                .wrapContentWidth()
-                .wrapContentHeight()
-                .padding(8.dp),
+        modifier
+            .wrapContentWidth()
+            .wrapContentHeight()
+            .padding(8.dp),
     ) {
         Text(
             text = "FARE",
@@ -113,10 +114,10 @@ fun FareGroup(modifier: Modifier, fareValue: String) {
 fun ExtrasGroup(modifier: Modifier, extrasValue: String) {
     Column(
         modifier =
-            modifier
-                .wrapContentWidth()
-                .wrapContentHeight()
-                .padding(8.dp),
+        modifier
+            .wrapContentWidth()
+            .wrapContentHeight()
+            .padding(8.dp),
     ) {
         Text(
             text = "EXTRAS",
@@ -132,9 +133,9 @@ fun ExtrasGroup(modifier: Modifier, extrasValue: String) {
 fun ViewSeparator(modifier: Modifier) {
     Box(
         modifier =
-            modifier
-                .height(4.dp)
-                .background(color = SuperLightGray),
+        modifier
+            .height(4.dp)
+            .background(color = SuperLightGray),
     )
 }
 
@@ -142,45 +143,43 @@ fun ViewSeparator(modifier: Modifier) {
 fun ExtrasDetails(extrasValue: String) {
     Column(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(start = 6.dp, bottom = 8.dp),
+        Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .padding(start = 6.dp, bottom = 8.dp),
     ) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(start = 8.dp),
+            Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(start = 8.dp),
         ) {
             Text(
                 text = stringResource(id = R.string.hkd_label),
                 color = White,
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                text = "¢",
-                color = White,
-                modifier = Modifier.weight(1f),
-            )
         }
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(145.dp),
+            Modifier
+                .fillMaxWidth()
+                .height(145.dp),
         ) {
-            Text(
-                text = extrasValue,
-                color = Red,
-                fontSize = 78.sp,
-                modifier =
+            val extrasValueIntPart = extrasValue.split(".").firstOrNull()
+            if (extrasValueIntPart != null && extrasValueIntPart.toIntOrNull() != null && extrasValueIntPart.toInt() > 0) {
+                Text(
+                    text = extrasValueIntPart,
+                    color = Red,
+                    fontSize = 75.sp,
+                    modifier =
                     Modifier
                         .weight(1f)
-//                    .padding(top = (-30).dp)
                         .align(Alignment.CenterVertically),
-            )
+                    style = MaterialTheme.typography.displayLarge
+                )
+            }
             // Image composable for the fare label
         }
     }
@@ -202,37 +201,70 @@ fun FareDetails(fareValue: String) {
                 .wrapContentHeight()
                 .padding(start = 8.dp),
         ) {
-            Text(
-                text = stringResource(id = R.string.hkd_label),
-                color = White,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "¢",
-                color = White,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(
-            modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(145.dp),
-        ) {
-            val fareValueInt = fareValue.toDoubleOrNull()
-            if (fareValueInt != null && fareValueInt > 0) {
+            Column (
+                modifier =
+                Modifier.weight(1f)
+                    .fillMaxWidth()
+                    .height(145.dp)
+            ) {
                 Text(
-                    text = fareValue,
-                    color = Red,
-                    fontSize = 78.sp,
-                    modifier =
-                    Modifier
-                        .weight(1f)
-//                    .padding(top = (-30).dp)
-                        .align(Alignment.CenterVertically),
+                    text = stringResource(id = R.string.hkd_label),
+                    color = White,
+                    modifier = Modifier.weight(1f),
                 )
+                val fareValueDollar = fareValue.split(".").firstOrNull()
+                val fareValueDollarDouble = fareValueDollar?.toDoubleOrNull()
+                if (fareValueDollar != null && fareValueDollarDouble != null && fareValueDollarDouble > 0) {
+                    Text(
+                        text = fareValueDollar,
+                        color = Red,
+                        fontSize = 90.sp,
+                        style = MaterialTheme.typography.displayLarge
+                    )
+                }
             }
+            Column (
+                modifier =
+                Modifier.weight(1f)
+                    .fillMaxWidth()
+                    .height(145.dp)
+            ){
+                Text(
+                    text = "¢",
+                    color = White,
+                    modifier = Modifier.weight(1f),
+                )
+                val fareValueCents = fareValue.split(".").getOrNull(1)
+                if (fareValueCents != null) {
+                    Text(
+                        text = fareValueCents,
+                        color = Red,
+                        fontSize = 90.sp,
+                        style = MaterialTheme.typography.displayLarge
+                    )
+                }
+            }
+
         }
+//        Row(
+//            modifier =
+//            Modifier
+//                .fillMaxWidth()
+//                .height(145.dp),
+//        ) {
+//            val fareValueInt = fareValue.toDoubleOrNull()
+//            if (fareValueInt != null && fareValueInt > 0) {
+//                Text(
+//                    text = fareValue,
+//                    color = Red,
+//                    fontSize = 78.sp,
+//                    modifier =
+//                    Modifier
+//                        .weight(1f)
+//                        .align(Alignment.CenterVertically),
+//                )
+//            }
+//        }
     }
 }
 
@@ -240,10 +272,10 @@ fun FareDetails(fareValue: String) {
 fun PriceSeparatedLine() {
     Box(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .background(color = LightGray),
+        Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .background(color = LightGray),
     )
 }
 
@@ -251,24 +283,24 @@ fun PriceSeparatedLine() {
 fun MetricGroup(tripState: TripStateInMeterOpsUI, distance: String, time: String) {
     Row(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
+        Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
     ) {
         MetricItem(
             modifier =
-                Modifier
-                    .weight(1f)
-                    .padding(horizontal = 6.dp),
+            Modifier
+                .weight(1f)
+                .padding(horizontal = 6.dp),
             label = "DIST. ( K M )",
             value = distance,
             valueColor = LightGray,
         )
         MetricItem(
             modifier =
-                Modifier
-                    .weight(1f)
-                    .padding(horizontal = 6.dp),
+            Modifier
+                .weight(1f)
+                .padding(horizontal = 6.dp),
             label = "TIME",
             value = time,
             valueColor = LightGray,
@@ -328,26 +360,26 @@ fun MeterGoButton(modifier: Modifier, tripState: TripStateInMeterOpsUI) {
             Text(
                 text = "粵",
                 color = White,
-                fontSize = 32.sp,
                 modifier =
                     Modifier
                         .weight(1f)
                         .align(Alignment.CenterVertically),
+                style = MaterialTheme.typography.headlineMedium,
             )
             Column(
-                modifier = Modifier.weight(2f),
+                modifier = Modifier.weight(3f),
             ) {
                 Text(
                     text = tripState.toStringCN(),
                     color = White,
-                    fontSize = 30.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
+                    style = MaterialTheme.typography.headlineLarge,
                 )
                 Text(
                     text = tripState.toStringEN(),
                     color = White,
-                    fontSize = 30.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
+                    style = MaterialTheme.typography.headlineLarge,
                 )
             }
         }
