@@ -43,7 +43,7 @@ import com.vismo.cablemeter.ui.theme.White
 @Composable
 fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
     val focusRequester = remember { FocusRequester() }
-    val uiState = viewModel.uiState.collectAsState()
+    val uiState = viewModel.uiState.collectAsState().value
 
     Column(
         modifier =
@@ -70,19 +70,19 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
             ExtrasGroup(
                 modifier =
                     Modifier
-                        .weight(1f), uiState.value.extras
+                        .weight(1f), uiState.extras
 
             )
             FareGroup(
                 modifier =
                     Modifier
-                        .weight(2f), uiState.value.fare
+                        .weight(2f), uiState.fare
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
         PriceSeparatedLine()
         Spacer(modifier = Modifier.height(2.dp))
-        MetricGroup(uiState.value.status, uiState.value.distanceInKM, uiState.value.duration)
+        MetricGroup(uiState.status, uiState.distanceInKM, uiState.duration)
     }
 
     // Request focus when the composable is first composed
@@ -172,7 +172,7 @@ fun ExtrasDetails(extrasValue: String) {
                 Text(
                     text = extrasValueIntPart,
                     color = Red,
-                    fontSize = 75.sp,
+                    fontSize = 80.sp,
                     modifier =
                     Modifier
                         .weight(1f)
@@ -180,7 +180,6 @@ fun ExtrasDetails(extrasValue: String) {
                     style = MaterialTheme.typography.displayLarge
                 )
             }
-            // Image composable for the fare label
         }
     }
 }
@@ -203,7 +202,7 @@ fun FareDetails(fareValue: String) {
         ) {
             Column (
                 modifier =
-                Modifier.weight(1f)
+                Modifier.weight(2f)
                     .fillMaxWidth()
                     .height(145.dp)
             ) {
@@ -218,7 +217,7 @@ fun FareDetails(fareValue: String) {
                     Text(
                         text = fareValueDollar,
                         color = Red,
-                        fontSize = 90.sp,
+                        fontSize = 120.sp,
                         style = MaterialTheme.typography.displayLarge
                     )
                 }
@@ -239,32 +238,13 @@ fun FareDetails(fareValue: String) {
                     Text(
                         text = fareValueCents,
                         color = Red,
-                        fontSize = 90.sp,
+                        fontSize = 80.sp,
                         style = MaterialTheme.typography.displayLarge
                     )
                 }
             }
 
         }
-//        Row(
-//            modifier =
-//            Modifier
-//                .fillMaxWidth()
-//                .height(145.dp),
-//        ) {
-//            val fareValueInt = fareValue.toDoubleOrNull()
-//            if (fareValueInt != null && fareValueInt > 0) {
-//                Text(
-//                    text = fareValue,
-//                    color = Red,
-//                    fontSize = 78.sp,
-//                    modifier =
-//                    Modifier
-//                        .weight(1f)
-//                        .align(Alignment.CenterVertically),
-//                )
-//            }
-//        }
     }
 }
 

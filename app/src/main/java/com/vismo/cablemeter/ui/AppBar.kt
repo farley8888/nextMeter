@@ -16,14 +16,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.vismo.cablemeter.MainViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppBar() {
+fun AppBar(viewModel: MainViewModel) {
+    val uiState = viewModel.topAppBarUiState.collectAsState().value
+
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(MaterialTheme.colorScheme.primaryContainer),
         modifier = Modifier.height(48.dp),
@@ -32,7 +36,7 @@ fun AppBar() {
             IconButton({}) {
                 Icon(
                     imageVector = Icons.Outlined.ArrowBack,
-                    contentDescription = "go back"
+                    contentDescription = "Back",
                 )
             }
         },
@@ -40,19 +44,19 @@ fun AppBar() {
             IconButton(onClick = {}) {
                 Icon(
                     imageVector = Icons.Outlined.Lock,
-                    contentDescription = "lock",
+                    contentDescription = "Lock",
                 )
             }
             IconButton(onClick = {}) {
                 Icon(
                     imageVector = Icons.Outlined.LocationOn,
-                    contentDescription = "location",
+                    contentDescription = "GPS",
                 )
             }
             IconButton(onClick = {}) {
                 Icon(
                     imageVector = Icons.Outlined.Person,
-                    contentDescription = "more options",
+                    contentDescription = "User",
                 )
             }
         },

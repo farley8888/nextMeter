@@ -2,12 +2,15 @@ package com.vismo.cablemeter
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vismo.cablemeter.model.TopAppBarUiState
 import com.vismo.cablemeter.repository.MeasureBoardRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.RemoteMCUControlRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,6 +21,9 @@ class MainViewModel @Inject constructor(
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val remoteMCUControlRepository: RemoteMCUControlRepository
     ) : ViewModel(){
+
+    private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
+    val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
 
     fun sendPrintCmd() {
         viewModelScope.launch(ioDispatcher) {
@@ -30,6 +36,8 @@ class MainViewModel @Inject constructor(
 //            )
         }
     }
+
+
 
     init {
         viewModelScope.launch {
