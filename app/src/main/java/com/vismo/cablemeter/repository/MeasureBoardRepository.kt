@@ -1,6 +1,9 @@
 package com.vismo.cablemeter.repository
 
+import kotlinx.coroutines.flow.StateFlow
+
 interface MeasureBoardRepository {
+    val mcuTime: StateFlow<String?>
 
     fun writeStartTripCommand(tripId: String)
 
@@ -17,5 +20,7 @@ interface MeasureBoardRepository {
     suspend fun writePrintReceiptCommand()
 
     fun updateKValue(kValue: Int)
+
+    fun stopCommunication()
 
 }

@@ -30,7 +30,6 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initObservers()
@@ -42,9 +41,17 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     val navController = rememberNavController()
+                    mainViewModel.updateBackButtonVisibility(
+                        navController.previousBackStackEntry != null
+                    )
 
                     Scaffold(
-                        topBar = { AppBar(viewModel = mainViewModel) }
+                        topBar = {
+                            AppBar(
+                                viewModel = mainViewModel,
+                                onBackButtonClick = { navController.popBackStack() }
+                            )
+                        }
                     ) { innerPadding ->
                         NavHost(
                             navController = navController,

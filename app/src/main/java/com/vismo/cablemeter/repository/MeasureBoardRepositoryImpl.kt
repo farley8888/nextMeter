@@ -56,7 +56,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     val deviceIdData = _deviceIdData
 
     private val _mcuTime = MutableStateFlow<String?>(null)
-    val mcuTime = _mcuTime
+    override val mcuTime = _mcuTime
 
     private fun startMessageProcessor() {
         CoroutineScope(ioDispatcher).launch {
@@ -400,7 +400,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
-    fun stopCommunication() {
+    override fun stopCommunication() {
         mBusModel?.stopCommunicate()
     }
 

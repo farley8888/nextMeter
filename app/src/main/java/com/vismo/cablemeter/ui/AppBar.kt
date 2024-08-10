@@ -1,8 +1,10 @@
 package com.vismo.cablemeter.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.LocationOn
@@ -25,19 +27,30 @@ import com.vismo.cablemeter.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppBar(viewModel: MainViewModel) {
+fun AppBar(
+    viewModel: MainViewModel,
+    onBackButtonClick: () -> Unit
+) {
     val uiState = viewModel.topAppBarUiState.collectAsState().value
-
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(MaterialTheme.colorScheme.primaryContainer),
         modifier = Modifier.height(48.dp),
         title = {},
         navigationIcon = {
-            IconButton({}) {
-                Icon(
-                    imageVector = Icons.Outlined.ArrowBack,
-                    contentDescription = "Back",
+            Row (verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = uiState.dateTime,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
+                if (uiState.isBackButtonVisible) {
+                    IconButton(onClick = onBackButtonClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                }
             }
         },
         actions = {
@@ -69,7 +82,7 @@ fun AppBar(viewModel: MainViewModel) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "SUNTEC",
+            text = uiState.title,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onPrimaryContainer
         )

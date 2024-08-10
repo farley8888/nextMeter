@@ -3,20 +3,21 @@ package com.vismo.cablemeter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.model.TopAppBarUiState
-import com.vismo.cablemeter.repository.MeasureBoardRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
+import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.RemoteMCUControlRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val measureBoardRepository: MeasureBoardRepositoryImpl,
+    private val measureBoardRepository: MeasureBoardRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val remoteMCUControlRepository: RemoteMCUControlRepository
@@ -37,6 +38,25 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private fun observeFlows() {
+        viewModelScope.launch(ioDispatcher) {
+            launch {
+                measureBoardRepository.mcuTime.collectLatest {
+                    it?.let { dateTime ->
+                        _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                            dateTime = dateTime
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun updateBackButtonVisibility(isVisible: Boolean) {
+        _topAppBarUiState.value = _topAppBarUiState.value.copy(
+            isBackButtonVisible = isVisible
+        )
+    }
 
 
     init {
@@ -44,6 +64,7 @@ class MainViewModel @Inject constructor(
             firebaseAuthRepository.initToken()
             remoteMCUControlRepository.observeFlows()
         }
+        observeFlows()
     }
 
     override fun onCleared() {
