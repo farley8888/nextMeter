@@ -11,6 +11,7 @@ import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.Heartbeat
 import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.MeterFields
+import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
@@ -127,9 +128,7 @@ class DashManager @Inject constructor(
             .set(map, SetOptions.merge())
     }
 
-    fun sendHeartbeat() {
-        val meterLocation = dashManagerConfig.meterLocation
-
+    fun sendHeartbeat(meterLocation: MeterLocation) {
         val speed = when (meterLocation.gpsType) {
             is AGPS -> {
                 meterLocation.gpsType.speed

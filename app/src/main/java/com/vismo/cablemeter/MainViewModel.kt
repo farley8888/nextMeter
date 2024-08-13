@@ -1,5 +1,6 @@
 package com.vismo.cablemeter
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.model.TopAppBarUiState
@@ -8,11 +9,15 @@ import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.RemoteMCUControlRepository
+import com.vismo.nxgnfirebasemodule.DashManagerConfig
+import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -20,32 +25,33 @@ class MainViewModel @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val firebaseAuthRepository: FirebaseAuthRepository,
-    private val remoteMCUControlRepository: RemoteMCUControlRepository
+    private val remoteMCUControlRepository: RemoteMCUControlRepository,
+    private val dashManagerConfig: DashManagerConfig,
     ) : ViewModel(){
 
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
 
-    fun sendPrintCmd() {
-        viewModelScope.launch(ioDispatcher) {
-//            measureBoardRepository.sendPrintCmd(
-//                fare = "1500",
-//                extras = "500",
-//                duration = "3600",
-//                distance = "1500",
-//                totalFare = "2000",
-//            )
-        }
-    }
+    val mcuTime = measureBoardRepository.mcuTime
+    private val dateFormat = SimpleDateFormat("M月d日 HH:mm", Locale.TRADITIONAL_CHINESE)
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
             launch {
-                measureBoardRepository.mcuTime.collectLatest {
+                mcuTime.collectLatest {
                     it?.let { dateTime ->
-                        _topAppBarUiState.value = _topAppBarUiState.value.copy(
-                            dateTime = dateTime
-                        )
+                        try {
+                            val formatter = SimpleDateFormat("yyyyMMddHHmm", Locale.ENGLISH)
+                            val date = formatter.parse(dateTime)
+                            date?.let {
+                                val formattedDate = dateFormat.format(date)
+                                _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                                    dateTime = formattedDate
+                                )
+                            }
+                        } catch (e: Exception) {
+                            Log.d("MainViewModel", "Error parsing date: $dateTime")
+                        }
                     }
                 }
             }
@@ -56,6 +62,32 @@ class MainViewModel @Inject constructor(
         _topAppBarUiState.value = _topAppBarUiState.value.copy(
             isBackButtonVisible = isVisible
         )
+    }
+
+    private fun updateLocationIconVisibility(isVisible: Boolean = true) {
+        if (_topAppBarUiState.value.isLocationIconVisible != isVisible) {
+            _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                isLocationIconVisible = isVisible
+            )
+        }
+    }
+
+    fun updateSignalStrength(signalStrength: Int) {
+        if (_topAppBarUiState.value.signalStrength == signalStrength) return
+        _topAppBarUiState.value = _topAppBarUiState.value.copy(
+            signalStrength = signalStrength
+        )
+    }
+
+    fun setWifiIconVisibility(isVisible: Boolean) {
+        _topAppBarUiState.value = _topAppBarUiState.value.copy(
+            isWifiIconVisible = isVisible
+        )
+    }
+    
+    fun setLocation(meterLocation: MeterLocation) {
+        dashManagerConfig.setLocation(meterLocation)
+        updateLocationIconVisibility()
     }
 
 

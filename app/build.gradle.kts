@@ -136,4 +136,7 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.auth.java.jwt)
+    implementation(libs.amap.location)
+    implementation(libs.compose.material.icons)
+
 }
