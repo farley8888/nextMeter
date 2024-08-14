@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.model
+package com.vismo.cablemeter.ui.meter
 
 data class MeterOpsUiData(
     val status: TripStateInMeterOpsUI,

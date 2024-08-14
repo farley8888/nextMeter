@@ -138,5 +138,5 @@ dependencies {
     implementation(libs.auth.java.jwt)
     implementation(libs.amap.location)
     implementation(libs.compose.material.icons)
-
+    implementation(libs.zxing.android.embedded)
 }

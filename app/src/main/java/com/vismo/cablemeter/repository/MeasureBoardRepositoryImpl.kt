@@ -53,7 +53,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
 
     private val _deviceIdData = MutableStateFlow<DeviceIdData?>(null)
-    val deviceIdData = _deviceIdData
+    override val deviceIdData = _deviceIdData
 
     private val _mcuTime = MutableStateFlow<String?>(null)
     override val mcuTime = _mcuTime

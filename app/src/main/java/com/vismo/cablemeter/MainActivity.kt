@@ -12,24 +12,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
-import com.vismo.cablemeter.ui.AppBar
-import com.vismo.cablemeter.ui.meter.MeterOpsScreen
-import com.vismo.cablemeter.ui.meter.MeterOpsViewModel
+import com.vismo.cablemeter.ui.topbar.AppBar
+import com.vismo.cablemeter.ui.NavigationGraph
 import com.vismo.cablemeter.ui.theme.CableMeterTheme
 import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
@@ -73,16 +68,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     ) { innerPadding ->
-                        NavHost(
+                        NavigationGraph(
                             navController = navController,
-                            startDestination = NavigationDestination.MeterOps.route,
-                            modifier = Modifier.padding(innerPadding)
-                        ) {
-                            composable(NavigationDestination.MeterOps.route) {
-                                val viewModel = hiltViewModel<MeterOpsViewModel>()
-                                MeterOpsScreen(viewModel)
-                            }
-                        }
+                            innerPadding = innerPadding
+                        )
                     }
                 }
             }
@@ -205,6 +194,7 @@ class MainActivity : ComponentActivity() {
             val route: String,
         ) {
             data object MeterOps : NavigationDestination("meterOps")
+            data object Pair : NavigationDestination("pair")
         }
     }
 }

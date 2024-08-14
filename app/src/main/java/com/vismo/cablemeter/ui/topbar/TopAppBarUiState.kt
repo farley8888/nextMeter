@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.model
+package com.vismo.cablemeter.ui.topbar
 
 import com.vismo.cablemeter.BuildConfig
 import com.vismo.cablemeter.util.Constant.ENV_DEV

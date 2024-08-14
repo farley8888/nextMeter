@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.ui
+package com.vismo.cablemeter.ui.topbar
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border

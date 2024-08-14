@@ -3,7 +3,7 @@ package com.vismo.cablemeter
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vismo.cablemeter.model.TopAppBarUiState
+import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -93,8 +94,10 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            firebaseAuthRepository.initToken()
-            remoteMCUControlRepository.observeFlows()
+            withContext(ioDispatcher) {
+                firebaseAuthRepository.initToken()
+                remoteMCUControlRepository.observeFlows()
+            }
         }
         observeFlows()
     }
