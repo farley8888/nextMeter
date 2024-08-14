@@ -1,8 +1,9 @@
-package com.vismo.nxgnfirebasemodule.model
+package com.vismo.cablemeter.model
 
 import com.google.gson.annotations.SerializedName
 
-data class MeterFields(
+
+data class MeterInfo(
     @SerializedName("settings") val settings: Settings,
     @SerializedName("mcu_info") val mcuInfo: McuInfo,
     @SerializedName("session") val session: Session?,
@@ -18,8 +19,8 @@ data class Driver(
     @SerializedName("name") val driverName: String,
     @SerializedName("name_ch") val driverChineseName: String,
     @SerializedName("driver_license") val driverLicense: String,
+    @SerializedName("license_plate") val licensePlate: String,
 )
-
 
 data class Settings(
     @SerializedName("dash_fee_constant") val dashFeeConstant: Double,

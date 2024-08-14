@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.MeasureBoardRepository
+import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.cablemeter.util.GlobalUtils.encrypt
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class DriverPairViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val measureBoardRepository: MeasureBoardRepository
+    private val measureBoardRepository: MeasureBoardRepository,
+    private val remoteMeterControlRepository: RemoteMeterControlRepository
 ) : ViewModel() {
 
     private val _driverPairScreenUiData = MutableStateFlow(DriverPairUiData())
@@ -29,17 +31,39 @@ class DriverPairViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                measureBoardRepository.deviceIdData.collectLatest { deviceIdData ->
-                    deviceIdData?.let {
-                        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
-                            qrString = genQR(it.licensePlate),
-                            licensePlate = it.licensePlate,
-                            deviceSerialNumber = it.deviceId,
-                        )
+                launch {
+                    measureBoardRepository.deviceIdData.collectLatest { deviceIdData ->
+                        deviceIdData?.let {
+                            _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                                qrString = genQR(it.licensePlate),
+                                licensePlate = it.licensePlate,
+                                deviceSerialNumber = it.deviceId,
+                            )
+                        }
+                    }
+                }
+                launch {
+                    remoteMeterControlRepository.meterInfo.collectLatest { meterInfo ->
+                        meterInfo?.let {
+                            if (it.session != null) {
+                                _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                                    driverPhoneNumber = it.session.driver.driverPhoneNumber
+                                )
+                            } else {
+                                _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                                    driverPhoneNumber = ""
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    fun refreshQr() {
+        val newQr = genQR(_driverPairScreenUiData.value.licensePlate)
+        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(qrString = newQr)
     }
 
     /**

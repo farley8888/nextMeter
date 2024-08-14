@@ -8,7 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
-import com.vismo.cablemeter.repository.RemoteMCUControlRepository
+import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import kotlinx.coroutines.CoroutineDispatcher
@@ -26,7 +26,7 @@ class MainViewModel @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val firebaseAuthRepository: FirebaseAuthRepository,
-    private val remoteMCUControlRepository: RemoteMCUControlRepository,
+    private val remoteMCUControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
     ) : ViewModel(){
 

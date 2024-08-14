@@ -54,7 +54,7 @@ fun DriverPairScreen(viewModel: DriverPairViewModel) {
         Column(
             modifier = Modifier.weight(1f),
         ) {
-            QRCode(qrcodeString = uiState.qrString)
+            QRCode(qrcodeString = uiState.qrString, viewModel)
         }
 
         Column(
@@ -111,11 +111,12 @@ fun StartSession(driverPhoneNumber: String) {
 }
 
 @Composable
-fun QRCode(qrcodeString: String) {
+fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel) {
     var showQRCode by remember { mutableStateOf(false) }
 
     // Start a countdown when QR code is shown
     if (showQRCode) {
+        viewModel.refreshQr()
         LaunchedEffect(Unit) {
             object : CountDownTimer(60000, 1000) {
                 override fun onTick(millisUntilFinished: Long) {
@@ -124,6 +125,7 @@ fun QRCode(qrcodeString: String) {
 
                 override fun onFinish() {
                     showQRCode = false
+
                 }
             }.start()
         }
