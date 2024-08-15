@@ -2,6 +2,7 @@ package com.vismo.nxgnfirebasemodule
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
@@ -14,7 +15,6 @@ import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.Heartbeat
 import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.MeterFields
-import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import com.vismo.nxgnfirebasemodule.model.Session
@@ -46,6 +46,15 @@ class DashManager @Inject constructor(
     private val metersCollection = firestore.collection(METERS_COLLECTION)
     private var meterDocumentListener: ListenerRegistration? = null
 
+    private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)
+    val meterFields: StateFlow<MeterFields?> = _meterFields
+
+    private val _meterSdkConfig: MutableStateFlow<MeterSdkConfiguration?> = MutableStateFlow(null)
+    val meterSdkConfig: StateFlow<MeterSdkConfiguration?> = _meterSdkConfig
+
+    private val _mcuParamsUpdateRequired: MutableStateFlow<UpdateMCUParamsRequest?> = MutableStateFlow(null)
+    val mcuParamsUpdateRequired: StateFlow<UpdateMCUParamsRequest?> = _mcuParamsUpdateRequired
+
     init {
         meterSdkConfigurationListener()
         //TODO: needs to be called after code 682682 is entered - not like this
@@ -57,14 +66,15 @@ class DashManager @Inject constructor(
         }
     }
 
-    private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)
-    val meterFields: StateFlow<MeterFields?> = _meterFields
-
-    private val _meterSdkConfig: MutableStateFlow<MeterSdkConfiguration?> = MutableStateFlow(null)
-    val meterSdkConfig: StateFlow<MeterSdkConfiguration?> = _meterSdkConfig
-
-    private val _mcuParamsUpdateRequired: MutableStateFlow<UpdateMCUParamsRequest?> = MutableStateFlow(null)
-    val mcuParamsUpdateRequired: StateFlow<UpdateMCUParamsRequest?> = _mcuParamsUpdateRequired
+    fun clearDriverSession() {
+        CoroutineScope(ioDispatcher).launch {
+            val currentSessionId = _meterFields.value?.session?.sessionId
+            if (currentSessionId != null) {
+                val deleteSessionMap = mapOf(SESSION to FieldValue.delete())
+                getMeterDocument().update(deleteSessionMap)
+            }
+        }
+    }
 
     private fun isMCUParamsUpdateRequired() {
         CoroutineScope(ioDispatcher).launch {

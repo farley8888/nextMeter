@@ -43,7 +43,10 @@ import com.vismo.cablemeter.ui.theme.nobel900
 import com.vismo.cablemeter.ui.theme.primary600
 
 @Composable
-fun DriverPairScreen(viewModel: DriverPairViewModel) {
+fun DriverPairScreen(
+    viewModel: DriverPairViewModel,
+    navigateToMeterOps : () -> Unit,
+) {
     val uiState = viewModel.driverPairScreenUiData.collectAsState().value
     Row (
         modifier =
@@ -60,13 +63,20 @@ fun DriverPairScreen(viewModel: DriverPairViewModel) {
         Column(
             modifier = Modifier.weight(1f),
         ) {
-            StartSession(driverPhoneNumber = uiState.driverPhoneNumber)
+            StartSession(
+                driverPhoneNumber = uiState.driverPhoneNumber,
+                viewModel = viewModel,
+                navigateToMeterOps)
         }
     }
 }
 
 @Composable
-fun StartSession(driverPhoneNumber: String) {
+fun StartSession(
+    driverPhoneNumber: String,
+    viewModel: DriverPairViewModel,
+    navigateToMeterOps: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -75,9 +85,9 @@ fun StartSession(driverPhoneNumber: String) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Button(
-            onClick = { /*TODO*/ },
+            onClick = { navigateToMeterOps() },
             colors = ButtonDefaults.buttonColors(
-                containerColor = primary600,
+                containerColor = if (driverPhoneNumber.isNotEmpty()) primary600 else nobel400,
                 contentColor = nobel50
             ),
             modifier = Modifier
@@ -85,14 +95,27 @@ fun StartSession(driverPhoneNumber: String) {
                 .padding(horizontal = 32.dp)
                 .height(100.dp)
         ) {
-            Text(
-                text = "$driverPhoneNumber 已登入",
-                fontSize = 18.sp,
-            )
+            Column (
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ){
+                Text(
+                    text = driverPhoneNumber,
+                    fontSize = 24.sp,
+                )
+                Text(
+                    text = "已登入",
+                    fontSize = 18.sp,
+                )
+            }
+
         }
         Spacer(modifier = Modifier.height(40.dp))
         Button(
-            onClick = { /*TODO*/ },
+            onClick = {
+                viewModel.clearDriverSession()
+                navigateToMeterOps()
+                      },
             colors = ButtonDefaults.buttonColors(
                 containerColor = nobel400,
                 contentColor = nobel50

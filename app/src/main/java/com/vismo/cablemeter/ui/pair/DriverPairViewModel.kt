@@ -61,6 +61,10 @@ class DriverPairViewModel @Inject constructor(
         }
     }
 
+    fun clearDriverSession() {
+        remoteMeterControlRepository.clearDriverSession()
+    }
+
     fun refreshQr() {
         val newQr = genQR(_driverPairScreenUiData.value.licensePlate)
         _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(qrString = newQr)

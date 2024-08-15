@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
@@ -56,9 +59,13 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     val navController = rememberNavController()
-                    mainViewModel.updateBackButtonVisibility(
-                        navController.previousBackStackEntry != null
-                    )
+                    // Observe the currentBackStackEntry
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    LaunchedEffect(currentBackStackEntry) {
+                        mainViewModel.updateBackButtonVisibility(
+                            navController.previousBackStackEntry != null
+                        )
+                    }
 
                     Scaffold(
                         topBar = {

@@ -27,7 +27,9 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
         }
         composable(NavigationDestination.Pair.route) {
             val viewModel = hiltViewModel<DriverPairViewModel>()
-            DriverPairScreen(viewModel)
+            DriverPairScreen(viewModel, navigateToMeterOps = {
+                navController.navigate(NavigationDestination.MeterOps.route)
+            })
         }
     }
 }

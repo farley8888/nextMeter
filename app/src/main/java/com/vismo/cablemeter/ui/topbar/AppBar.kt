@@ -47,7 +47,7 @@ fun AppBar(
 ) {
     val uiState = viewModel.topAppBarUiState.collectAsState().value
     TopAppBar(
-        colors = TopAppBarDefaults.topAppBarColors(MaterialTheme.colorScheme.primaryContainer),
+        colors = TopAppBarDefaults.topAppBarColors(uiState.color),
         modifier = Modifier.height(48.dp),
         title = {},
         navigationIcon = {

@@ -75,6 +75,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         dashManager.sendHeartbeat()
     }
 
+    override fun clearDriverSession() {
+        dashManager.clearDriverSession()
+    }
+
     override fun onCleared() {
         dashManager.onCleared()
     }

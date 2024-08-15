@@ -9,6 +9,10 @@ import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
+import com.vismo.cablemeter.ui.theme.nobel600
+import com.vismo.cablemeter.ui.theme.primary200
+import com.vismo.cablemeter.ui.theme.primary600
+import com.vismo.cablemeter.ui.theme.primary700
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
@@ -65,6 +69,25 @@ class MainViewModel @Inject constructor(
                         while (true) {
                             remoteMCUControlRepository.sendHeartBeat()
                             delay(interval* 1000L)
+                        }
+                    }
+                }
+            }
+
+            launch {
+                remoteMCUControlRepository.meterInfo.collectLatest { meterInfo ->
+                    meterInfo?.let {
+                        if (it.session != null) {
+                            val driverPhoneNumber = it.session.driver.driverPhoneNumber
+                            _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                                driverPhoneNumber = driverPhoneNumber,
+                                color = primary700
+                            )
+                        } else {
+                            _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                                driverPhoneNumber = "",
+                                color = nobel600
+                            )
                         }
                     }
                 }

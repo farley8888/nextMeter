@@ -12,4 +12,6 @@ interface RemoteMeterControlRepository {
     fun sendHeartBeat()
 
     fun onCleared()
+
+    fun clearDriverSession()
 }
