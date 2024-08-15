@@ -5,6 +5,11 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface RemoteMeterControlRepository {
     val meterInfo: StateFlow<MeterInfo?>
+    val heartBeatInterval: StateFlow<Int>
 
     fun observeFlows()
+
+    fun sendHeartBeat()
+
+    fun onCleared()
 }

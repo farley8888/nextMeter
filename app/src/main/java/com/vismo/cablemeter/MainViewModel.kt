@@ -9,9 +9,11 @@ import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
+import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -52,6 +54,17 @@ class MainViewModel @Inject constructor(
                             }
                         } catch (e: Exception) {
                             Log.d("MainViewModel", "Error parsing date: $dateTime")
+                        }
+                    }
+                }
+            }
+
+            launch {
+                remoteMCUControlRepository.heartBeatInterval.collectLatest { interval ->
+                    if (interval > 0) {
+                        while (true) {
+                            remoteMCUControlRepository.sendHeartBeat()
+                            delay(interval* 1000L)
                         }
                     }
                 }
@@ -105,5 +118,6 @@ class MainViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         measureBoardRepository.stopCommunication()
+        remoteMCUControlRepository.onCleared()
     }
 }

@@ -170,8 +170,9 @@ class DashManager @Inject constructor(
         }
     }
 
-    fun sendHeartbeat(meterLocation: MeterLocation) {
+    fun sendHeartbeat() {
         CoroutineScope(ioDispatcher).launch {
+            val meterLocation = dashManagerConfig.meterLocation.value
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
                     meterLocation.gpsType.speed
@@ -257,6 +258,10 @@ class DashManager @Inject constructor(
             driverChineseName = driverMap[DRIVER_NAME_CH] as String,
             driverLicense = driverMap[DRIVER_LICENSE] as String
         )
+    }
+
+    fun onCleared() {
+        meterDocumentListener?.remove()
     }
 
     companion object {
