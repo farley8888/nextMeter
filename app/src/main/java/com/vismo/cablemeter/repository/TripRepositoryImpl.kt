@@ -16,7 +16,8 @@ import javax.inject.Inject
 class TripRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val measureBoardRepository: MeasureBoardRepository,
-    private val dashManager: DashManager
+    private val dashManager: DashManager,
+    private val localTripsRepository: LocalTripsRepository
 ) : TripRepository {
 
     private val tripData = TripDataStore.tripData
@@ -25,9 +26,10 @@ class TripRepositoryImpl @Inject constructor(
         CoroutineScope(ioDispatcher).launch {
             tripData.collect { trip ->
                 trip?.let {
-                    if (trip.requiresUpdateOnFirestore) {
+                    if (trip.requiresUpdateOnDatabase) {
                         val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
                         dashManager.updateTripOnFirestore(tripInFirestore)
+                        localTripsRepository.updateTrip(it)
                     }
                 }
             }
@@ -38,6 +40,7 @@ class TripRepositoryImpl @Inject constructor(
         val tripId = MeasureBoardUtils.generateTripId()
         val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED)
         TripDataStore.setTripData(tripData)
+        localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
     }
 

@@ -34,6 +34,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.Date
@@ -44,7 +45,8 @@ import javax.inject.Inject
 class MeasureBoardRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val dashManagerConfig: DashManagerConfig
+    private val dashManagerConfig: DashManagerConfig,
+    private val localTripsRepository: LocalTripsRepository
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
     private var mWorkCh3: UartWorkerCH? = null
@@ -149,23 +151,27 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
                 _mcuTime.value = currentTime
 
-                val currentTrip = TripDataStore.tripData.value
-                val requiresUpdate = currentTrip?.fare != fare || currentTrip.tripStatus != tripStatus
 
-                val currentOngoingTrip = TripData(
-                    tripId = null,
-                    startTime = null,
-                    tripStatus = tripStatus,
-                    isLocked = overSpeedLockupDuration > 0,
-                    fare = fare,
-                    extra = extras,
-                    totalFare = totalFare,
-                    distanceInMeter = distance,
-                    waitDurationInSeconds = getTimeInSeconds(duration),
-                    overSpeedDurationInSeconds = overSpeedLockupDuration,
-                    requiresUpdateOnFirestore = requiresUpdate,
-                )
-                TripDataStore.updateTripDataValue(currentOngoingTrip)
+                val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
+
+                currentOngoingTripInDB?.let {
+                    val requiresUpdate = it.fare != fare || it.tripStatus != tripStatus
+
+                    val currentOngoingTrip = TripData(
+                        tripId = it.tripId,
+                        startTime = it.startTime,
+                        tripStatus = tripStatus,
+                        isLocked = overSpeedLockupDuration > 0,
+                        fare = fare,
+                        extra = extras,
+                        totalFare = totalFare,
+                        distanceInMeter = distance,
+                        waitDurationInSeconds = getTimeInSeconds(duration),
+                        overSpeedDurationInSeconds = overSpeedLockupDuration,
+                        requiresUpdateOnDatabase = requiresUpdate,
+                    )
+                    TripDataStore.updateTripDataValue(currentOngoingTrip)
+                }
                 dashManagerConfig.setLicensePlate(licensePlate)
                 Log.d(TAG, "ONGOING_HEARTBEAT: $result")
             }
@@ -177,19 +183,23 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val extras = result.substring(136, 136 + 6).divideBy100AndConvertToDouble()
                 val totalFare = result.substring(142, 142 + 6).divideBy100AndConvertToDouble()
 
-                val currentOngoingTrip = TripData(
-                    tripId = null,
-                    startTime = null,
-                    tripStatus = TripStatus.ENDED,
-                    fare = fare,
-                    extra = extras,
-                    totalFare = totalFare,
-                    distanceInMeter = distance,
-                    waitDurationInSeconds = getTimeInSeconds(duration),
-                    endTime = Timestamp.now(),
-                    requiresUpdateOnFirestore = true,
-                )
-                TripDataStore.updateTripDataValue(currentOngoingTrip)
+                val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
+
+                currentOngoingTripInDB?.let {
+                    val currentOngoingTrip = TripData(
+                        tripId = it.tripId,
+                        startTime = it.startTime,
+                        tripStatus = TripStatus.ENDED,
+                        fare = fare,
+                        extra = extras,
+                        totalFare = totalFare,
+                        distanceInMeter = distance,
+                        waitDurationInSeconds = getTimeInSeconds(duration),
+                        endTime = Timestamp.now(),
+                        requiresUpdateOnDatabase = true,
+                    )
+                    TripDataStore.updateTripDataValue(currentOngoingTrip)
+                }
 
                 addTask {
                     // after a trip ends, MCU will only continue sending IDLE heartbeats after it receives this response

@@ -5,8 +5,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.vismo.cablemeter.dao.TripsDao
 import com.vismo.cablemeter.network.api.MeterOApi
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
+import com.vismo.cablemeter.repository.LocalTripsRepository
+import com.vismo.cablemeter.repository.LocalTripsRepositoryImpl
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepositoryImpl
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
@@ -57,17 +60,31 @@ object AppModule {
         )
     }
 
+    @Singleton
+    @Provides
+    fun providesLocalTripsRepository(
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        tripsDao: TripsDao
+    ): LocalTripsRepository {
+        return LocalTripsRepositoryImpl(
+            ioDispatcher = ioDispatcher,
+            tripsDao = tripsDao
+        )
+    }
+
     @Provides
     @Singleton
     fun provideMeasureBoardRepository(
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        dashManagerConfig: DashManagerConfig
+        dashManagerConfig: DashManagerConfig,
+        localTripsRepository: LocalTripsRepository
     ): MeasureBoardRepository {
         return MeasureBoardRepositoryImpl(
             context = context,
             ioDispatcher = ioDispatcher,
-            dashManagerConfig = dashManagerConfig
+            dashManagerConfig = dashManagerConfig,
+            localTripsRepository = localTripsRepository
         )
     }
 
@@ -76,12 +93,14 @@ object AppModule {
     fun provideTripRepository(
         measureBoardRepository: MeasureBoardRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        dashManager: DashManager
+        dashManager: DashManager,
+        localTripsRepository: LocalTripsRepository
     ): TripRepository {
         return TripRepositoryImpl (
             ioDispatcher = ioDispatcher,
             measureBoardRepository = measureBoardRepository,
-            dashManager = dashManager
+            dashManager = dashManager,
+            localTripsRepository = localTripsRepository
         )
     }
 

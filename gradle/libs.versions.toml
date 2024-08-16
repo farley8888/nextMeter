@@ -25,6 +25,7 @@ auth-java-jwt = "4.4.0"
 gson = "2.11.0"
 amap = "6.2.0"
 zxing-android-embedded = "4.3.0"
+room = "2.6.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -62,6 +63,9 @@ auth-java-jwt = { group = "com.auth0", name = "java-jwt", version.ref = "auth-ja
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 amap-location = { group = "com.amap.api", name = "location", version.ref = "amap" }
 zxing-android-embedded = { group = "com.journeyapps", name = "zxing-android-embedded", version.ref = "zxing-android-embedded" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
