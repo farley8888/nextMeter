@@ -9,6 +9,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.vismo.cablemeter.MainActivity.Companion.NavigationDestination
+import com.vismo.cablemeter.ui.history.LocalTripHistoryScreen
+import com.vismo.cablemeter.ui.history.LocalTripHistoryViewModel
 import com.vismo.cablemeter.ui.meter.MeterOpsScreen
 import com.vismo.cablemeter.ui.meter.MeterOpsViewModel
 import com.vismo.cablemeter.ui.pair.DriverPairScreen
@@ -23,13 +25,19 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
     ) {
         composable(NavigationDestination.MeterOps.route) {
             val viewModel = hiltViewModel<MeterOpsViewModel>()
-            MeterOpsScreen(viewModel)
+            MeterOpsScreen(viewModel, navigateToHistory = {
+                navController.navigate(NavigationDestination.TripHistory.route)
+            })
         }
         composable(NavigationDestination.Pair.route) {
             val viewModel = hiltViewModel<DriverPairViewModel>()
             DriverPairScreen(viewModel, navigateToMeterOps = {
                 navController.navigate(NavigationDestination.MeterOps.route)
             })
+        }
+        composable(NavigationDestination.TripHistory.route) {
+            val viewModel = hiltViewModel<LocalTripHistoryViewModel>()
+            LocalTripHistoryScreen(viewModel)
         }
     }
 }

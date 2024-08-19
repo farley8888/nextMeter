@@ -2,6 +2,7 @@ package com.vismo.cablemeter.ui.meter
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -41,7 +42,7 @@ import com.vismo.cablemeter.ui.theme.Black
 
 
 @Composable
-fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
+fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToHistory: () -> Unit) {
     val focusRequester = remember { FocusRequester() }
     val uiState = viewModel.uiState.collectAsState().value
 
@@ -60,6 +61,9 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
                     viewModel.handleKeyEvent(code, repeatCount, isLongPress)
                 }
                 true
+            }
+            .clickable {
+                navigateToHistory()
             }
     ) {
         TaxiMeterUI(uiState)

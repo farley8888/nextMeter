@@ -6,11 +6,13 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import android.util.Base64
+import com.google.firebase.Timestamp
 import com.vismo.cablemeter.util.Constant.SLAT_KEY
 import com.vismo.cablemeter.util.Constant.VECTOR_KEY
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
@@ -56,5 +58,12 @@ object GlobalUtils {
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv)
         val encrypted = cipher.doFinal(content.toByteArray())
         return Base64.encodeToString(encrypted, Base64.DEFAULT)
+    }
+
+    fun formatTimestampToTime(timestamp: Timestamp?): String {
+        return timestamp?.let {
+            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            sdf.format(Date(it.seconds * 1000))
+        } ?: "N/A"
     }
 }

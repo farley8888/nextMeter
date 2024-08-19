@@ -202,6 +202,7 @@ class MainActivity : ComponentActivity() {
         ) {
             data object MeterOps : NavigationDestination("meterOps")
             data object Pair : NavigationDestination("pair")
+            data object TripHistory : NavigationDestination("tripHistory")
         }
     }
 }
