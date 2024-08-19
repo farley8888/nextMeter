@@ -9,6 +9,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.vismo.cablemeter.MainActivity.Companion.NavigationDestination
+import com.vismo.cablemeter.ui.dashboard.DashBoardScreen
+import com.vismo.cablemeter.ui.dashboard.DashBoardViewModel
 import com.vismo.cablemeter.ui.history.LocalTripHistoryScreen
 import com.vismo.cablemeter.ui.history.LocalTripHistoryViewModel
 import com.vismo.cablemeter.ui.meter.MeterOpsScreen
@@ -25,8 +27,8 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
     ) {
         composable(NavigationDestination.MeterOps.route) {
             val viewModel = hiltViewModel<MeterOpsViewModel>()
-            MeterOpsScreen(viewModel, navigateToHistory = {
-                navController.navigate(NavigationDestination.TripHistory.route)
+            MeterOpsScreen(viewModel, navigateToDashBoard = {
+                navController.navigate(NavigationDestination.Dashboard.route)
             })
         }
         composable(NavigationDestination.Pair.route) {
@@ -38,6 +40,12 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
         composable(NavigationDestination.TripHistory.route) {
             val viewModel = hiltViewModel<LocalTripHistoryViewModel>()
             LocalTripHistoryScreen(viewModel)
+        }
+        composable(NavigationDestination.Dashboard.route) {
+            val viewModel = hiltViewModel<DashBoardViewModel>()
+            DashBoardScreen(viewModel, navigateToTripHistory = {
+                navController.navigate(NavigationDestination.TripHistory.route)
+            })
         }
     }
 }
