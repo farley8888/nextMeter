@@ -2,6 +2,7 @@ package com.vismo.cablemeter.ui.topbar
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -34,9 +35,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.MainViewModel
+import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,6 +49,8 @@ fun AppBar(
     onBackButtonClick: () -> Unit
 ) {
     val uiState = viewModel.topAppBarUiState.collectAsState().value
+    val view = LocalView.current
+
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(uiState.color),
         modifier = Modifier.height(48.dp),
@@ -53,12 +58,21 @@ fun AppBar(
         navigationIcon = {
             Row (
                 modifier = Modifier.fillMaxHeight()
-                    .wrapContentWidth(),
+                    .wrapContentWidth()
+                    .clickable {
+                        if (uiState.isBackButtonVisible) {
+                            onBackButtonClick()
+                            performVirtualTapFeedback(view)
+                        }
+                    },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
                 if (uiState.isBackButtonVisible) {
-                    IconButton(onClick = onBackButtonClick) {
+                    IconButton({
+                        onBackButtonClick()
+                        performVirtualTapFeedback(view)
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "Back",

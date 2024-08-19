@@ -6,6 +6,8 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import android.util.Base64
+import android.view.HapticFeedbackConstants
+import android.view.View
 import com.google.firebase.Timestamp
 import com.vismo.cablemeter.util.Constant.SLAT_KEY
 import com.vismo.cablemeter.util.Constant.VECTOR_KEY
@@ -65,5 +67,14 @@ object GlobalUtils {
             val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
             sdf.format(Date(it.seconds * 1000))
         } ?: "N/A"
+    }
+
+    /*
+        * Perform haptic feedback and play sound effect when a view is clicked
+        * because compose does not do this by default
+     */
+    fun performVirtualTapFeedback(view: View) {
+        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
     }
 }

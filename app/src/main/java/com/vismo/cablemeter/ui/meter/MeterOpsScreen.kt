@@ -34,17 +34,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.ui.theme.Black
+import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 
 @Composable
 fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToHistory: () -> Unit) {
     val focusRequester = remember { FocusRequester() }
     val uiState = viewModel.uiState.collectAsState().value
+    val view = LocalView.current
 
     Column(
         modifier =
@@ -64,6 +67,7 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToHistory: () -> Unit) 
             }
             .clickable {
                 navigateToHistory()
+                performVirtualTapFeedback(view)
             }
     ) {
         TaxiMeterUI(uiState)
