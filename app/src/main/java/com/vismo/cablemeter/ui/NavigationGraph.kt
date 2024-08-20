@@ -9,8 +9,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.vismo.cablemeter.MainActivity.Companion.NavigationDestination
-import com.vismo.cablemeter.ui.dashboard.TripSummaryDashBoard
-import com.vismo.cablemeter.ui.dashboard.TripSummaryDashBoardViewModel
+import com.vismo.cablemeter.ui.dashboard.mcu.MCUSummaryDashboard
+import com.vismo.cablemeter.ui.dashboard.mcu.MCUSummaryDashboardViewModel
+import com.vismo.cablemeter.ui.dashboard.trip.TripSummaryDashboard
+import com.vismo.cablemeter.ui.dashboard.trip.TripSummaryDashboardViewModel
 import com.vismo.cablemeter.ui.history.LocalTripHistoryScreen
 import com.vismo.cablemeter.ui.history.LocalTripHistoryViewModel
 import com.vismo.cablemeter.ui.meter.MeterOpsScreen
@@ -28,7 +30,7 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
         composable(NavigationDestination.MeterOps.route) {
             val viewModel = hiltViewModel<MeterOpsViewModel>()
             MeterOpsScreen(viewModel, navigateToDashBoard = {
-                navController.navigate(NavigationDestination.Dashboard.route)
+                navController.navigate(NavigationDestination.TripSummaryDashboard.route)
             })
         }
         composable(NavigationDestination.Pair.route) {
@@ -41,9 +43,17 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
             val viewModel = hiltViewModel<LocalTripHistoryViewModel>()
             LocalTripHistoryScreen(viewModel)
         }
-        composable(NavigationDestination.Dashboard.route) {
-            val viewModel = hiltViewModel<TripSummaryDashBoardViewModel>()
-            TripSummaryDashBoard(viewModel, navigateToTripHistory = {
+        composable(NavigationDestination.TripSummaryDashboard.route) {
+            val viewModel = hiltViewModel<TripSummaryDashboardViewModel>()
+            TripSummaryDashboard(viewModel, navigateToTripHistory = {
+                navController.navigate(NavigationDestination.TripHistory.route)
+            }, navigateToMCUSummary = {
+                navController.navigate(NavigationDestination.MCUSummaryDashboard.route)
+            })
+        }
+        composable(NavigationDestination.MCUSummaryDashboard.route) {
+            val viewModel = hiltViewModel<MCUSummaryDashboardViewModel>()
+            MCUSummaryDashboard(viewModel, navigate = {
                 navController.navigate(NavigationDestination.TripHistory.route)
             })
         }

@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.ui.dashboard
+package com.vismo.cablemeter.ui.dashboard.trip
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -35,9 +35,10 @@ import com.vismo.cablemeter.ui.theme.nobel800
 import com.vismo.cablemeter.ui.theme.valencia300
 
 @Composable
-fun TripSummaryDashBoard(
-    viewModel: TripSummaryDashBoardViewModel,
-    navigateToTripHistory: () -> Unit
+fun TripSummaryDashboard(
+    viewModel: TripSummaryDashboardViewModel,
+    navigateToTripHistory: () -> Unit,
+    navigateToMCUSummary: () -> Unit
 ) {
     val allTripsSummary = viewModel.allTripSummary.collectAsState().value
 
@@ -51,7 +52,7 @@ fun TripSummaryDashBoard(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Options(navigateToTripHistory)
+            Options(navigateToTripHistory, navigateToMCUSummary)
         }
         Column(
             modifier = Modifier
@@ -69,7 +70,7 @@ fun TripSummaryDashBoard(
 }
 
 @Composable
-fun ActionButtons(viewModel: TripSummaryDashBoardViewModel) {
+fun ActionButtons(viewModel: TripSummaryDashboardViewModel) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(16.dp)
@@ -108,16 +109,19 @@ fun RowScope.CustomButton(text: String, containerColor: Color, onClick: () -> Un
 }
 
 @Composable
-fun ColumnScope.Options(navigateToTripHistory: () -> Unit) {
+fun ColumnScope.Options(
+    navigateToTripHistory: () -> Unit,
+    navigateToMCUSummary: () -> Unit
+) {
     CustomListItem(text = "本更行程數據", navigateToTripHistory)
     CustomListItem(text = "系統設定", {})
-    CustomListItem(text = "系統資料", {})
+    CustomListItem(text = "系統資料", navigateToMCUSummary)
 }
 
 @Composable
 fun TripSummary(
-    allTripsSummary: TripSummaryDashBoardUiData,
-    viewModel: TripSummaryDashBoardViewModel
+    allTripsSummary: TripSummaryDashboardUiData,
+    viewModel: TripSummaryDashboardViewModel
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
