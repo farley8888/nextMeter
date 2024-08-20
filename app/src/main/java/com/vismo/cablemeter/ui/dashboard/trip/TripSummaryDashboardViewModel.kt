@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.ui.dashboard
+package com.vismo.cablemeter.ui.dashboard.trip
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,15 +14,15 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
-class TripSummaryDashBoardViewModel @Inject constructor(
+class TripSummaryDashboardViewModel @Inject constructor(
     private val localTripsRepository: LocalTripsRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
-    private val _allTripsSummary: MutableStateFlow<TripSummaryDashBoardUiData> = MutableStateFlow(
-        TripSummaryDashBoardUiData(TripSummaryDashBoardType.ALL)
+    private val _allTripsSummary: MutableStateFlow<TripSummaryDashboardUiData> = MutableStateFlow(
+        TripSummaryDashboardUiData(TripSummaryDashboardType.ALL)
     )
-    val allTripSummary: StateFlow<TripSummaryDashBoardUiData> = _allTripsSummary
+    val allTripSummary: StateFlow<TripSummaryDashboardUiData> = _allTripsSummary
 
     init {
         viewModelScope.launch {
@@ -32,8 +32,8 @@ class TripSummaryDashBoardViewModel @Inject constructor(
                     val sumTotalFare = allTrips.sumOf { it.totalFare }.toString()
                     val sumWaitingTime = formatSecondsToCompactFormat(allTrips.sumOf { it.waitDurationInSeconds })
                     val sumOfDistanceInKm = (allTrips.sumOf { it.distanceInMeter } / 1000).toString()
-                    _allTripsSummary.value = TripSummaryDashBoardUiData(
-                        TripSummaryDashBoardType.ALL,
+                    _allTripsSummary.value = TripSummaryDashboardUiData(
+                        TripSummaryDashboardType.ALL,
                         numberOfTrips,
                         sumWaitingTime,
                         "$sumOfDistanceInKm",
