@@ -98,4 +98,36 @@ object GlobalUtils {
             empty
         }
     }
+
+    fun getFormattedStartPrice(startingPrice: String): String {
+        return if (startingPrice.toDoubleOrNull() == null) {
+            startingPrice
+        } else {
+            "$${String.format(Locale.US, "%.2f", (startingPrice).toDouble() / 100)}"
+        }
+    }
+
+    fun getFormattedStepPrice(stepPrice: String): String {
+        return if (stepPrice.toDoubleOrNull() == null) {
+            stepPrice
+        } else {
+            "$${String.format(Locale.US, "%.2f", (stepPrice).toDouble() / 5 / 100)}"
+        }
+    }
+
+    fun getFormattedChangedPriceAt(changedPriceAt: String): String {
+        return if (changedPriceAt.toDoubleOrNull() == null) {
+            changedPriceAt
+        } else {
+            "$${String.format(Locale.US, "%.2f", (changedPriceAt).toDouble() / 10)}"
+        }
+    }
+
+    fun getFormattedChangedStepPrice(changedStepPrice: String): String {
+        return if (changedStepPrice.toDoubleOrNull() == null) {
+            changedStepPrice
+        } else {
+        "$${String.format(Locale.US, "%.2f", (changedStepPrice).toDouble() / 5 / 100)}"
+            }
+    }
 }
