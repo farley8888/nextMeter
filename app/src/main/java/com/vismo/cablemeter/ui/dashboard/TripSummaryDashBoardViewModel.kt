@@ -14,15 +14,15 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
-class DashBoardViewModel @Inject constructor(
+class TripSummaryDashBoardViewModel @Inject constructor(
     private val localTripsRepository: LocalTripsRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
-    private val _allTripsSummary: MutableStateFlow<DashBoardScreenUiData> = MutableStateFlow(
-        DashBoardScreenUiData(DashBoardDataType.ALL)
+    private val _allTripsSummary: MutableStateFlow<TripSummaryDashBoardUiData> = MutableStateFlow(
+        TripSummaryDashBoardUiData(TripSummaryDashBoardType.ALL)
     )
-    val allTripSummary: StateFlow<DashBoardScreenUiData> = _allTripsSummary
+    val allTripSummary: StateFlow<TripSummaryDashBoardUiData> = _allTripsSummary
 
     init {
         viewModelScope.launch {
@@ -32,8 +32,8 @@ class DashBoardViewModel @Inject constructor(
                     val sumTotalFare = allTrips.sumOf { it.totalFare }.toString()
                     val sumWaitingTime = formatSecondsToCompactFormat(allTrips.sumOf { it.waitDurationInSeconds })
                     val sumOfDistanceInKm = (allTrips.sumOf { it.distanceInMeter } / 1000).toString()
-                    _allTripsSummary.value = DashBoardScreenUiData(
-                        DashBoardDataType.ALL,
+                    _allTripsSummary.value = TripSummaryDashBoardUiData(
+                        TripSummaryDashBoardType.ALL,
                         numberOfTrips,
                         sumWaitingTime,
                         "$sumOfDistanceInKm",

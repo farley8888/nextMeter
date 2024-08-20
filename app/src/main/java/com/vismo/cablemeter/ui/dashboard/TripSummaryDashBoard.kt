@@ -35,8 +35,8 @@ import com.vismo.cablemeter.ui.theme.nobel800
 import com.vismo.cablemeter.ui.theme.valencia300
 
 @Composable
-fun DashBoardScreen(
-    viewModel: DashBoardViewModel,
+fun TripSummaryDashBoard(
+    viewModel: TripSummaryDashBoardViewModel,
     navigateToTripHistory: () -> Unit
 ) {
     val allTripsSummary = viewModel.allTripSummary.collectAsState().value
@@ -69,7 +69,7 @@ fun DashBoardScreen(
 }
 
 @Composable
-fun ActionButtons(viewModel: DashBoardViewModel) {
+fun ActionButtons(viewModel: TripSummaryDashBoardViewModel) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(16.dp)
@@ -116,8 +116,8 @@ fun ColumnScope.Options(navigateToTripHistory: () -> Unit) {
 
 @Composable
 fun TripSummary(
-    allTripsSummary: DashBoardScreenUiData,
-    viewModel: DashBoardViewModel
+    allTripsSummary: TripSummaryDashBoardUiData,
+    viewModel: TripSummaryDashBoardViewModel
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
