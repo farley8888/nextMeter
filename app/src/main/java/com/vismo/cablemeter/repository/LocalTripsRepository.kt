@@ -13,7 +13,11 @@ interface LocalTripsRepository {
 
     suspend fun getAllTrips() : List<TripData>
 
+    fun getAllTripsFlow() : Flow<List<TripData>>
+
     suspend fun getTrip(tripId: String) : TripData?
 
     suspend fun getLatestOnGoingTrip() : TripData?
+
+    suspend fun clearAllTrips()
 }

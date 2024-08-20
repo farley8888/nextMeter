@@ -77,4 +77,25 @@ object GlobalUtils {
         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
         view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
     }
+
+    fun formatSecondsToCompactFormat(seconds: Long): String {
+        val days = seconds / (24 * 3600)
+        val hours = (seconds % (24 * 3600)) / 3600
+        val minutes = (seconds % 3600) / 60
+
+        val daysPart = if (days > 0) "${days}d " else ""
+        val hoursPart = if (hours > 0) "${hours}h " else ""
+        val minutesPart = if (minutes > 0) "${minutes}m" else ""
+        val empty = "0m"
+
+        return if (days > 0) {
+            "$daysPart$hoursPart$minutesPart"
+        } else if (hours > 0) {
+            "$hoursPart$minutesPart"
+        } else if (minutes > 0) {
+            minutesPart
+        } else {
+            empty
+        }
+    }
 }

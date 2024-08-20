@@ -5,6 +5,7 @@ import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.module.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,12 +35,22 @@ class LocalTripsRepositoryImpl @Inject constructor(
         return tripsDao.getAllTrips()
     }
 
+    override fun getAllTripsFlow(): Flow<List<TripData>> {
+        return tripsDao.getAllTripsFlow()
+    }
+
     override suspend fun getTrip(tripId: String): TripData? {
         return tripsDao.getTrip(tripId)
     }
 
     override suspend fun getLatestOnGoingTrip(): TripData? {
         return tripsDao.getLatestOnGoingTrip()
+    }
+
+    override suspend fun clearAllTrips() {
+        CoroutineScope(ioDispatcher).launch {
+            tripsDao.clearAllTrips()
+        }
     }
 
 }

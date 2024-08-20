@@ -1,7 +1,6 @@
 package com.vismo.cablemeter.ui.dashboard
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,18 +22,16 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vismo.cablemeter.ui.theme.gold800
 import com.vismo.cablemeter.ui.theme.nobel400
 import com.vismo.cablemeter.ui.theme.nobel50
 import com.vismo.cablemeter.ui.theme.nobel500
-import com.vismo.cablemeter.ui.theme.nobel700
 import com.vismo.cablemeter.ui.theme.nobel800
-import com.vismo.cablemeter.ui.theme.secondary600
 import com.vismo.cablemeter.ui.theme.valencia300
 
 @Composable
@@ -42,6 +39,8 @@ fun DashBoardScreen(
     viewModel: DashBoardViewModel,
     navigateToTripHistory: () -> Unit
 ) {
+    val allTripsSummary = viewModel.allTripSummary.collectAsState().value
+
     Row (
         modifier = Modifier.fillMaxSize()
     ) {
@@ -61,27 +60,30 @@ fun DashBoardScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TripSummary()
+            TripSummary(
+                allTripsSummary = allTripsSummary,
+                viewModel = viewModel
+            )
         }
     }
 }
 
 @Composable
-fun ActionButtons() {
+fun ActionButtons(viewModel: DashBoardViewModel) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(16.dp)
     ) {
-        CustomButton(text = "清除\n" + "資料", containerColor = valencia300)
-        CustomButton(text = "打印\n" + "記錄", containerColor = nobel400)
+        CustomButton(text = "清除\n" + "資料", containerColor = valencia300) { viewModel.clearAllLocalTrips() }
+        CustomButton(text = "打印\n" + "記錄", containerColor = nobel400) {}
     }
 }
 
 @Composable 
-fun RowScope.CustomButton(text: String, containerColor: Color) {
+fun RowScope.CustomButton(text: String, containerColor: Color, onClick: () -> Unit) {
     Button(
         onClick = {
-
+            onClick()
         },
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
@@ -113,22 +115,25 @@ fun ColumnScope.Options(navigateToTripHistory: () -> Unit) {
 }
 
 @Composable
-fun TripSummary() {
+fun TripSummary(
+    allTripsSummary: DashBoardScreenUiData,
+    viewModel: DashBoardViewModel
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = nobel800),
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        ActionButtons()
+        ActionButtons(viewModel = viewModel)
         Row(
             modifier = Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             DataColumn(title = "", data = listOf("旗數", "里數", "候時", "金額"), horizontalAlignment = Alignment.CenterHorizontally)
-            DataColumn(title = "總數", data = listOf("13", "0", "00:06:53", "$312.00"))
-            DataColumn(title = "現金", data = listOf("13", "0", "00:06:53", "$312.00"))
-            DataColumn(title = "電子", data = listOf("0", "0", "00:00:00", "$0.00"))
+            DataColumn(title = "總數", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare))
+            DataColumn(title = "現金", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare))
+            DataColumn(title = "電子", data = listOf("0", "0", "0", "$0.00"))
         }
     }
 }

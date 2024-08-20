@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.vismo.cablemeter.model.TripData
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TripsDao {
@@ -23,10 +24,16 @@ interface TripsDao {
     @Query("SELECT * FROM trips")
     suspend fun getAllTrips(): List<TripData>
 
+    @Query("SELECT * FROM trips")
+    fun getAllTripsFlow(): Flow<List<TripData>>
+
     @Query("SELECT * FROM trips WHERE tripId = :tripId")
     suspend fun getTrip(tripId: String): TripData?
 
     @Query("SELECT * FROM trips WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1")
     suspend fun getLatestOnGoingTrip(): TripData?
+
+    @Query("DELETE FROM trips")
+    suspend fun clearAllTrips()
 
 }
