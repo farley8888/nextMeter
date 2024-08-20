@@ -13,7 +13,7 @@ import com.serial.port.ByteUtils
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.model.DeviceIdData
-import com.vismo.cablemeter.model.MCUParams
+import com.vismo.cablemeter.model.MCUFareParams
 import com.vismo.cablemeter.model.MCUMessage
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
@@ -33,8 +33,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.Date
@@ -46,19 +44,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val dashManagerConfig: DashManagerConfig,
-    private val localTripsRepository: LocalTripsRepository
+    private val localTripsRepository: LocalTripsRepository,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
     private var mWorkCh3: UartWorkerCH? = null
 
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
-
-    private val _deviceIdData = MutableStateFlow<DeviceIdData?>(null)
-    override val deviceIdData = _deviceIdData
-
-    private val _mcuTime = MutableStateFlow<String?>(null)
-    override val mcuTime = _mcuTime
 
     private fun startMessageProcessor() {
         CoroutineScope(ioDispatcher).launch {
@@ -120,8 +112,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val licensePlateHex = result.substring(110, 110 + 16)
                 val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
-                _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
-                _mcuTime.value = result.substring(40, 40 + 12)
+                MCUParamsDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
+                MCUParamsDataStore.setMCUTime(result.substring(40, 40 + 12))
 
                 TripDataStore.tripData.value?.tripStatus?.let { tripStatus ->
                     if (tripStatus == TripStatus.ENDED) {
@@ -148,8 +140,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val licensePlateHex = result.substring(126, 126 + 16)
                 val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
-                _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
-                _mcuTime.value = currentTime
+                MCUParamsDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
+                MCUParamsDataStore.setMCUTime(result.substring(40, 40 + 12))
 
 
                 val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
@@ -228,7 +220,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val waitingTimeInterval = result.substring(90, 90 + 4)
                 val overSpeed = result.substring(94, 94 + 4)
 
-                val mcuData = MCUParams(
+                val mcuData = MCUFareParams(
                     parametersVersion = parametersVersion,
                     firmwareVersion = firmwareVersion,
                     kValue = kValue,
@@ -238,8 +230,15 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                     changedPriceAt = stepPriceChangedAt,
                     changedStepPrice = changedStepPrice,
                 )
-                MCUParamsDataStore.setMCUData(mcuData)
+                MCUParamsDataStore.setMCUFareData(mcuData)
             }
+        }
+    }
+
+    override fun enquireParameters() {
+        addTask {
+            mBusModel?.write(Command.CMD_PARAMETERS_ENQUIRY)
+            delay(200)
         }
     }
 

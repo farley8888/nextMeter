@@ -2,7 +2,7 @@ package com.vismo.cablemeter.model
 
 import com.google.gson.annotations.SerializedName
 
-data class MCUParams(
+data class MCUFareParams(
     @SerializedName("parameters_version") val parametersVersion: String,
     @SerializedName("firmware_version") val firmwareVersion: String,
     @SerializedName("k_value") val kValue: String,

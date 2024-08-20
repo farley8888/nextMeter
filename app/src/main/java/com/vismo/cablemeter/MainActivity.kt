@@ -26,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
+import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.ui.topbar.AppBar
 import com.vismo.cablemeter.ui.NavigationGraph
 import com.vismo.cablemeter.ui.theme.CableMeterTheme
@@ -89,7 +90,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    mainViewModel.mcuTime.collectLatest {
+                    MCUParamsDataStore.mcuTime.collectLatest {
                         it?.let { time ->
                             setDeviceTime(time)
                         }

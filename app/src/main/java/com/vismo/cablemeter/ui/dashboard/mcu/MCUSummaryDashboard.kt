@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -31,6 +32,10 @@ import com.vismo.cablemeter.ui.theme.mineShaft600
 import com.vismo.cablemeter.ui.theme.nobel200
 import com.vismo.cablemeter.ui.theme.nobel500
 import com.vismo.cablemeter.ui.theme.nobel700
+import com.vismo.cablemeter.util.GlobalUtils.getFormattedChangedPriceAt
+import com.vismo.cablemeter.util.GlobalUtils.getFormattedChangedStepPrice
+import com.vismo.cablemeter.util.GlobalUtils.getFormattedStartPrice
+import com.vismo.cablemeter.util.GlobalUtils.getFormattedStepPrice
 
 
 @Composable
@@ -38,6 +43,8 @@ fun MCUSummaryDashboard(
     viewModel: MCUSummaryDashboardViewModel,
     navigate: () -> Unit
 ) {
+    val uiState = viewModel.mcuSummaryUiState.collectAsState().value
+
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -100,7 +107,7 @@ fun MCUSummaryDashboard(
                         )
                 ) {
                     Text(
-                        text = "DASH02T",
+                        text = uiState.deviceIdData.licensePlate,
                         color = Color.Black,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
@@ -130,13 +137,13 @@ fun MCUSummaryDashboard(
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            DetailRow("安桌固性", "1.5.1")
-            DetailRow("安桌ID", "NGSM2406A0600")
-            DetailRow("計量ID", "2407100017")
-            DetailRow("計量固性", "24071691")
-            DetailRow("APP版本", "v5.0.0.946 (1.6.0)")
-            DetailRow("車費版本", "240714B1")
-            DetailRow("K值", "0650")
+            DetailRow("安桌固性", uiState.androidROMVersion)
+            DetailRow("安桌ID", uiState.androidId)
+            DetailRow("計量ID", uiState.deviceIdData.deviceId)
+            DetailRow("計量固性", uiState.fareParams.firmwareVersion)
+            DetailRow("APP版本", uiState.appVersion)
+            DetailRow("車費版本", uiState.fareParams.parametersVersion)
+            DetailRow("K值", uiState.fareParams.kValue)
         }
 
         // Second Column
@@ -146,7 +153,7 @@ fun MCUSummaryDashboard(
                 .padding(start = 16.dp)
         ) {
             // Pricing Section
-            PricingDetails()
+            PricingDetails(uiState)
         }
     }
 }
@@ -165,7 +172,7 @@ fun DetailRow(label: String, value: String) {
 }
 
 @Composable
-fun PricingDetails() {
+fun PricingDetails(uiState: MCUSummaryUiData) {
     Column(
         modifier = Modifier.width(280.dp)
     ) {
@@ -195,8 +202,8 @@ fun PricingDetails() {
                 )
             }
         }
-        PricingRow("首2公里\n" + "或其它部份", "$24.00")
-        PricingRow("每200米\n" + "或每分鐘", "+$1.90")
+        PricingRow("首2公里\n" + "或其它部份", getFormattedStartPrice(uiState.fareParams.startingPrice))
+        PricingRow("每200米\n" + "或每分鐘", getFormattedStepPrice(uiState.fareParams.stepPrice))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -204,14 +211,14 @@ fun PricingDetails() {
                 .padding(8.dp)
         ) {
             Text(
-                text = "▼車費達$195.00後▼",
+                text = "▼車費達${getFormattedChangedPriceAt(uiState.fareParams.changedPriceAt)}後▼",
                 color = Color.Black,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center)
             )
         }
-        PricingRow("每200米\n" + "或每分鐘", "+$1.60")
+        PricingRow("每200米\n" + "或每分鐘", getFormattedChangedStepPrice(uiState.fareParams.changedStepPrice))
     }
 }
 

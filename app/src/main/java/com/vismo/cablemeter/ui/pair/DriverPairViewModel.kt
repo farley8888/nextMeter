@@ -2,6 +2,7 @@ package com.vismo.cablemeter.ui.pair
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
@@ -32,7 +33,7 @@ class DriverPairViewModel @Inject constructor(
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 launch {
-                    measureBoardRepository.deviceIdData.collectLatest { deviceIdData ->
+                    MCUParamsDataStore.deviceIdData.collectLatest { deviceIdData ->
                         deviceIdData?.let {
                             _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
                                 qrString = genQR(it.licensePlate),
