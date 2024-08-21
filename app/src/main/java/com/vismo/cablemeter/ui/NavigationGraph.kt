@@ -1,5 +1,9 @@
 package com.vismo.cablemeter.ui
 
+
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -26,7 +30,13 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
     NavHost(
         navController = navController,
         startDestination = NavigationDestination.Pair.route,
-        modifier = Modifier.padding(innerPadding)
+        modifier = Modifier.padding(innerPadding),
+        enterTransition = {
+            fadeIn(tween(700))
+        },
+        exitTransition = {
+            fadeOut(tween(700))
+        }
     ) {
         composable(NavigationDestination.MeterOps.route) {
             val viewModel = hiltViewModel<MeterOpsViewModel>()
