@@ -19,6 +19,7 @@ import com.vismo.cablemeter.ui.meter.MeterOpsScreen
 import com.vismo.cablemeter.ui.meter.MeterOpsViewModel
 import com.vismo.cablemeter.ui.pair.DriverPairScreen
 import com.vismo.cablemeter.ui.pair.DriverPairViewModel
+import com.vismo.cablemeter.ui.pin.SystemPinScreen
 
 @Composable
 fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValues) {
@@ -54,8 +55,11 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
         composable(NavigationDestination.MCUSummaryDashboard.route) {
             val viewModel = hiltViewModel<MCUSummaryDashboardViewModel>()
             MCUSummaryDashboard(viewModel, navigate = {
-                navController.navigate(NavigationDestination.TripHistory.route)
+                navController.navigate(NavigationDestination.SystemPin.route)
             })
+        }
+        composable(NavigationDestination.SystemPin.route) {
+            SystemPinScreen()
         }
     }
 }
