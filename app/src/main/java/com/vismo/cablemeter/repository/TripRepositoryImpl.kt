@@ -36,7 +36,7 @@ class TripRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun startTrip() {
+    override suspend fun startTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
         val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED)
         TripDataStore.setTripData(tripData)
@@ -50,7 +50,7 @@ class TripRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun startAndPauseTrip() {
+    override suspend fun startAndPauseTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
         val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED)
         TripDataStore.setTripData(tripData)
