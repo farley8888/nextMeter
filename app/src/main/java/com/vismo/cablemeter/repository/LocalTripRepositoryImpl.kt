@@ -1,6 +1,6 @@
 package com.vismo.cablemeter.repository
 
-import com.vismo.cablemeter.dao.TripsDao
+import com.vismo.cablemeter.dao.LocalTripsDao
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.module.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
@@ -11,45 +11,45 @@ import javax.inject.Inject
 
 class LocalTripsRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val tripsDao: TripsDao
+    private val localTripsDao: LocalTripsDao
 ) : LocalTripsRepository {
     override fun addTrip(tripData: TripData) {
         CoroutineScope(ioDispatcher).launch {
-            tripsDao.addTrip(tripData)
+            localTripsDao.addTrip(tripData)
         }
     }
 
     override fun updateTrip(tripData: TripData) {
         CoroutineScope(ioDispatcher).launch {
-            tripsDao.updateTrip(tripData)
+            localTripsDao.updateTrip(tripData)
         }
     }
 
     override fun deleteTrip(tripData: TripData) {
         CoroutineScope(ioDispatcher).launch {
-            tripsDao.deleteTrip(tripData)
+            localTripsDao.deleteTrip(tripData)
         }
     }
 
     override suspend fun getAllTrips(): List<TripData> {
-        return tripsDao.getAllTrips()
+        return localTripsDao.getAllTrips()
     }
 
     override fun getAllTripsFlow(): Flow<List<TripData>> {
-        return tripsDao.getAllTripsFlow()
+        return localTripsDao.getAllTripsFlow()
     }
 
     override suspend fun getTrip(tripId: String): TripData? {
-        return tripsDao.getTrip(tripId)
+        return localTripsDao.getTrip(tripId)
     }
 
     override suspend fun getLatestOnGoingTrip(): TripData? {
-        return tripsDao.getLatestOnGoingTrip()
+        return localTripsDao.getLatestOnGoingTrip()
     }
 
     override suspend fun clearAllTrips() {
         CoroutineScope(ioDispatcher).launch {
-            tripsDao.clearAllTrips()
+            localTripsDao.clearAllTrips()
         }
     }
 

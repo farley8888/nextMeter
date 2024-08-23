@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.module.IoDispatcher
+import com.vismo.cablemeter.repository.DriverPrefsRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
-import com.vismo.cablemeter.util.GlobalUtils.encrypt
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,19 +13,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class DriverPairViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val remoteMeterControlRepository: RemoteMeterControlRepository
+    private val remoteMeterControlRepository: RemoteMeterControlRepository,
+    private val driverPrefsRepository: DriverPrefsRepository
 ) : ViewModel() {
 
     private val _driverPairScreenUiData = MutableStateFlow(DriverPairUiData())
     val driverPairScreenUiData: StateFlow<DriverPairUiData> = _driverPairScreenUiData
+
+    private val _savedDriverIds = MutableStateFlow<MutableList<String>>(mutableListOf())
+    val savedDriverIds: StateFlow<List<String>> = _savedDriverIds
 
     init {
         viewModelScope.launch {
@@ -34,7 +35,7 @@ class DriverPairViewModel @Inject constructor(
                     MCUParamsDataStore.deviceIdData.collectLatest { deviceIdData ->
                         deviceIdData?.let {
                             _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
-                                qrString = genQR(it.licensePlate),
+                                qrString = driverPrefsRepository.genQR(it.licensePlate),
                                 licensePlate = it.licensePlate,
                                 deviceSerialNumber = it.deviceId,
                             )
@@ -48,15 +49,42 @@ class DriverPairViewModel @Inject constructor(
                                 _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
                                     driverPhoneNumber = it.session.driver.driverPhoneNumber
                                 )
+                                isDriverPinSet(it.session.driver.driverPhoneNumber)
                             } else {
                                 _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
-                                    driverPhoneNumber = ""
+                                    driverPhoneNumber = "",
+                                    isDriverPinSet = null
                                 )
                             }
                         }
                     }
                 }
+                launch {
+                    val prefs = driverPrefsRepository.getDriverPrefs()
+                    prefs.driverPinMap.forEach { item ->
+                        _savedDriverIds.value = _savedDriverIds.value.apply { add(item.driverId) }
+                    }
+                }
             }
+        }
+    }
+
+    private fun isDriverPinSet(driverPhoneNumber: String) {
+        viewModelScope.launch {
+            val driverPrefs = driverPrefsRepository.getDriverPrefs()
+            val skippedDrivers = driverPrefsRepository.getSkippedDrivers()
+            var isPinExist: Boolean? = false
+            driverPrefs.driverPinMap.forEach { mapItem ->
+                if (mapItem.driverId == driverPhoneNumber) {
+                    isPinExist = true
+                }
+            }
+            if (skippedDrivers.drivers.contains(driverPhoneNumber)) {
+                isPinExist = null
+            }
+            _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                isDriverPinSet = isPinExist
+            )
         }
     }
 
@@ -64,32 +92,12 @@ class DriverPairViewModel @Inject constructor(
         remoteMeterControlRepository.clearDriverSession()
     }
 
-    fun refreshQr() {
-        val newQr = genQR(_driverPairScreenUiData.value.licensePlate)
-        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(qrString = newQr)
+    fun clearIsDriverPinSet() {
+        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(isDriverPinSet = null)
     }
 
-    /**
-     * Generate the QR code to allow the driver app to scan and bind with the corresponding meter
-     */
-    private fun genQR(meterId: String): String {
-        try {
-            val version = 1
-            val keyVersion = 1
-            val licensePlate = meterId //"AZ1099"
-            val date = Calendar.getInstance().time
-            val sdf = SimpleDateFormat("yyMMddHHmmss", Locale.US)
-            val timeStamp = sdf.format(date)
-
-            /**
-             *  11 - version + key version
-            AZ1099 - lic plate
-            2206271010001 - YYMMDDHHMMSS+seed <= encrypted
-             */
-            val seed = "1"
-            return "$version$keyVersion$licensePlate-${encrypt("$timeStamp$seed")}"
-        } catch (e: UninitializedPropertyAccessException) {
-            return ""
-        }
+    fun refreshQr() {
+        val newQr = driverPrefsRepository.genQR(_driverPairScreenUiData.value.licensePlate)
+        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(qrString = newQr)
     }
 }

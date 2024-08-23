@@ -10,7 +10,7 @@ import com.vismo.cablemeter.model.TripData
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface TripsDao {
+interface LocalTripsDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addTrip(trip: TripData)

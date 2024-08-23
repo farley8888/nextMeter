@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.crashlyticsGradle)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 fun getVersionName(): String {
@@ -142,4 +143,7 @@ dependencies {
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
+    implementation(libs.kotlinx.serialization)
+    implementation(libs.proto.datastore)
+    implementation(libs.kotlinx.collections.immutable)
 }

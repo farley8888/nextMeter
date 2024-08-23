@@ -32,7 +32,6 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val firebaseAuthRepository: FirebaseAuthRepository,
     private val remoteMCUControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
     ) : ViewModel(){
@@ -131,7 +130,6 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                firebaseAuthRepository.initToken()
                 remoteMCUControlRepository.observeFlows()
             }
         }

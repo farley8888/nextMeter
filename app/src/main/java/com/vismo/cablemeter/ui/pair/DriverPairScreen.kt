@@ -8,12 +8,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,7 @@ import com.vismo.cablemeter.ui.theme.mineShaft900
 import com.vismo.cablemeter.ui.theme.nobel100
 import com.vismo.cablemeter.ui.theme.nobel400
 import com.vismo.cablemeter.ui.theme.nobel50
+import com.vismo.cablemeter.ui.theme.nobel800
 import com.vismo.cablemeter.ui.theme.nobel900
 import com.vismo.cablemeter.ui.theme.primary600
 import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
@@ -49,9 +52,15 @@ import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 fun DriverPairScreen(
     viewModel: DriverPairViewModel,
     navigateToMeterOps : () -> Unit,
+    navigateToPinScreen : (String, Boolean) -> Unit
 ) {
     val uiState = viewModel.driverPairScreenUiData.collectAsState().value
     val view = LocalView.current
+
+    if(uiState.isDriverPinSet == false) {
+        navigateToPinScreen(uiState.driverPhoneNumber, false)
+        viewModel.clearIsDriverPinSet()
+    }
 
     Row (
         modifier =
@@ -71,7 +80,10 @@ fun DriverPairScreen(
             StartSession(
                 driverPhoneNumber = uiState.driverPhoneNumber,
                 viewModel = viewModel,
-                navigateToMeterOps, view)
+                navigateToMeterOps = navigateToMeterOps,
+                navigateToPinScreen = navigateToPinScreen,
+                view = view
+            )
         }
     }
 }
@@ -81,6 +93,7 @@ fun StartSession(
     driverPhoneNumber: String,
     viewModel: DriverPairViewModel,
     navigateToMeterOps: () -> Unit,
+    navigateToPinScreen: (String, Boolean) -> Unit,
     view: View
 ) {
     Column(
@@ -90,55 +103,113 @@ fun StartSession(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Button(
-            onClick = {
-                navigateToMeterOps()
-                performVirtualTapFeedback(view)
-                      },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (driverPhoneNumber.isNotEmpty()) primary600 else nobel400,
-                contentColor = nobel50
-            ),
+        if (driverPhoneNumber.isNotEmpty()) {
+            Button(
+                onClick = {
+                    navigateToMeterOps()
+                    performVirtualTapFeedback(view)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (driverPhoneNumber.isNotEmpty()) primary600 else nobel400,
+                    contentColor = nobel50
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+                    .height(100.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        text = driverPhoneNumber,
+                        fontSize = 24.sp,
+                    )
+                    Text(
+                        text = "已登入",
+                        fontSize = 18.sp,
+                    )
+                }
+
+            }
+        } else {
+            // show saved driver options if no driver is logged in
+            val savedDriverIds = viewModel.savedDriverIds.collectAsState().value
+            if (savedDriverIds.isNotEmpty()) {
+                Text(
+                    text = "掃描二維碼或使用 PIN 碼進行配對",
+                    fontSize = 20.sp,
+                    color = nobel50,
+                    style = TextStyle(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(8.dp).wrapContentSize()
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // table of saved drivers arranged 2x2
+                    for (i in savedDriverIds.indices step 2) {
+                        Row {
+                            for (j in i until i + 2) {
+                                if (j < savedDriverIds.size) {
+                                    Button(
+                                        onClick = {
+                                            navigateToPinScreen(savedDriverIds[j], true)
+                                            performVirtualTapFeedback(view)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = nobel400,
+                                            contentColor = nobel50
+                                        ),
+                                        modifier = Modifier
+                                            .padding(8.dp)
+                                            .weight(1f)
+                                            .wrapContentSize()
+                                    ) {
+                                        Text(
+                                            text = savedDriverIds[j],
+                                            fontSize = 18.sp,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+//        Spacer(modifier = Modifier.height(40.dp))
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .height(100.dp)
+                .weight(.8f),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.Bottom
         ) {
-            Column (
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ){
+            Button(
+                onClick = {
+                    viewModel.clearDriverSession()
+                    navigateToMeterOps()
+                    performVirtualTapFeedback(view)
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = nobel800,
+                    contentColor = nobel50
+                ),
+                modifier = Modifier
+                    .wrapContentSize()
+                    .padding(horizontal = 32.dp)
+                    .height(55.dp)
+            ) {
                 Text(
-                    text = driverPhoneNumber,
-                    fontSize = 24.sp,
-                )
-                Text(
-                    text = "已登入",
+                    text = "作為客人使用",
                     fontSize = 18.sp,
                 )
             }
-
-        }
-        Spacer(modifier = Modifier.height(40.dp))
-        Button(
-            onClick = {
-                viewModel.clearDriverSession()
-                navigateToMeterOps()
-                performVirtualTapFeedback(view)
-                      },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = nobel400,
-                contentColor = nobel50
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .height(100.dp)
-        ) {
-            Text(
-                text = "訪客模式",
-                fontSize = 18.sp,
-            )
         }
     }
 }

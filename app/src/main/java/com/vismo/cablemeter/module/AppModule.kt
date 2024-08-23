@@ -1,12 +1,16 @@
 package com.vismo.cablemeter.module
 
 import android.content.Context
+import androidx.datastore.core.DataStore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-import com.vismo.cablemeter.dao.TripsDao
+import com.vismo.cablemeter.dao.LocalTripsDao
+import com.vismo.cablemeter.model.DriverPinPrefs
+import com.vismo.cablemeter.model.SkippedDrivers
 import com.vismo.cablemeter.network.api.MeterOApi
+import com.vismo.cablemeter.repository.DriverPrefsRepository
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.LocalTripsRepository
 import com.vismo.cablemeter.repository.LocalTripsRepositoryImpl
@@ -32,19 +36,19 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesFirebaseAuth() = FirebaseAuth.getInstance()
+    fun provideFirebaseAuth() = FirebaseAuth.getInstance()
 
     @Provides
     @Singleton
-    fun providesFirebaseFirestore() = FirebaseFirestore.getInstance()
+    fun provideFirebaseFirestore() = FirebaseFirestore.getInstance()
 
     @Provides
     @Singleton
-    fun providesFirebaseStorage() = FirebaseStorage.getInstance()
+    fun provideFirebaseStorage() = FirebaseStorage.getInstance()
 
     @Provides
     @Singleton
-    fun providesFirebaseCrashlytics() = FirebaseCrashlytics.getInstance()
+    fun provideFirebaseCrashlytics() = FirebaseCrashlytics.getInstance()
 
     @Singleton
     @Provides
@@ -52,23 +56,25 @@ object AppModule {
         auth: FirebaseAuth,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         meterOApi: MeterOApi,
+        dashManagerConfig: DashManagerConfig
     ): FirebaseAuthRepository {
         return FirebaseAuthRepository(
             auth = auth,
             ioDispatcher = ioDispatcher,
-            meterOApi = meterOApi
+            meterOApi = meterOApi,
+            dashManagerConfig = dashManagerConfig
         )
     }
 
     @Singleton
     @Provides
-    fun providesLocalTripsRepository(
+    fun provideLocalTripsRepository(
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        tripsDao: TripsDao
+        localTripsDao: LocalTripsDao
     ): LocalTripsRepository {
         return LocalTripsRepositoryImpl(
             ioDispatcher = ioDispatcher,
-            tripsDao = tripsDao
+            localTripsDao = localTripsDao
         )
     }
 
@@ -106,7 +112,7 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun providesRemoteMCUControlRepository(
+    fun provideRemoteMCUControlRepository(
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManager: DashManager,
         measureBoardRepository: MeasureBoardRepository
@@ -115,6 +121,22 @@ object AppModule {
             ioDispatcher = ioDispatcher,
             dashManager = dashManager,
             measureBoardRepository = measureBoardRepository
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun provideDriverPrefsRepository(
+        driverPrefsDataStore: DataStore<DriverPinPrefs>,
+        skippedDrivers: DataStore<SkippedDrivers>,
+        meterOApi: MeterOApi,
+        firebaseAuthRepository: FirebaseAuthRepository
+    ): DriverPrefsRepository {
+        return DriverPrefsRepository(
+            driverPrefsDataStore = driverPrefsDataStore,
+            skippedDriversDS = skippedDrivers,
+            meterOApi = meterOApi,
+            firebaseAuthRepository = firebaseAuthRepository
         )
     }
 

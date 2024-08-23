@@ -9,8 +9,10 @@ import com.vismo.cablemeter.network.api.MeterOApi
 import com.vismo.cablemeter.util.Constant.PRIVATE_KEY
 import com.vismo.cablemeter.util.Constant.PUBLIC_KEY
 import com.vismo.cablemeter.util.GlobalUtils
+import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
@@ -19,14 +21,52 @@ import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.util.Date
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 class FirebaseAuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val meterOApi: MeterOApi
+    private val meterOApi: MeterOApi,
+    private val dashManagerConfig: DashManagerConfig,
 ){
+    suspend fun getHeaders(): Map<String, String> {
+        val headers = mutableMapOf<String, String>()
+        try {
+            val idToken = getCurrentFirebaseAuthIdToken()
+            headers["Authorization"] = "Bearer $idToken"
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return headers
+    }
 
-    fun initToken() {
+    private suspend fun getCurrentFirebaseAuthIdToken(): String? {
+        return suspendCoroutine { continuation ->
+            refreshIdToken(
+                onSuccess = { idToken ->
+                    continuation.resume(idToken)
+                },
+                onError = { error ->
+                    continuation.resumeWithException(Exception(error))
+                }
+            )
+        }
+    }
+
+    init {
+        CoroutineScope(ioDispatcher).launch {
+            dashManagerConfig.meterIdentifier.collectLatest { meterIdentifier ->
+                if (meterIdentifier.isNotBlank()) {
+                    auth.signOut()
+                    initToken()
+                }
+            }
+        }
+    }
+
+    private fun initToken() {
         CoroutineScope(ioDispatcher).launch {
             val user = auth.currentUser
             if(user != null && !user.isAnonymous) {
@@ -85,11 +125,11 @@ class FirebaseAuthRepository @Inject constructor(
 
     private fun createSignedJwtRS256(privateKey: RSAPrivateKey, publicKey: RSAPublicKey): String {
         val algorithm = Algorithm.RSA256(publicKey, privateKey)
-
+        val meterIdentifier = dashManagerConfig.meterIdentifier.value
         return JWT.create()
-            .withKeyId("CM-CABLE01")
+            .withKeyId("CM-${meterIdentifier}")
             .withExpiresAt(Date(System.currentTimeMillis() + 60 * 60 * 1000)) // 1 hour expiration
-            .withClaim("name", "CABLE01")
+            .withClaim("name", meterIdentifier)
             .withClaim("admin", true)
             .sign(algorithm)
     }

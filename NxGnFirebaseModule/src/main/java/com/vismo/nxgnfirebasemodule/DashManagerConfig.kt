@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class DashManagerConfig @Inject constructor(
-    private val ioDispatcher: CoroutineDispatcher
+    private val ioDispatcher: CoroutineDispatcher,
 ) {
     private val _meterIdentifier: MutableStateFlow<String> = MutableStateFlow(DEFAULT_LICENSE_PLATE)
     val meterIdentifier: MutableStateFlow<String> = _meterIdentifier

@@ -24,6 +24,8 @@ import com.vismo.cablemeter.ui.meter.MeterOpsViewModel
 import com.vismo.cablemeter.ui.pair.DriverPairScreen
 import com.vismo.cablemeter.ui.pair.DriverPairViewModel
 import com.vismo.cablemeter.ui.pin.SystemPinScreen
+import com.vismo.cablemeter.ui.pin.SystemPinType
+import com.vismo.cablemeter.ui.pin.SystemPinViewModel
 
 @Composable
 fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValues) {
@@ -48,6 +50,8 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
             val viewModel = hiltViewModel<DriverPairViewModel>()
             DriverPairScreen(viewModel, navigateToMeterOps = {
                 navController.navigate(NavigationDestination.MeterOps.route)
+            }, navigateToPinScreen = { phoneNumber, isDriverPinSet ->
+                navController.navigate("${NavigationDestination.SystemPin.route}/$phoneNumber/$isDriverPinSet")
             })
         }
         composable(NavigationDestination.TripHistory.route) {
@@ -68,8 +72,19 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
                 navController.navigate(NavigationDestination.SystemPin.route)
             })
         }
-        composable(NavigationDestination.SystemPin.route) {
-            SystemPinScreen()
+        composable("${NavigationDestination.SystemPin.route}/{phoneNumber}/{isDriverPinSet}") { backStackEntry ->
+            val phoneNumber = backStackEntry.arguments?.getString("phoneNumber") ?: ""
+            val isDriverPinSet = backStackEntry.arguments?.getString("isDriverPinSet")?.toBooleanStrictOrNull() ?: false
+            val systemPinType = if (phoneNumber.isNotEmpty()) {
+                SystemPinType.DriverPin(isPinExistInStorage = isDriverPinSet, driverPhoneNumber = phoneNumber)
+            } else {
+                SystemPinType.SystemPin
+            }
+            val viewModel = hiltViewModel<SystemPinViewModel>()
+            SystemPinScreen(viewModel = viewModel, systemPinType = systemPinType, navigateToMeterOps = {
+                navController.popBackStack()
+                navController.navigate(NavigationDestination.MeterOps.route)
+            })
         }
     }
 }

@@ -4,12 +4,12 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.vismo.cablemeter.dao.TripsDao
+import com.vismo.cablemeter.dao.LocalTripsDao
 import com.vismo.cablemeter.model.TripData
 
 @Database(entities = [TripData::class], version = 1, exportSchema = false)
 abstract class LocalTripsRoomDatabase: RoomDatabase() {
-    abstract fun tripsDao(): TripsDao
+    abstract fun localTripsDao(): LocalTripsDao
 
     companion object {
         private const val DATABASE_NAME = "local_trips_db"
