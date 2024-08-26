@@ -44,7 +44,7 @@ class DriverPrefsRepository @Inject constructor(
             Log.d(TAG, "pairWithDriver success: ${response.body()}")
             true
         } else {
-            Log.d(TAG, "pairWithDriver error: ${response.errorBody()}")
+            Log.d(TAG, "pairWithDriver error: ${response.errorBody()?.string()}")
             false
         }
     }

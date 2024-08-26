@@ -59,17 +59,16 @@ class FirebaseAuthRepository @Inject constructor(
         CoroutineScope(ioDispatcher).launch {
             dashManagerConfig.meterIdentifier.collectLatest { meterIdentifier ->
                 if (meterIdentifier.isNotBlank()) {
-                    auth.signOut()
-                    initToken()
+                    initToken(meterIdentifier)
                 }
             }
         }
     }
 
-    private fun initToken() {
+    private fun initToken(meterIdentifier: String) {
         CoroutineScope(ioDispatcher).launch {
             val user = auth.currentUser
-            if(user != null && !user.isAnonymous) {
+            if(user != null && !user.isAnonymous && user.uid.contains(meterIdentifier)) {
                 Log.d(TAG, "FirebaseRepositoryImpl: ${user.uid}")
                 refreshIdToken(
                     onSuccess = {
@@ -111,14 +110,14 @@ class FirebaseAuthRepository @Inject constructor(
                 //refresh the Id token every one hours
                 refreshIdToken(
                     onSuccess = {
-                        Log.w(TAG, "signInAnonymously:success ${task.result}")
+                        Log.w(TAG, "signInWithCustomToken:success ${task.result}")
                     },
                     onError = {
                         //nothing
                     })
             } else {
                 // If sign in fails, display a message to the user.
-                Log.w(TAG, "signInAnonymously:failure ${task.exception}", task.exception)
+                Log.w(TAG, "signInWithCustomToken:failure ${task.exception}", task.exception)
             }
         }
     }
