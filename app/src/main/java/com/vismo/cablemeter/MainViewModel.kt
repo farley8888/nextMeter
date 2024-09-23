@@ -3,6 +3,7 @@ package com.vismo.cablemeter
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
@@ -39,13 +40,12 @@ class MainViewModel @Inject constructor(
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
 
-    val mcuTime = measureBoardRepository.mcuTime
     private val dateFormat = SimpleDateFormat("M月d日 HH:mm", Locale.TRADITIONAL_CHINESE)
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
             launch {
-                mcuTime.collectLatest {
+                MCUParamsDataStore.mcuTime.collectLatest {
                     it?.let { dateTime ->
                         try {
                             val formatter = SimpleDateFormat("yyyyMMddHHmm", Locale.ENGLISH)

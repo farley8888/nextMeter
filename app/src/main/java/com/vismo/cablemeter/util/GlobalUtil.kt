@@ -6,11 +6,15 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import android.util.Base64
+import android.view.HapticFeedbackConstants
+import android.view.View
+import com.google.firebase.Timestamp
 import com.vismo.cablemeter.util.Constant.SLAT_KEY
 import com.vismo.cablemeter.util.Constant.VECTOR_KEY
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
@@ -56,5 +60,74 @@ object GlobalUtils {
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, iv)
         val encrypted = cipher.doFinal(content.toByteArray())
         return Base64.encodeToString(encrypted, Base64.DEFAULT)
+    }
+
+    fun formatTimestampToTime(timestamp: Timestamp?): String {
+        return timestamp?.let {
+            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            sdf.format(Date(it.seconds * 1000))
+        } ?: "N/A"
+    }
+
+    /*
+        * Perform haptic feedback and play sound effect when a view is clicked
+        * because compose does not do this by default
+     */
+    fun performVirtualTapFeedback(view: View) {
+        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
+    }
+
+    fun formatSecondsToCompactFormat(seconds: Long): String {
+        val days = seconds / (24 * 3600)
+        val hours = (seconds % (24 * 3600)) / 3600
+        val minutes = (seconds % 3600) / 60
+
+        val daysPart = if (days > 0) "${days}d " else ""
+        val hoursPart = if (hours > 0) "${hours}h " else ""
+        val minutesPart = if (minutes > 0) "${minutes}m" else ""
+        val empty = "0m"
+
+        return if (days > 0) {
+            "$daysPart$hoursPart$minutesPart"
+        } else if (hours > 0) {
+            "$hoursPart$minutesPart"
+        } else if (minutes > 0) {
+            minutesPart
+        } else {
+            empty
+        }
+    }
+
+    fun getFormattedStartPrice(startingPrice: String): String {
+        return if (startingPrice.toDoubleOrNull() == null) {
+            startingPrice
+        } else {
+            "$${String.format(Locale.US, "%.2f", (startingPrice).toDouble() / 100)}"
+        }
+    }
+
+    fun getFormattedStepPrice(stepPrice: String): String {
+        return if (stepPrice.toDoubleOrNull() == null) {
+            stepPrice
+        } else {
+            "$${String.format(Locale.US, "%.2f", (stepPrice).toDouble() / 5 / 100)}"
+        }
+    }
+
+    fun getFormattedChangedPriceAt(changedPriceAt: String): String {
+        return if (changedPriceAt.toDoubleOrNull() == null) {
+            changedPriceAt
+        } else {
+            "$${String.format(Locale.US, "%.2f", (changedPriceAt).toDouble() / 10)}"
+        }
+    }
+
+    fun getFormattedChangedStepPrice(changedStepPrice: String): String {
+        return if (changedStepPrice.toDoubleOrNull() == null) {
+            changedStepPrice
+        } else {
+        "$${String.format(Locale.US, "%.2f", (changedStepPrice).toDouble() / 5 / 100)}"
+            }
     }
 }

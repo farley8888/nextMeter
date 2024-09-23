@@ -1,11 +1,7 @@
 package com.vismo.cablemeter.repository
 
-import com.vismo.cablemeter.model.DeviceIdData
-import kotlinx.coroutines.flow.StateFlow
 
 interface MeasureBoardRepository {
-    val mcuTime: StateFlow<String?>
-    val deviceIdData: StateFlow<DeviceIdData?>
 
     fun writeStartTripCommand(tripId: String)
 
@@ -25,4 +21,5 @@ interface MeasureBoardRepository {
 
     fun stopCommunication()
 
+    fun enquireParameters()
 }

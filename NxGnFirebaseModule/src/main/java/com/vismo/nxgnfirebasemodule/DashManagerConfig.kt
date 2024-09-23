@@ -37,5 +37,6 @@ class DashManagerConfig @Inject constructor(
 
     companion object {
         private val defaultMeterLocation = MeterLocation(GeoPoint(0.0, 0.0), NOT_SET)
+        const val VERSION_NAME = "1.0.0"
     }
 }

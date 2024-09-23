@@ -1,6 +1,7 @@
 package com.vismo.cablemeter.ui.pair
 
 import android.os.CountDownTimer
+import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,7 @@ import com.vismo.cablemeter.ui.theme.nobel400
 import com.vismo.cablemeter.ui.theme.nobel50
 import com.vismo.cablemeter.ui.theme.nobel900
 import com.vismo.cablemeter.ui.theme.primary600
+import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
 fun DriverPairScreen(
@@ -48,6 +51,8 @@ fun DriverPairScreen(
     navigateToMeterOps : () -> Unit,
 ) {
     val uiState = viewModel.driverPairScreenUiData.collectAsState().value
+    val view = LocalView.current
+
     Row (
         modifier =
         Modifier
@@ -57,7 +62,7 @@ fun DriverPairScreen(
         Column(
             modifier = Modifier.weight(1f),
         ) {
-            QRCode(qrcodeString = uiState.qrString, viewModel)
+            QRCode(qrcodeString = uiState.qrString, viewModel, view)
         }
 
         Column(
@@ -66,7 +71,7 @@ fun DriverPairScreen(
             StartSession(
                 driverPhoneNumber = uiState.driverPhoneNumber,
                 viewModel = viewModel,
-                navigateToMeterOps)
+                navigateToMeterOps, view)
         }
     }
 }
@@ -75,7 +80,8 @@ fun DriverPairScreen(
 fun StartSession(
     driverPhoneNumber: String,
     viewModel: DriverPairViewModel,
-    navigateToMeterOps: () -> Unit
+    navigateToMeterOps: () -> Unit,
+    view: View
 ) {
     Column(
         modifier = Modifier
@@ -85,7 +91,10 @@ fun StartSession(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Button(
-            onClick = { navigateToMeterOps() },
+            onClick = {
+                navigateToMeterOps()
+                performVirtualTapFeedback(view)
+                      },
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (driverPhoneNumber.isNotEmpty()) primary600 else nobel400,
                 contentColor = nobel50
@@ -115,6 +124,7 @@ fun StartSession(
             onClick = {
                 viewModel.clearDriverSession()
                 navigateToMeterOps()
+                performVirtualTapFeedback(view)
                       },
             colors = ButtonDefaults.buttonColors(
                 containerColor = nobel400,
@@ -134,7 +144,7 @@ fun StartSession(
 }
 
 @Composable
-fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel) {
+fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
     var showQRCode by remember { mutableStateOf(false) }
 
     // Start a countdown when QR code is shown
@@ -162,7 +172,10 @@ fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel) {
             modifier = Modifier
                 .size(300.dp)
                 .background(nobel100)
-                .clickable { showQRCode = true }
+                .clickable {
+                    showQRCode = true
+                    performVirtualTapFeedback(view)
+                }
                 .zIndex(1f),
             contentAlignment = Alignment.Center
         ) {

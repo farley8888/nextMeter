@@ -21,7 +21,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository
 ) : RemoteMeterControlRepository {
 
-    val mcuParams = MCUParamsDataStore.mcuParams
+    val mcuParams = MCUParamsDataStore.mcuPriceParams
 
     private val _meterInfo = MutableStateFlow<MeterInfo?>(null)
     override val meterInfo: StateFlow<MeterInfo?> = _meterInfo
