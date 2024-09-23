@@ -206,6 +206,7 @@ class MainActivity : ComponentActivity() {
             data object TripHistory : NavigationDestination("tripHistory")
             data object TripSummaryDashboard : NavigationDestination("tripSummaryDashboard")
             data object MCUSummaryDashboard : NavigationDestination("mcuSummaryDashboard")
+            data object SystemPin : NavigationDestination("systemPin")
         }
     }
 }
