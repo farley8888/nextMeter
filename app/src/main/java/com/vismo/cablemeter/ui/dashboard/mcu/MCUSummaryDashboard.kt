@@ -59,7 +59,7 @@ fun MCUSummaryDashboard(
         ) {
             // Command Button
             Button(
-                onClick = { /*TODO*/ },
+                onClick = { navigate() },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107)),
                 modifier = Modifier
                     .fillMaxWidth()

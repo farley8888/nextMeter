@@ -1,5 +1,9 @@
 package com.vismo.cablemeter.ui
 
+
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -19,13 +23,20 @@ import com.vismo.cablemeter.ui.meter.MeterOpsScreen
 import com.vismo.cablemeter.ui.meter.MeterOpsViewModel
 import com.vismo.cablemeter.ui.pair.DriverPairScreen
 import com.vismo.cablemeter.ui.pair.DriverPairViewModel
+import com.vismo.cablemeter.ui.pin.SystemPinScreen
 
 @Composable
 fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValues) {
     NavHost(
         navController = navController,
         startDestination = NavigationDestination.Pair.route,
-        modifier = Modifier.padding(innerPadding)
+        modifier = Modifier.padding(innerPadding),
+        enterTransition = {
+            fadeIn(tween(700))
+        },
+        exitTransition = {
+            fadeOut(tween(700))
+        }
     ) {
         composable(NavigationDestination.MeterOps.route) {
             val viewModel = hiltViewModel<MeterOpsViewModel>()
@@ -54,8 +65,11 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
         composable(NavigationDestination.MCUSummaryDashboard.route) {
             val viewModel = hiltViewModel<MCUSummaryDashboardViewModel>()
             MCUSummaryDashboard(viewModel, navigate = {
-                navController.navigate(NavigationDestination.TripHistory.route)
+                navController.navigate(NavigationDestination.SystemPin.route)
             })
+        }
+        composable(NavigationDestination.SystemPin.route) {
+            SystemPinScreen()
         }
     }
 }

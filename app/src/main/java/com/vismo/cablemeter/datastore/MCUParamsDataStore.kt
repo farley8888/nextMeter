@@ -4,6 +4,8 @@ import com.vismo.cablemeter.model.DeviceIdData
 import com.vismo.cablemeter.model.MCUFareParams
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 object MCUParamsDataStore {
     private val _mcuFareParams = MutableStateFlow<MCUFareParams?>(null)
@@ -15,15 +17,23 @@ object MCUParamsDataStore {
     private val _mcuTime = MutableStateFlow<String?>(null)
     val mcuTime: StateFlow<String?> = _mcuTime
 
-    fun setMCUFareData(mcuData: MCUFareParams) {
-        this._mcuFareParams.value = mcuData
+    private val mutex = Mutex() // Mutex for synchronization
+
+    suspend fun setMCUFareData(mcuData: MCUFareParams) {
+        mutex.withLock {
+            this._mcuFareParams.value = mcuData
+        }
     }
 
-    fun setDeviceIdData(deviceIdData: DeviceIdData) {
-        this._deviceIdData.value = deviceIdData
+    suspend fun setDeviceIdData(deviceIdData: DeviceIdData) {
+        mutex.withLock {
+            this._deviceIdData.value = deviceIdData
+        }
     }
 
-    fun setMCUTime(mcuTime: String) {
-        this._mcuTime.value = mcuTime
+    suspend fun setMCUTime(mcuTime: String) {
+        mutex.withLock {
+            this._mcuTime.value = mcuTime
+        }
     }
 }
