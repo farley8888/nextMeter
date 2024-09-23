@@ -10,8 +10,10 @@ import com.ilin.util.Config
 import com.ilin.util.ShellUtils
 import com.serial.opt.UartWorkerCH
 import com.serial.port.ByteUtils
+import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.model.DeviceIdData
+import com.vismo.cablemeter.model.MCUFareParams
 import com.vismo.cablemeter.model.MCUMessage
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
@@ -21,6 +23,7 @@ import com.vismo.cablemeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
 import com.vismo.cablemeter.util.MeasureBoardUtils
 import com.vismo.cablemeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
 import com.vismo.cablemeter.util.MeasureBoardUtils.ONGOING_HEARTBEAT
+import com.vismo.cablemeter.util.MeasureBoardUtils.PARAMETERS_ENQUIRY
 import com.vismo.cablemeter.util.MeasureBoardUtils.TRIP_END_SUMMARY
 import com.vismo.cablemeter.util.MeasureBoardUtils.getResultType
 import com.vismo.cablemeter.util.MeasureBoardUtils.getTimeInSeconds
@@ -30,10 +33,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
-import java.math.BigDecimal
 import java.util.Date
 import java.util.logging.Logger
 import javax.inject.Inject
@@ -42,19 +43,14 @@ import javax.inject.Inject
 class MeasureBoardRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val dashManagerConfig: DashManagerConfig
+    private val dashManagerConfig: DashManagerConfig,
+    private val localTripsRepository: LocalTripsRepository,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
     private var mWorkCh3: UartWorkerCH? = null
 
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
-
-    private val _deviceIdData = MutableStateFlow<DeviceIdData?>(null)
-    val deviceIdData = _deviceIdData
-
-    private val _mcuTime = MutableStateFlow<String?>(null)
-    val mcuTime = _mcuTime
 
     private fun startMessageProcessor() {
         CoroutineScope(ioDispatcher).launch {
@@ -116,8 +112,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val licensePlateHex = result.substring(110, 110 + 16)
                 val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
-                _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
-                _mcuTime.value = result.substring(40, 40 + 12)
+                MCUParamsDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
+                MCUParamsDataStore.setMCUTime(result.substring(40, 40 + 12))
 
                 TripDataStore.tripData.value?.tripStatus?.let { tripStatus ->
                     if (tripStatus == TripStatus.ENDED) {
@@ -144,26 +140,30 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val licensePlateHex = result.substring(126, 126 + 16)
                 val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
-                _deviceIdData.value = DeviceIdData(measureBoardDeviceId, licensePlate)
-                _mcuTime.value = currentTime
+                MCUParamsDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
+                MCUParamsDataStore.setMCUTime(result.substring(40, 40 + 12))
 
-                val currentTrip = TripDataStore.tripData.value
-                val requiresUpdate = currentTrip?.fare != fare || currentTrip.tripStatus != tripStatus
 
-                val currentOngoingTrip = TripData(
-                    tripId = null,
-                    startTime = null,
-                    tripStatus = tripStatus,
-                    isLocked = overSpeedLockupDuration > 0,
-                    fare = fare,
-                    extra = extras,
-                    totalFare = totalFare,
-                    distanceInMeter = distance,
-                    waitDurationInSeconds = getTimeInSeconds(duration),
-                    overSpeedDurationInSeconds = overSpeedLockupDuration,
-                    requiresUpdateOnFirestore = requiresUpdate,
-                )
-                TripDataStore.updateTripDataValue(currentOngoingTrip)
+                val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
+
+                currentOngoingTripInDB?.let {
+                    val requiresUpdate = it.fare != fare || it.tripStatus != tripStatus
+
+                    val currentOngoingTrip = TripData(
+                        tripId = it.tripId,
+                        startTime = it.startTime,
+                        tripStatus = tripStatus,
+                        isLocked = overSpeedLockupDuration > 0,
+                        fare = fare,
+                        extra = extras,
+                        totalFare = totalFare,
+                        distanceInMeter = distance,
+                        waitDurationInSeconds = getTimeInSeconds(duration),
+                        overSpeedDurationInSeconds = overSpeedLockupDuration,
+                        requiresUpdateOnDatabase = requiresUpdate,
+                    )
+                    TripDataStore.updateTripDataValue(currentOngoingTrip)
+                }
                 dashManagerConfig.setLicensePlate(licensePlate)
                 Log.d(TAG, "ONGOING_HEARTBEAT: $result")
             }
@@ -175,25 +175,77 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val extras = result.substring(136, 136 + 6).divideBy100AndConvertToDouble()
                 val totalFare = result.substring(142, 142 + 6).divideBy100AndConvertToDouble()
 
-                val currentOngoingTrip = TripData(
-                    tripId = null,
-                    startTime = null,
-                    tripStatus = TripStatus.ENDED,
-                    fare = fare,
-                    extra = extras,
-                    totalFare = totalFare,
-                    distanceInMeter = distance,
-                    waitDurationInSeconds = getTimeInSeconds(duration),
-                    endTime = Timestamp.now(),
-                    requiresUpdateOnFirestore = true,
-                )
-                TripDataStore.updateTripDataValue(currentOngoingTrip)
+                val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
+
+                currentOngoingTripInDB?.let {
+                    val currentOngoingTrip = TripData(
+                        tripId = it.tripId,
+                        startTime = it.startTime,
+                        tripStatus = TripStatus.ENDED,
+                        fare = fare,
+                        extra = extras,
+                        totalFare = totalFare,
+                        distanceInMeter = distance,
+                        waitDurationInSeconds = getTimeInSeconds(duration),
+                        endTime = Timestamp.now(),
+                        requiresUpdateOnDatabase = true,
+                    )
+                    TripDataStore.updateTripDataValue(currentOngoingTrip)
+                }
 
                 addTask {
                     // after a trip ends, MCU will only continue sending IDLE heartbeats after it receives this response
                     mBusModel?.write(Command.CMD_END_RESPONSE)
                 }
             }
+
+            PARAMETERS_ENQUIRY -> {
+                //parameters enquiry
+                val firmwareVersion = result.substring(18, 18 + 8)
+                val parametersVersion = result.substring(26, 26 + 8)
+                val kValue = result.substring(34, 34 + 4)
+                val startDistance = result.substring(38, 38 + 4)
+                val startPrice = result.substring(42, 42 + 4) // 13
+                val peakPrice = result.substring(46, 46 + 4)
+                val stepPrice = result.substring(50, 50 + 4) // 17
+                val peakStepPrice = result.substring(54, 54 + 4)
+                val morningPeakStartTime = result.substring(58, 58 + 4)
+                val morningPeakEndTime = result.substring(62, 62 + 4)
+                val nightPeakStartTime = result.substring(66, 66 + 4)
+                val nightPeakEndTime = result.substring(70, 70 + 4)
+                val stepPriceChangedAt = result.substring(74, 74 + 4) // 29
+                val changedStepPrice = result.substring(78, 78 + 4)  // 31
+                val changedPeakStepPrice = result.substring(82, 82 + 4)
+                val distanceInterval = result.substring(86, 86 + 4)
+                val waitingTimeInterval = result.substring(90, 90 + 4)
+                val overSpeed = result.substring(94, 94 + 4)
+
+                val mcuData = MCUFareParams(
+                    parametersVersion = parametersVersion,
+                    firmwareVersion = firmwareVersion,
+                    kValue = kValue,
+                    startingDistance = startDistance,
+                    startingPrice = startPrice,
+                    stepPrice = stepPrice,
+                    changedPriceAt = stepPriceChangedAt,
+                    changedStepPrice = changedStepPrice,
+                )
+                MCUParamsDataStore.setMCUFareData(mcuData)
+            }
+        }
+    }
+
+    override fun enquireParameters() {
+        addTask {
+            mBusModel?.write(Command.CMD_PARAMETERS_ENQUIRY)
+            delay(200)
+        }
+    }
+
+    override fun updateKValue(kValue: Int) {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getUpdateKValueCmd(kValue = kValue))
+            delay(200)
         }
     }
 
@@ -251,6 +303,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     override fun writeAddExtrasCommand(extrasAmount: Int) {
         addTask {
             mBusModel?.write(MeasureBoardUtils.getUpdateExtrasCmd("$extrasAmount"))
+            delay(200)
         }
     }
 
@@ -356,7 +409,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
-    fun stopCommunication() {
+    override fun stopCommunication() {
         mBusModel?.stopCommunicate()
     }
 

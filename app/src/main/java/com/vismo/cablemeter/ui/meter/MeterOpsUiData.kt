@@ -1,7 +1,8 @@
-package com.vismo.cablemeter.model
+package com.vismo.cablemeter.ui.meter
 
 data class MeterOpsUiData(
     val status: TripStateInMeterOpsUI,
+    val totalFare: String,
     val fare: String,
     val extras: String,
     val distanceInKM: String,
@@ -18,7 +19,7 @@ sealed class TripStateInMeterOpsUI {
 }
 data object ForHire : TripStateInMeterOpsUI() {
     override fun toStringEN(): String {
-        return "For Hire"
+        return "FOR HIRE"
     }
     override fun toStringCN(): String {
         return "空"
@@ -26,7 +27,7 @@ data object ForHire : TripStateInMeterOpsUI() {
 }
 data object Hired : TripStateInMeterOpsUI() {
     override fun toStringEN(): String {
-        return "Hired"
+        return "HIRED"
     }
     override fun toStringCN(): String {
         return "往"
@@ -34,7 +35,7 @@ data object Hired : TripStateInMeterOpsUI() {
 }
 data object Paused : TripStateInMeterOpsUI() {
     override fun toStringEN(): String {
-        return "Stopped"
+        return "STOPPED"
     }
     override fun toStringCN(): String {
         return "停"

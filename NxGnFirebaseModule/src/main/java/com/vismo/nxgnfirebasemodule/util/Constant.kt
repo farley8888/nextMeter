@@ -10,4 +10,6 @@ object Constant {
     const val NANOSECONDS = "nanoseconds"
     const val SERVER_TIME = "server_time"
     const val METER_SDK_DOCUMENT = "meter-sdk"
+    const val UPDATE_MCU_PARAMS = "update_mcu_params"
+    const val CREATED_ON = "created_on"
 }

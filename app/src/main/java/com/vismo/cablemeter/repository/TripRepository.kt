@@ -1,9 +1,9 @@
 package com.vismo.cablemeter.repository
 
 interface TripRepository {
-    fun startTrip()
+    suspend fun startTrip()
 
-    fun startAndPauseTrip()
+    suspend fun startAndPauseTrip()
 
     fun endTrip()
 
