@@ -138,5 +138,8 @@ dependencies {
     implementation(libs.auth.java.jwt)
     implementation(libs.amap.location)
     implementation(libs.compose.material.icons)
-
+    implementation(libs.zxing.android.embedded)
+    implementation(libs.room.runtime)
+    ksp(libs.room.compiler)
+    implementation(libs.room.ktx)
 }

@@ -1,21 +1,60 @@
 package com.vismo.cablemeter.model
 
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
 import com.google.firebase.Timestamp
 import com.google.gson.annotations.SerializedName
+import com.vismo.cablemeter.db.Converters
+import javax.annotation.Nonnull
 
+@Entity(tableName = "trips")
+@TypeConverters(Converters::class)
 data class TripData (
-    @SerializedName("id") val tripId: String?,
-    @SerializedName("trip_start") val startTime: Timestamp?,
-    @SerializedName("trip_status") val tripStatus: TripStatus?,
-    val isLocked: Boolean = false,
-    @SerializedName("fare") val fare: Double = 0.0,
-    @SerializedName("extra") val extra: Double = 0.0,
-    @SerializedName("total_fare") val totalFare: Double = 0.0,
-    @SerializedName("distance") val distanceInMeter: Double = 0.0,
-    @SerializedName("wait_time") val waitDurationInSeconds: Long = 0,
+
+    @PrimaryKey(autoGenerate = false)
+    @Nonnull
+    @SerializedName("id")
+    val tripId: String,
+
+    @ColumnInfo(name = "start_time")
+    @SerializedName("trip_start")
+    val startTime: Timestamp,
+
+    @ColumnInfo(name = "trip_status")
+    @SerializedName("trip_status")
+    val tripStatus: TripStatus?,
+
+    @ColumnInfo(name = "fare")
+    @SerializedName("fare")
+    val fare: Double = 0.0,
+
+    @ColumnInfo(name = "extra")
+    @SerializedName("extra")
+    val extra: Double = 0.0,
+
+    @ColumnInfo(name = "total_fare")
+    @SerializedName("total_fare")
+    val totalFare: Double = 0.0,
+
+    @ColumnInfo(name = "distance_in_meter")
+    @SerializedName("distance")
+    val distanceInMeter: Double = 0.0,
+
+    @ColumnInfo(name = "wait_time")
+    @SerializedName("wait_time")
+    val waitDurationInSeconds: Long = 0,
+
+
+    @ColumnInfo(name = "end_time")
+    @SerializedName("trip_end")
+    val endTime: Timestamp? = null,
+
+
     val overSpeedDurationInSeconds: Int = 0,
-    val requiresUpdateOnFirestore: Boolean = false,
-    @SerializedName("trip_end") val endTime: Timestamp? = null,
+    val requiresUpdateOnDatabase: Boolean = false,
+    val isLocked: Boolean = false,
 )
 
 enum class TripStatus {

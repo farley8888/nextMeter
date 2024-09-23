@@ -14,6 +14,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 @Module
@@ -33,19 +34,25 @@ object FirebaseModule {
 
     @Singleton
     @Provides
-    fun providesDashManagerConfig() = DashManagerConfig()
+    fun providesDashManagerConfig(
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ) = DashManagerConfig(
+        ioDispatcher = ioDispatcher
+    )
 
     @Singleton
     @Provides
     fun providesDashManager(
         firestore: FirebaseFirestore,
         gson: Gson,
-        dashManagerConfig: DashManagerConfig
+        dashManagerConfig: DashManagerConfig,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): DashManager {
         return DashManager(
             firestore = firestore,
             gson = gson,
-            dashManagerConfig = dashManagerConfig
+            dashManagerConfig = dashManagerConfig,
+            ioDispatcher = ioDispatcher
         )
     }
 }

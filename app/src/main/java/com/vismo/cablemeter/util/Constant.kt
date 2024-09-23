@@ -91,4 +91,7 @@ object Constant {
             "gOSf5ASXXlaDvDdVASX73KVTX3ZHQUgPjoS0XG5Dm4x1qs9Ey2ROmSxaojsx3EmM\n" +
             "vDFkf7GzJ7U7PQ6nb9/3JJkCAwEAAQ==\n" +
             "-----END PUBLIC KEY-----\n"
+
+    const val SLAT_KEY = "1234567890123456" // 16 char
+    const val VECTOR_KEY = "0123456789123456" // 16 char
 }

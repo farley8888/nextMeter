@@ -3,19 +3,27 @@ package com.vismo.cablemeter
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vismo.cablemeter.model.TopAppBarUiState
+import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
-import com.vismo.cablemeter.repository.RemoteMCUControlRepository
+import com.vismo.cablemeter.repository.RemoteMeterControlRepository
+import com.vismo.cablemeter.ui.theme.nobel600
+import com.vismo.cablemeter.ui.theme.primary200
+import com.vismo.cablemeter.ui.theme.primary600
+import com.vismo.cablemeter.ui.theme.primary700
+import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -25,20 +33,19 @@ class MainViewModel @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val firebaseAuthRepository: FirebaseAuthRepository,
-    private val remoteMCUControlRepository: RemoteMCUControlRepository,
+    private val remoteMCUControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
     ) : ViewModel(){
 
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
 
-    val mcuTime = measureBoardRepository.mcuTime
     private val dateFormat = SimpleDateFormat("M月d日 HH:mm", Locale.TRADITIONAL_CHINESE)
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
             launch {
-                mcuTime.collectLatest {
+                MCUParamsDataStore.mcuTime.collectLatest {
                     it?.let { dateTime ->
                         try {
                             val formatter = SimpleDateFormat("yyyyMMddHHmm", Locale.ENGLISH)
@@ -51,6 +58,36 @@ class MainViewModel @Inject constructor(
                             }
                         } catch (e: Exception) {
                             Log.d("MainViewModel", "Error parsing date: $dateTime")
+                        }
+                    }
+                }
+            }
+
+            launch {
+                remoteMCUControlRepository.heartBeatInterval.collectLatest { interval ->
+                    if (interval > 0) {
+                        while (true) {
+                            remoteMCUControlRepository.sendHeartBeat()
+                            delay(interval* 1000L)
+                        }
+                    }
+                }
+            }
+
+            launch {
+                remoteMCUControlRepository.meterInfo.collectLatest { meterInfo ->
+                    meterInfo?.let {
+                        if (it.session != null) {
+                            val driverPhoneNumber = it.session.driver.driverPhoneNumber
+                            _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                                driverPhoneNumber = driverPhoneNumber,
+                                color = primary700
+                            )
+                        } else {
+                            _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                                driverPhoneNumber = "",
+                                color = nobel600
+                            )
                         }
                     }
                 }
@@ -93,8 +130,10 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            firebaseAuthRepository.initToken()
-            remoteMCUControlRepository.observeFlows()
+            withContext(ioDispatcher) {
+                firebaseAuthRepository.initToken()
+                remoteMCUControlRepository.observeFlows()
+            }
         }
         observeFlows()
     }
@@ -102,5 +141,6 @@ class MainViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         measureBoardRepository.stopCommunication()
+        remoteMCUControlRepository.onCleared()
     }
 }

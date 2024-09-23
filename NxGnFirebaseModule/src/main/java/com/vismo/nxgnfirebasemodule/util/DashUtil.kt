@@ -2,6 +2,7 @@ package com.vismo.nxgnfirebasemodule.util
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.GeoPoint
 import com.vismo.nxgnfirebasemodule.util.Constant.NANOSECONDS
 import com.vismo.nxgnfirebasemodule.util.Constant.SECONDS
 import com.vismo.nxgnfirebasemodule.util.Constant.SERVER_TIME
@@ -11,6 +12,10 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 object DashUtil {
+
+    private const val LATITUDE = "latitude"
+    private const val LONGITUDE = "longitude"
+
     fun Map<String, Any?>.toFirestoreFormat(): Map<String, Any?> {
         // Manually convert Timestamp fields to Firestore Timestamp objects
         return this.mapValues { (key, value) ->
@@ -18,12 +23,14 @@ object DashUtil {
                 val mapValue = value as Map<String, Number>
                 if (mapValue.containsKey(SECONDS) && mapValue.containsKey(NANOSECONDS)) {
                     Timestamp(mapValue[SECONDS]!!.toLong(), mapValue[NANOSECONDS]!!.toInt())
+                } else if(mapValue.containsKey(LATITUDE) && mapValue.containsKey(LONGITUDE)) {
+                    GeoPoint(mapValue[LATITUDE]!!.toDouble(), mapValue[LONGITUDE]!!.toDouble())
                 } else {
                     value
                 }
             } else if (key == SERVER_TIME) {
                 FieldValue.serverTimestamp()
-            } else {
+            }  else {
                 value
             }
         }
