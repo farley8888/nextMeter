@@ -1,6 +1,26 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
+    alias(libs.plugins.kotlinAndroidKsp)
+    alias(libs.plugins.hiltAndroid)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.googleServices)
+    alias(libs.plugins.crashlyticsGradle)
+}
+
+fun getVersionName(): String {
+    val properties = Properties()
+    properties.load(file("gradle.properties").inputStream())
+    return properties.getProperty("VERSION_NAME") ?: "1.0"
+}
+
+fun getVersionCode() : Int {
+    val properties = Properties()
+    properties.load(file("gradle.properties").inputStream())
+    return properties.getProperty("VERSION_CODE")?.toInt() ?: 1
 }
 
 android {
@@ -11,8 +31,8 @@ android {
         applicationId = "com.vismo.cablemeter"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = getVersionCode()
+        versionName = getVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -21,11 +41,16 @@ android {
     }
 
     buildTypes {
-        release {
+        debug {
             isMinifyEnabled = false
+            isDebuggable = true
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -38,6 +63,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -45,6 +71,32 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+    detekt {
+        buildUponDefaultConfig = true
+        allRules = false
+        config.setFrom("$projectDir/config/detekt/config.yml")
+        baseline = file("$projectDir/config/detekt/baseline.xml")
+    }
+
+    flavorDimensions.add("env")
+    productFlavors {
+        create("dev") {
+            dimension = "env"
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-dev"
+            archivesName = "cablemeter-$${getVersionName()}(${getVersionCode()})"
+        }
+        create("qa") {
+            dimension = "env"
+            applicationIdSuffix = ".qa"
+            versionNameSuffix = "-qa"
+            archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
+        }
+        create("prod") {
+            dimension = "env"
+            archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
         }
     }
 }
@@ -66,4 +118,28 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation(project(":measure-board-module"))
+    implementation(project(":NxGnFirebaseModule"))
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.detekt.gradle)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.auth.java.jwt)
+    implementation(libs.amap.location)
+    implementation(libs.compose.material.icons)
+    implementation(libs.zxing.android.embedded)
+    implementation(libs.room.runtime)
+    ksp(libs.room.compiler)
+    implementation(libs.room.ktx)
 }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">CableMeter</string>
+    <string name="hkd_label">H.K.$</string>
 </resources>

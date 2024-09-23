@@ -1,0 +1,71 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>EmptyClassBlock:MainApplication.kt$MainApplication${ }</ID>
+    <ID>LongMethod:MeterOpsScreen.kt$@Composable fun ExtrasDetails()</ID>
+    <ID>MagicNumber:Color.kt$0xFF000000</ID>
+    <ID>MagicNumber:Color.kt$0xFF625b71</ID>
+    <ID>MagicNumber:Color.kt$0xFF6650a4</ID>
+    <ID>MagicNumber:Color.kt$0xFF757575</ID>
+    <ID>MagicNumber:Color.kt$0xFF7D5260</ID>
+    <ID>MagicNumber:Color.kt$0xFFBDBDBD</ID>
+    <ID>MagicNumber:Color.kt$0xFFCCC2DC</ID>
+    <ID>MagicNumber:Color.kt$0xFFD0BCFF</ID>
+    <ID>MagicNumber:Color.kt$0xFFEFB8C8</ID>
+    <ID>MagicNumber:Color.kt$0xFFFF0000</ID>
+    <ID>MagicNumber:Color.kt$0xFFFFFFFF</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$10</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$110</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$12</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$126</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$16</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$18</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$1800</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$200</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$2000</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$22</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$28</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$38</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$4</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$40</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$44</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$50</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$52</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$56</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$6</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$60</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$68</ID>
+    <ID>MagicNumber:MeasureBoardRepository.kt$MeasureBoardRepository$7</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$0x10</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$0x55</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$0xFF</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$10</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$14</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$16</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$2048</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$2048.0</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$2063</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$32</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$4</ID>
+    <ID>MagicNumber:MeasureBoardUtil.kt$MeasureBoardUtils$8</ID>
+    <ID>MatchingDeclarationName:MeasureBoardUtil.kt$MeasureBoardUtils</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$NavHost</ID>
+    <ID>MaxLineLength:MeasureBoardRepository.kt$MeasureBoardRepository$// val ok = mBusModel?.write(MeasureBoardUtils.getRequestPatchMeterBoardFirmwareCmd(fileName, version)!!.toHexString().replace(" ", ""))</ID>
+    <ID>MaxLineLength:MeasureBoardRepository.kt$MeasureBoardRepository$private fun readMeasureBoardDeviceId(): Boolean</ID>
+    <ID>MaxLineLength:MeasureBoardUtil.kt$MeasureBoardUtils$// val data = "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 01"</ID>
+    <ID>MaxLineLength:MeasureBoardUtil.kt$MeasureBoardUtils$else</ID>
+    <ID>MaxLineLength:MeasureBoardUtil.kt$MeasureBoardUtils$val CMD_EXTRAS = "00 0A 00 00 10 A2 ${formattedAmount.substring(0, 2)} ${formattedAmount.substring(2, 4)} 00 $durationHex $intervalHex $repeatCountHex"</ID>
+    <ID>MaxLineLength:MeasureBoardUtil.kt$MeasureBoardUtils$val banben = convertFirmwareVersionToBytes(version) //byteArrayOf(0x23, 0x08, 0x25, 0x01) // Assuming 0x01 was intended</ID>
+    <ID>MaxLineLength:MeasureBoardUtil.kt$MeasureBoardUtils$val data = "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF $formattedLicensePlate"// max. 32 bytes</ID>
+    <ID>MaxLineLength:MeasureBoardUtil.kt$MeasureBoardUtils$val formattedDateTime = parsedDate.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")).chunked(2).joinToString(" ")</ID>
+    <ID>MaxLineLength:MeasureBoardUtil.kt$MeasureBoardUtils$val formattedLicensePlate = encodeHexString(licensePlate).replace(" ","").padStart(16,'F').chunked(2).joinToString(" ")</ID>
+    <ID>MaxLineLength:MeasureBoardUtil.kt$MeasureBoardUtils$val parsedDate = LocalDateTime.parse("2024-01-01T16:17:18", DateTimeFormatter.ISO_DATE_TIME) // a random date to be placed here, it won't be used to update the time in measureboard</ID>
+    <ID>SwallowedException:MeasureBoardUtil.kt$MeasureBoardUtils$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MeasureBoardUtil.kt$MeasureBoardUtils$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MeasureBoardUtil.kt$MeasureBoardUtils$e:Exception</ID>
+    <ID>TooGenericExceptionThrown:MeasureBoardUtil.kt$MeasureBoardUtils$throw RuntimeException("expected version name in 8 char numeric formac")</ID>
+    <ID>TooManyFunctions:MeasureBoardUtil.kt$MeasureBoardUtils</ID>
+    <ID>WildcardImport:ExampleUnitTest.kt$import org.junit.Assert.*</ID>
+  </CurrentIssues>
+</SmellBaseline>
