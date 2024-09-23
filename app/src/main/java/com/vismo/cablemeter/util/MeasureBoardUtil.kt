@@ -8,7 +8,6 @@ import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import java.util.UUID
 import kotlin.math.ceil
 
@@ -81,8 +80,13 @@ object MeasureBoardUtils {
     }
 
     fun generateTripId(): String {
-        val GUID = UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ROOT)
-        return GUID.substring(0, 32)
+        val uuidWithHyphens = UUID.randomUUID().toString()
+        return uuidWithHyphens
+    }
+
+    fun getIdWithoutHyphens(uuidWithHyphens: String): String {
+        // Return the UUID without hyphens for the hardware
+        return uuidWithHyphens.replace("-", "").substring(0, 32)
     }
 
     fun getStartPauseTripCmd(tripId: String): String {
@@ -120,6 +124,20 @@ object MeasureBoardUtils {
         val checkSum = xorHexStrings(CMD_PAUSE.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
         cmdStringBuilder.append("55 AA ").append(CMD_PAUSE).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
+    fun getContinueTripCmd(isMute:Boolean = false): String {
+        //beep sound
+        val durationHex = decimalToHex(if (isMute) 0 else BEEP_SOUND_LENGTH).padStart(2,'0')
+        val intervalHex = decimalToHex(0).padStart(2,'0')
+        val repeatCountHex = decimalToHex(if (isMute) 0 else 1).padStart(2,'0')
+
+        val CMD_CONTINUE = "00 08 00 00 10 A1 00 $durationHex $intervalHex $repeatCountHex"
+        //55 AA 00 05 00 00 10 A1 00 B4 55 AA
+        val checkSum = xorHexStrings(CMD_CONTINUE.trim().split(" "))
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_CONTINUE).append(checkSum).append(" 55 AA")
         return cmdStringBuilder.toString().replace(" ", "")
     }
 
