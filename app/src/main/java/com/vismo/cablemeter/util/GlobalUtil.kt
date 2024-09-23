@@ -77,4 +77,57 @@ object GlobalUtils {
         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
         view.playSoundEffect(android.view.SoundEffectConstants.CLICK)
     }
+
+    fun formatSecondsToCompactFormat(seconds: Long): String {
+        val days = seconds / (24 * 3600)
+        val hours = (seconds % (24 * 3600)) / 3600
+        val minutes = (seconds % 3600) / 60
+
+        val daysPart = if (days > 0) "${days}d " else ""
+        val hoursPart = if (hours > 0) "${hours}h " else ""
+        val minutesPart = if (minutes > 0) "${minutes}m" else ""
+        val empty = "0m"
+
+        return if (days > 0) {
+            "$daysPart$hoursPart$minutesPart"
+        } else if (hours > 0) {
+            "$hoursPart$minutesPart"
+        } else if (minutes > 0) {
+            minutesPart
+        } else {
+            empty
+        }
+    }
+
+    fun getFormattedStartPrice(startingPrice: String): String {
+        return if (startingPrice.toDoubleOrNull() == null) {
+            startingPrice
+        } else {
+            "$${String.format(Locale.US, "%.2f", (startingPrice).toDouble() / 100)}"
+        }
+    }
+
+    fun getFormattedStepPrice(stepPrice: String): String {
+        return if (stepPrice.toDoubleOrNull() == null) {
+            stepPrice
+        } else {
+            "$${String.format(Locale.US, "%.2f", (stepPrice).toDouble() / 5 / 100)}"
+        }
+    }
+
+    fun getFormattedChangedPriceAt(changedPriceAt: String): String {
+        return if (changedPriceAt.toDoubleOrNull() == null) {
+            changedPriceAt
+        } else {
+            "$${String.format(Locale.US, "%.2f", (changedPriceAt).toDouble() / 10)}"
+        }
+    }
+
+    fun getFormattedChangedStepPrice(changedStepPrice: String): String {
+        return if (changedStepPrice.toDoubleOrNull() == null) {
+            changedStepPrice
+        } else {
+        "$${String.format(Locale.US, "%.2f", (changedStepPrice).toDouble() / 5 / 100)}"
+            }
+    }
 }

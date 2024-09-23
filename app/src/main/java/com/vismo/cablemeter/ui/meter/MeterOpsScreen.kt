@@ -44,7 +44,7 @@ import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 
 @Composable
-fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToHistory: () -> Unit) {
+fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToDashBoard: () -> Unit) {
     val focusRequester = remember { FocusRequester() }
     val uiState = viewModel.uiState.collectAsState().value
     val view = LocalView.current
@@ -66,7 +66,7 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToHistory: () -> Unit) 
                 true
             }
             .clickable {
-                navigateToHistory()
+                navigateToDashBoard()
                 performVirtualTapFeedback(view)
             }
     ) {
