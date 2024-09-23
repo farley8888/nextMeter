@@ -1,5 +1,6 @@
 package com.vismo.cablemeter.repository
 
+
 interface MeasureBoardRepository {
 
     fun writeStartTripCommand(tripId: String)
@@ -18,4 +19,7 @@ interface MeasureBoardRepository {
 
     fun updateKValue(kValue: Int)
 
+    fun stopCommunication()
+
+    fun enquireParameters()
 }

@@ -3,12 +3,16 @@ package com.vismo.cablemeter.util
 import com.vismo.cablemeter.BuildConfig
 
 object Constant {
+    const val ENV_DEV = "dev"
+    const val ENV_QA = "qa"
+    const val ENV_PROD = "prod"
+
     private const val BASE_APP_URL_DEV = "https://oapi.dev.dash-hk.com/"
     private const val BASE_APP_URL_QA =  "https://oapi.qa.dash-hk.com/"
     private const val BASE_APP_URL_PROD = "https://oapi.dash-hk.com/"
     val BASE_OAPI_URL = when (BuildConfig.FLAVOR) {
-            "qa" -> BASE_APP_URL_QA
-            "prod"-> BASE_APP_URL_PROD
+            ENV_QA -> BASE_APP_URL_QA
+            ENV_PROD-> BASE_APP_URL_PROD
             else -> BASE_APP_URL_DEV
     }
 
@@ -16,8 +20,8 @@ object Constant {
     private const val BASE_API_URL_QA = "https://api.qa.dash-hk.com/"
     private const val BASE_API_URL_PROD = "https://api.dash-hk.com/"
     val BASE_API_URL = when (BuildConfig.FLAVOR) {
-            "qa" -> BASE_API_URL_QA
-            "prod"-> BASE_API_URL_PROD
+            ENV_QA -> BASE_API_URL_QA
+            ENV_PROD -> BASE_API_URL_PROD
             else ->  BASE_API_URL_DEV
     }
 
@@ -87,4 +91,7 @@ object Constant {
             "gOSf5ASXXlaDvDdVASX73KVTX3ZHQUgPjoS0XG5Dm4x1qs9Ey2ROmSxaojsx3EmM\n" +
             "vDFkf7GzJ7U7PQ6nb9/3JJkCAwEAAQ==\n" +
             "-----END PUBLIC KEY-----\n"
+
+    const val SLAT_KEY = "1234567890123456" // 16 char
+    const val VECTOR_KEY = "0123456789123456" // 16 char
 }

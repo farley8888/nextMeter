@@ -4,18 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.repository.TripRepository
-import com.vismo.cablemeter.model.ForHire
-import com.vismo.cablemeter.model.Hired
 import com.vismo.cablemeter.model.TripData
-import com.vismo.cablemeter.model.MeterOpsUiData
-import com.vismo.cablemeter.model.Paused
-import com.vismo.cablemeter.model.TripStateInMeterOpsUI
 import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,45 +29,50 @@ class MeterOpsViewModel @Inject constructor(
             extras = "",
             distanceInKM = "",
             duration = "",
+            totalFare = "",
         )
     )
     val uiState = _uiState
 
     init {
         viewModelScope.launch {
-            TripDataStore.tripData.collect { trip ->
-                _currentTrip.value = trip
-                if (trip != null) {
-                    val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
-                        TripStatus.HIRED -> {
-                            Hired
-                        }
+            withContext(ioDispatcher) {
+                TripDataStore.tripData.collect { trip ->
+                    _currentTrip.value = trip
+                    if (trip != null) {
+                        val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
+                            TripStatus.HIRED -> {
+                                Hired
+                            }
 
-                        TripStatus.PAUSED -> {
-                            Paused
-                        }
+                            TripStatus.PAUSED -> {
+                                Paused
+                            }
 
-                        TripStatus.ENDED, null -> {
-                            ForHire
+                            TripStatus.ENDED, null -> {
+                                ForHire
+                            }
                         }
-                    }
-                    if (status == ForHire) {
-                        _uiState.value = MeterOpsUiData(
-                            status = status,
-                            fare = "",
-                            extras = "",
-                            distanceInKM = "",
-                            duration = "",
-                        )
-                        return@collect
-                    } else {
-                        _uiState.value = MeterOpsUiData(
-                            status = status,
-                            extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
-                            fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
-                            distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
-                            duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
-                        )
+                        if (status == ForHire) {
+                            _uiState.value = MeterOpsUiData(
+                                status = status,
+                                fare = "",
+                                extras = "",
+                                distanceInKM = "",
+                                duration = "",
+                                totalFare = "",
+                            )
+                            return@collect
+                        } else {
+                            _uiState.value = MeterOpsUiData(
+                                status = status,
+                                extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
+                                fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
+                                distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
+                                duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
+                                totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
+                            )
+                        }
                     }
                 }
             }
