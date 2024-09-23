@@ -3,20 +3,19 @@ package com.vismo.cablemeter.util
 import android.util.Log
 import java.io.File
 import java.io.RandomAccessFile
+import java.math.BigDecimal
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import java.util.UUID
 import kotlin.math.ceil
-import kotlin.math.pow
 
 object MeasureBoardUtils {
     const val BEEP_SOUND_LENGTH =  10 // the unit is 0.01s
     const val WHAT_PRINT_STATUS: Int = 110
     const val READ_DEVICE_ID_DATA = "AC"
-    const val TRIP_SUMMARY = "E4"
+    const val TRIP_END_SUMMARY = "E4"
     const val IDLE_HEARTBEAT = "E2"
     const val PARAMETERS_ENQUIRY = "A4"
     const val ABNORMAL_PULSE = "E5"
@@ -24,6 +23,25 @@ object MeasureBoardUtils {
     const val REQUEST_UPGRADE_FIRMWARE = "A8"
     const val UPGRADING_FIRMWARE = "E1"
 
+    fun getTimeInSeconds(duration: String): Long =
+        if (duration.length == 6) {
+            val hour = duration.substring(0, 2)
+            val min = duration.substring(2, 4)
+            val sec = duration.substring(4, 6)
+            (hour.toLong()) * 60 * 60 + (min.toLong()) * 60 + sec.toLong()
+        } else {
+            0
+        }
+
+    fun getPaidMin(duration: String): BigDecimal =
+        if (duration.length == 6) {
+            val hour = duration.substring(0, 2)
+            val min = duration.substring(2, 4)
+            val sec = duration.substring(4, 6)
+            BigDecimal(hour.toInt() * 60 + min.toInt() + sec.toDouble() / 60)
+        } else {
+            BigDecimal(0)
+        }
 
     fun  getResultType(result: String): String? {
         return if (result.startsWith("55AA") && result.endsWith("55AA") && result.length > 16) result.substring(
@@ -62,8 +80,13 @@ object MeasureBoardUtils {
     }
 
     fun generateTripId(): String {
-        val GUID = UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ROOT)
-        return GUID.substring(0, 32)
+        val uuidWithHyphens = UUID.randomUUID().toString()
+        return uuidWithHyphens
+    }
+
+    fun getIdWithoutHyphens(uuidWithHyphens: String): String {
+        // Return the UUID without hyphens for the hardware
+        return uuidWithHyphens.replace("-", "").substring(0, 32)
     }
 
     fun getStartPauseTripCmd(tripId: String): String {
@@ -104,11 +127,25 @@ object MeasureBoardUtils {
         return cmdStringBuilder.toString().replace(" ", "")
     }
 
+    fun getContinueTripCmd(isMute:Boolean = false): String {
+        //beep sound
+        val durationHex = decimalToHex(if (isMute) 0 else BEEP_SOUND_LENGTH).padStart(2,'0')
+        val intervalHex = decimalToHex(0).padStart(2,'0')
+        val repeatCountHex = decimalToHex(if (isMute) 0 else 1).padStart(2,'0')
+
+        val CMD_CONTINUE = "00 08 00 00 10 A1 00 $durationHex $intervalHex $repeatCountHex"
+        //55 AA 00 05 00 00 10 A1 00 B4 55 AA
+        val checkSum = xorHexStrings(CMD_CONTINUE.trim().split(" "))
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_CONTINUE).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
     fun getEndTripCmd(): String {
         //beep sound
-        val durationHex = decimalToHex(0).padStart(2,'0')
+        val durationHex = decimalToHex(BEEP_SOUND_LENGTH).padStart(2,'0')
         val intervalHex = decimalToHex(0).padStart(2,'0')
-        val repeatCountHex = decimalToHex(0).padStart(2,'0')
+        val repeatCountHex = decimalToHex(1).padStart(2,'1')
 
         val CMD_END = "00 08 00 00 10 A3 01 $durationHex $intervalHex $repeatCountHex"
         //55 AA 00 0B 00 00 10 A3 20 23 02 25 20 47 01 FA 55 AA

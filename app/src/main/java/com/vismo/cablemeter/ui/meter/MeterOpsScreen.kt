@@ -1,6 +1,7 @@
 package com.vismo.cablemeter.ui.meter
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,35 +14,50 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.R
+import com.vismo.cablemeter.model.TripStateInMeterOpsUI
 import com.vismo.cablemeter.ui.theme.Black
 import com.vismo.cablemeter.ui.theme.LightGray
 import com.vismo.cablemeter.ui.theme.Red
 import com.vismo.cablemeter.ui.theme.SuperLightGray
 import com.vismo.cablemeter.ui.theme.White
 
+
 @Composable
 fun MeterOpsScreen(viewModel: MeterOpsViewModel) {
-    MeterOpsUI()
-}
+    val focusRequester = remember { FocusRequester() }
+    val uiState = viewModel.uiState.collectAsState()
 
-@Preview(
-    device = "spec:width=411dp,height=891dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape",
-)
-@Composable
-fun MeterOpsUI() {
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .background(color = Black),
+        Modifier
+            .fillMaxSize()
+            .background(color = Black)
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent {
+                if (it.type == KeyDown) {
+                    val code = it.nativeKeyEvent.scanCode
+                    val repeatCount = it.nativeKeyEvent.repeatCount
+                    val isLongPress = it.nativeKeyEvent.isLongPress
+                    viewModel.handleKeyEvent(code, repeatCount, isLongPress)
+                }
+                true
+            }
     ) {
         Row(
             modifier =
@@ -52,23 +68,29 @@ fun MeterOpsUI() {
             ExtrasGroup(
                 modifier =
                     Modifier
-                        .weight(1f),
+                        .weight(1f), uiState.value.extras
+
             )
             FareGroup(
                 modifier =
                     Modifier
-                        .weight(2f),
+                        .weight(2f), uiState.value.fare
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
         PriceSeparatedLine()
         Spacer(modifier = Modifier.height(8.dp))
-        MetricGroup()
+        MetricGroup(uiState.value.status, uiState.value.distanceInKM, uiState.value.duration)
+    }
+
+    // Request focus when the composable is first composed
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
     }
 }
 
 @Composable
-fun FareGroup(modifier: Modifier) {
+fun FareGroup(modifier: Modifier, fareValue: String) {
     Column(
         modifier =
             modifier
@@ -82,12 +104,12 @@ fun FareGroup(modifier: Modifier) {
             modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
         )
         ViewSeparator(Modifier.fillMaxWidth())
-        ExtrasDetails()
+        FareDetails(fareValue)
     }
 }
 
 @Composable
-fun ExtrasGroup(modifier: Modifier) {
+fun ExtrasGroup(modifier: Modifier, extrasValue: String) {
     Column(
         modifier =
             modifier
@@ -101,7 +123,7 @@ fun ExtrasGroup(modifier: Modifier) {
             modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
         )
         ViewSeparator(Modifier.fillMaxWidth())
-        ExtrasDetails()
+        ExtrasDetails(extrasValue)
     }
 }
 
@@ -116,7 +138,7 @@ fun ViewSeparator(modifier: Modifier) {
 }
 
 @Composable
-fun ExtrasDetails() {
+fun ExtrasDetails(extrasValue: String) {
     Column(
         modifier =
             Modifier
@@ -146,10 +168,10 @@ fun ExtrasDetails() {
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(80.dp),
+                    .height(160.dp),
         ) {
             Text(
-                text = "",
+                text = extrasValue,
                 color = Red,
                 fontSize = 78.sp,
                 modifier =
@@ -160,23 +182,55 @@ fun ExtrasDetails() {
             )
             // Image composable for the fare label
         }
+    }
+}
+
+@Composable
+fun FareDetails(fareValue: String) {
+    Column(
+        modifier =
+        Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .padding(start = 6.dp, bottom = 8.dp),
+    ) {
         Row(
             modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(80.dp),
+            Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(start = 8.dp),
         ) {
             Text(
-                text = "",
-                color = Red,
-                fontSize = 78.sp,
-                modifier =
+                text = stringResource(id = R.string.hkd_label),
+                color = White,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = "¢",
+                color = White,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(160.dp),
+        ) {
+            val fareValueInt = fareValue.toDoubleOrNull()
+            if (fareValueInt != null && fareValueInt > 0) {
+                Text(
+                    text = fareValue,
+                    color = Red,
+                    fontSize = 78.sp,
+                    modifier =
                     Modifier
                         .weight(1f)
-//                    .padding(top = (-35).dp)
+//                    .padding(top = (-30).dp)
                         .align(Alignment.CenterVertically),
-            )
-            // Image composable for the extra label
+                )
+            }
         }
     }
 }
@@ -193,7 +247,7 @@ fun PriceSeparatedLine() {
 }
 
 @Composable
-fun MetricGroup() {
+fun MetricGroup(tripState: TripStateInMeterOpsUI, distance: String, time: String) {
     Row(
         modifier =
             Modifier
@@ -207,7 +261,7 @@ fun MetricGroup() {
                     .weight(1f)
                     .padding(horizontal = 8.dp),
             label = "DIST. ( K M )",
-            value = "",
+            value = distance,
             valueColor = LightGray,
         )
         MetricItem(
@@ -216,7 +270,7 @@ fun MetricGroup() {
                     .weight(1f)
                     .padding(horizontal = 8.dp),
             label = "TIME",
-            value = "",
+            value = time,
             valueColor = LightGray,
         )
         MeterGoButton(
@@ -225,6 +279,7 @@ fun MetricGroup() {
                     .weight(1f)
                     .padding(top = 12.dp, end = 8.dp, bottom = 8.dp)
                     .background(color = Color.Gray),
+            tripState = tripState
         )
     }
 }
@@ -259,7 +314,7 @@ fun MetricItem(
 }
 
 @Composable
-fun MeterGoButton(modifier: Modifier) {
+fun MeterGoButton(modifier: Modifier, tripState: TripStateInMeterOpsUI) {
     Column(
         modifier = modifier,
     ) {
@@ -282,13 +337,13 @@ fun MeterGoButton(modifier: Modifier) {
                 modifier = Modifier.weight(2f),
             ) {
                 Text(
-                    text = "往",
+                    text = tripState.toStringCN(),
                     color = White,
                     fontSize = 26.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
                 Text(
-                    text = "HIRED",
+                    text = tripState.toStringEN(),
                     color = White,
                     fontSize = 26.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
