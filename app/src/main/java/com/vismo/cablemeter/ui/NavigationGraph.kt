@@ -13,6 +13,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.vismo.cablemeter.MainActivity.Companion.NavigationDestination
+import com.vismo.cablemeter.ui.admin.advance.EditFareCalculationPropertiesScreen
+import com.vismo.cablemeter.ui.admin.basic.EditKValueAndLicensePlateScreen
 import com.vismo.cablemeter.ui.dashboard.mcu.MCUSummaryDashboard
 import com.vismo.cablemeter.ui.dashboard.mcu.MCUSummaryDashboardViewModel
 import com.vismo.cablemeter.ui.dashboard.trip.TripSummaryDashboard
@@ -69,7 +71,17 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
             })
         }
         composable(NavigationDestination.SystemPin.route) {
-            SystemPinScreen()
+            SystemPinScreen(navigate = {
+                navController.navigate(NavigationDestination.AdminBasicEdit.route)
+            })
+        }
+        composable(NavigationDestination.AdminBasicEdit.route) {
+            EditKValueAndLicensePlateScreen(navigateToAdminAdvancedEdit = {
+                navController.navigate(NavigationDestination.AdminAdvancedEdit.route)
+            })
+        }
+        composable(NavigationDestination.AdminAdvancedEdit.route) {
+            EditFareCalculationPropertiesScreen()
         }
     }
 }
