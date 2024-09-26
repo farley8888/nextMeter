@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.cablemeter.ui.theme.gold350
 import com.vismo.cablemeter.ui.theme.mineShaft100
 import com.vismo.cablemeter.ui.theme.mineShaft600
 import com.vismo.cablemeter.ui.theme.nobel200
@@ -60,7 +61,7 @@ fun MCUSummaryDashboard(
             // Command Button
             Button(
                 onClick = { navigate() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC107)),
+                colors = ButtonDefaults.buttonColors(containerColor = gold350),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp)

@@ -21,13 +21,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.ui.admin.EditAdminPropertiesViewModel
 import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.cablemeter.ui.shared.SnackbarState
-import com.vismo.cablemeter.ui.theme.gold500
+import com.vismo.cablemeter.ui.theme.gold350
 import com.vismo.cablemeter.ui.theme.mineShaft100
-import com.vismo.cablemeter.ui.theme.mineShaft900
 import com.vismo.cablemeter.ui.theme.nobel600
 import com.vismo.cablemeter.ui.theme.nobel900
 import com.vismo.cablemeter.ui.theme.primary800
@@ -90,12 +92,17 @@ fun EditKValueAndLicensePlateScreen(
                     }
 
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = gold500, contentColor = mineShaft900),
+                colors = ButtonDefaults.buttonColors(containerColor = gold350),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text(text = "Update")
+                Text(
+                    text = "Update",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
             }
         }
 
