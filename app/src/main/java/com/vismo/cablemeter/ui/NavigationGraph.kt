@@ -28,12 +28,13 @@ import com.vismo.cablemeter.ui.meter.MeterOpsViewModel
 import com.vismo.cablemeter.ui.pair.DriverPairScreen
 import com.vismo.cablemeter.ui.pair.DriverPairViewModel
 import com.vismo.cablemeter.ui.pin.SystemPinScreen
+import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
 
 @Composable
 fun NavigationGraph(
     navController: NavHostController,
     innerPadding: PaddingValues,
-    snackbarHostState: SnackbarHostState
+    snackbarDelegate: GlobalSnackbarDelegate,
 ) {
     // Shared ViewModels
     val editAdminPropertiesViewModel = hiltViewModel<EditAdminPropertiesViewModel>()
@@ -88,7 +89,7 @@ fun NavigationGraph(
         composable(NavigationDestination.AdminBasicEdit.route) {
             EditKValueAndLicensePlateScreen(
                 viewModel = editAdminPropertiesViewModel,
-                snackbarHostState = snackbarHostState,
+                snackbarDelegate = snackbarDelegate,
                 navigateToAdminAdvancedEdit = {
                 navController.navigate(NavigationDestination.AdminAdvancedEdit.route)
             })
@@ -96,7 +97,7 @@ fun NavigationGraph(
         composable(NavigationDestination.AdminAdvancedEdit.route) {
             EditFareCalculationPropertiesScreen(
                 viewModel = editAdminPropertiesViewModel,
-                snackbarHostState = snackbarHostState
+                snackbarDelegate = snackbarDelegate
             )
         }
     }
