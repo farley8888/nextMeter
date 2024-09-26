@@ -19,6 +19,10 @@ interface MeasureBoardRepository {
 
     fun updateKValue(kValue: Int)
 
+    fun updateLicensePlate(licensePlate: String)
+
+    fun updatePriceParams(startPrice: Int, stepPrice: Int, stepPrice2nd:Int, threshold:Int)
+
     fun stopCommunication()
 
     fun enquireParameters()

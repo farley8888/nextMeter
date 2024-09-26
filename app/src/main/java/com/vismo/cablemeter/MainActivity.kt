@@ -14,9 +14,12 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -67,8 +70,9 @@ class MainActivity : ComponentActivity() {
                             navController.previousBackStackEntry != null
                         )
                     }
-
+                    val snackbarHostState = remember { SnackbarHostState() }
                     Scaffold(
+                        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                         topBar = {
                             AppBar(
                                 viewModel = mainViewModel,
@@ -78,7 +82,8 @@ class MainActivity : ComponentActivity() {
                     ) { innerPadding ->
                         NavigationGraph(
                             navController = navController,
-                            innerPadding = innerPadding
+                            innerPadding = innerPadding,
+                            snackbarHostState = snackbarHostState
                         )
                     }
                 }

@@ -11,19 +11,38 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.vismo.cablemeter.ui.admin.EditAdminPropertiesViewModel
 import com.vismo.cablemeter.ui.theme.mineShaft100
 import com.vismo.cablemeter.ui.theme.nobel600
 import com.vismo.cablemeter.ui.theme.nobel900
 import com.vismo.cablemeter.ui.theme.primary800
+import kotlinx.coroutines.launch
 
 @Composable
-fun EditKValueAndLicensePlateScreen(navigateToAdminAdvancedEdit: () -> Unit) {
+fun EditKValueAndLicensePlateScreen(
+    viewModel: EditAdminPropertiesViewModel,
+    snackbarHostState: SnackbarHostState,
+    navigateToAdminAdvancedEdit: () -> Unit
+) {
+    val deviceIdData = viewModel.deviceIdData.collectAsState()
+    val mcuPriceParams = viewModel.mcuPriceParams.collectAsState()
+    var kValueEntered: String? by remember { mutableStateOf(null) }
+    var licensePlateEntered: String? by remember { mutableStateOf(null) }
+    val coroutineScope = rememberCoroutineScope()
+
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -38,19 +57,45 @@ fun EditKValueAndLicensePlateScreen(navigateToAdminAdvancedEdit: () -> Unit) {
             horizontalAlignment = Alignment.Start
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val licensePlate = deviceIdData.value?.licensePlate ?: ""
                 Text(text = "車牌")
-                TextField(value = "", onValueChange = { /*TODO*/ }, modifier = Modifier.fillMaxWidth(),)
+                TextField(
+                    value = licensePlate.takeIf { licensePlateEntered == null } ?: licensePlateEntered!!,
+                    onValueChange = { newText -> licensePlateEntered = newText  },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val kValue = mcuPriceParams.value?.kValue ?: ""
                 Text(text = "K値")
-                TextField(value = "", onValueChange = { /*TODO*/ }, modifier = Modifier.fillMaxWidth(),)
+                TextField(
+                    value = kValue.takeIf { kValueEntered == null } ?: kValueEntered!!,
+                    onValueChange = { newText -> kValueEntered = newText },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             Button(
-                onClick = { /*TODO*/ },
+                onClick = {
+                    if (!licensePlateEntered.isNullOrBlank()) {
+                        viewModel.updateLicensePlate(licensePlateEntered!!)
+                    }
+                    if (!kValueEntered.isNullOrBlank() && kValueEntered!!.toIntOrNull() != null) {
+                        viewModel.updateKValue(kValue = kValueEntered!!.toInt())
+                    }
+                    coroutineScope.launch {
+                        if (licensePlateEntered.isNullOrBlank() && kValueEntered.isNullOrBlank()) {
+                            snackbarHostState.showSnackbar("No changes made")
+                        } else {
+                            snackbarHostState.showSnackbar("Values updated")
+                            viewModel.reEnquireParameters()
+                        }
+                    }
+
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
                 modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
                 Text(text = "Update")
             }
@@ -65,10 +110,10 @@ fun EditKValueAndLicensePlateScreen(navigateToAdminAdvancedEdit: () -> Unit) {
             Button(onClick = { /*TODO*/ },
                 colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
                 modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
-                Text(text = "Settings")
+                Text(text = "App Settings")
             }
             Button(onClick = { navigateToAdminAdvancedEdit() },
                 colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),

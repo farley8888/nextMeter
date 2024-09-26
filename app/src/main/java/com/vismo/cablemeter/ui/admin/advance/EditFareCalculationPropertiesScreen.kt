@@ -1,6 +1,5 @@
 package com.vismo.cablemeter.ui.admin.advance
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,17 +11,40 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.vismo.cablemeter.ui.admin.EditAdminPropertiesViewModel
 import com.vismo.cablemeter.ui.theme.mineShaft100
 import com.vismo.cablemeter.ui.theme.primary800
+import kotlinx.coroutines.launch
 
 @Composable
-fun EditFareCalculationPropertiesScreen() {
+fun EditFareCalculationPropertiesScreen(
+    viewModel: EditAdminPropertiesViewModel,
+    snackbarHostState: SnackbarHostState,
+) {
+    val mcuPriceParams = viewModel.mcuPriceParams.collectAsState()
+    var priceParam1Entered: String?  by remember { mutableStateOf(null) }
+    var priceParam2Entered: String?  by remember { mutableStateOf(null) }
+    var priceParam3Entered: String?  by remember { mutableStateOf(null) }
+    var priceParam4Entered: String?  by remember { mutableStateOf(null) }
+    val coroutineScope = rememberCoroutineScope()
+    val startPriceStr = mcuPriceParams.value?.startingPrice.takeIf { priceParam1Entered == null } ?: priceParam1Entered!!
+    val stepPriceStr = mcuPriceParams.value?.stepPrice.takeIf { priceParam2Entered == null } ?: priceParam2Entered!!
+    val changedStepPriceStr = mcuPriceParams.value?.changedStepPrice.takeIf { priceParam3Entered == null } ?: priceParam3Entered!!
+    val changedPriceAtStr = mcuPriceParams.value?.changedPriceAt.takeIf { priceParam4Entered == null } ?: priceParam4Entered!!
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -32,20 +54,59 @@ fun EditFareCalculationPropertiesScreen() {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(text = "首2公里", modifier = Modifier.weight(1f))
-            TextField(value = "", onValueChange = { /*TODO*/ }, modifier = Modifier.weight(3f),)
+            TextField(
+                value = startPriceStr,
+                onValueChange = { newText -> priceParam1Entered = newText },
+                modifier = Modifier.weight(3f)
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = "分水嶺", modifier = Modifier.weight(1f))
-            TextField(value = "", onValueChange = { /*TODO*/ }, modifier = Modifier.weight(3f),)
+            TextField(
+                value = stepPriceStr,
+                onValueChange = { newText -> priceParam2Entered = newText },
+                modifier = Modifier.weight(3f)
+            )
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(text = "每200米", modifier = Modifier.weight(1f))
-            TextField(value = "", onValueChange = { /*TODO*/ }, modifier = Modifier.weight(3f),)
+            TextField(
+                value = changedStepPriceStr,
+                onValueChange = { newText -> priceParam3Entered = newText },
+                modifier = Modifier.weight(3f)
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = "後200米", modifier = Modifier.weight(1f))
-            TextField(value = "", onValueChange = { /*TODO*/ }, modifier = Modifier.weight(3f),)
+            TextField(
+                value = changedPriceAtStr,
+                onValueChange = { newText -> priceParam4Entered = newText },
+                modifier = Modifier.weight(3f)
+            )
         }
         Button(
-            onClick = { /*TODO*/ },
+            onClick = {
+                val startPrice = (startPriceStr.toDoubleOrNull()?.times(100))?.toInt()
+                val stepPrice = (stepPriceStr.toDoubleOrNull()?.times(5)?.times(100))?.toInt()
+                val stepPrice2nd = (changedStepPriceStr.toDoubleOrNull()?.times(5)?.times(100))?.toInt()
+                val threshold = (changedPriceAtStr.toDoubleOrNull()?.times(10))?.toInt()
+
+                if (startPrice == null || stepPrice == null || stepPrice2nd == null || threshold == null) {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Invalid values entered.")
+                    }
+                    return@Button
+                }
+                viewModel.updatePriceParams(
+                    startPrice = startPrice,
+                    stepPrice = stepPrice,
+                    stepPrice2nd = stepPrice2nd,
+                    threshold = threshold
+                )
+                viewModel.reEnquireParameters()
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Fare parameters updated")
+                }
+
+            },
             colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
             modifier = Modifier
                 .padding(top = 16.dp)

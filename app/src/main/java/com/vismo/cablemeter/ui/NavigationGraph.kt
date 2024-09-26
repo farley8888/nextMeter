@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -13,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.vismo.cablemeter.MainActivity.Companion.NavigationDestination
+import com.vismo.cablemeter.ui.admin.EditAdminPropertiesViewModel
 import com.vismo.cablemeter.ui.admin.advance.EditFareCalculationPropertiesScreen
 import com.vismo.cablemeter.ui.admin.basic.EditKValueAndLicensePlateScreen
 import com.vismo.cablemeter.ui.dashboard.mcu.MCUSummaryDashboard
@@ -28,7 +30,14 @@ import com.vismo.cablemeter.ui.pair.DriverPairViewModel
 import com.vismo.cablemeter.ui.pin.SystemPinScreen
 
 @Composable
-fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValues) {
+fun NavigationGraph(
+    navController: NavHostController,
+    innerPadding: PaddingValues,
+    snackbarHostState: SnackbarHostState
+) {
+    // Shared ViewModels
+    val editAdminPropertiesViewModel = hiltViewModel<EditAdminPropertiesViewModel>()
+
     NavHost(
         navController = navController,
         startDestination = NavigationDestination.Pair.route,
@@ -75,13 +84,20 @@ fun NavigationGraph(navController: NavHostController, innerPadding: PaddingValue
                 navController.navigate(NavigationDestination.AdminBasicEdit.route)
             })
         }
+
         composable(NavigationDestination.AdminBasicEdit.route) {
-            EditKValueAndLicensePlateScreen(navigateToAdminAdvancedEdit = {
+            EditKValueAndLicensePlateScreen(
+                viewModel = editAdminPropertiesViewModel,
+                snackbarHostState = snackbarHostState,
+                navigateToAdminAdvancedEdit = {
                 navController.navigate(NavigationDestination.AdminAdvancedEdit.route)
             })
         }
         composable(NavigationDestination.AdminAdvancedEdit.route) {
-            EditFareCalculationPropertiesScreen()
+            EditFareCalculationPropertiesScreen(
+                viewModel = editAdminPropertiesViewModel,
+                snackbarHostState = snackbarHostState
+            )
         }
     }
 }

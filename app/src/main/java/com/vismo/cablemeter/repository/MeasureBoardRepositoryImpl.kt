@@ -249,6 +249,29 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun updateLicensePlate(licensePlate: String) {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getWritingDataIntoMeasureBoardCmd(licensePlate = licensePlate))
+            delay(200)
+        }
+    }
+
+    override fun updatePriceParams(
+        startPrice: Int, stepPrice: Int, stepPrice2nd:Int, threshold:Int
+    ) {
+        addTask {
+            mBusModel?.write(
+                MeasureBoardUtils.getUpdatePriceParamCmd(
+                    startPrice,
+                    stepPrice,
+                    stepPrice2nd,
+                    threshold,
+                )
+            )
+            delay(200)
+        }
+    }
+
     private fun initHardware() {
         ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
         ShellUtils.execEcho("echo 1 > /sys/class/gpio/gpio65/value")
