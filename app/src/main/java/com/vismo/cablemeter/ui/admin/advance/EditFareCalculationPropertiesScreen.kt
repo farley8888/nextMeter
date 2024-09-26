@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -22,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.ui.admin.EditAdminPropertiesViewModel
@@ -30,6 +33,7 @@ import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.cablemeter.ui.shared.SnackbarState
 import com.vismo.cablemeter.ui.theme.gold350
 import com.vismo.cablemeter.ui.theme.mineShaft900
+import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
 fun EditFareCalculationPropertiesScreen(
@@ -65,7 +69,11 @@ fun EditFareCalculationPropertiesScreen(
             TextField(
                 value = stepPriceStr,
                 onValueChange = { newText -> priceParam2Entered = newText },
-                modifier = Modifier.weight(3f)
+                modifier = Modifier.weight(3f),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
+
             )
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -73,16 +81,23 @@ fun EditFareCalculationPropertiesScreen(
             TextField(
                 value = changedStepPriceStr,
                 onValueChange = { newText -> priceParam3Entered = newText },
-                modifier = Modifier.weight(3f)
+                modifier = Modifier.weight(3f),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = "後200米", modifier = Modifier.weight(1f))
             TextField(
                 value = changedPriceAtStr,
                 onValueChange = { newText -> priceParam4Entered = newText },
-                modifier = Modifier.weight(3f)
+                modifier = Modifier.weight(3f),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
             )
         }
+        val view = LocalView.current
         Button(
             onClick = {
                 val startPrice = (startPriceStr.toDoubleOrNull()?.times(100))?.toInt()
@@ -102,7 +117,7 @@ fun EditFareCalculationPropertiesScreen(
                 )
                 viewModel.reEnquireParameters()
                 snackbarDelegate.showSnackbar(SnackbarState.SUCCESS,"Fare parameters updated")
-
+                performVirtualTapFeedback(view)
             },
             colors = ButtonDefaults.buttonColors(containerColor = gold350, contentColor = mineShaft900),
             modifier = Modifier

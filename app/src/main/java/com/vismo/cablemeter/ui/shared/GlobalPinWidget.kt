@@ -12,7 +12,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
 fun GlobalPinWidget(onOtpEntered: (String) -> Unit) {
@@ -29,6 +31,7 @@ fun GlobalPinWidget(onOtpEntered: (String) -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        val view = LocalView.current
         GlobalNumberKeypad(
             onNumberClick = { number ->
                 if (pin.length < 6) {
@@ -37,11 +40,13 @@ fun GlobalPinWidget(onOtpEntered: (String) -> Unit) {
                         onOtpEntered(pin)
                     }
                 }
+                performVirtualTapFeedback(view)
             },
             onDeleteClick = {
                 if (pin.isNotEmpty()) {
                     pin = pin.dropLast(1)
                 }
+                performVirtualTapFeedback(view)
             }
         )
     }

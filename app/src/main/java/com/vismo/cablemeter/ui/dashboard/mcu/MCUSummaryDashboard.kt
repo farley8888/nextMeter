@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +38,7 @@ import com.vismo.cablemeter.util.GlobalUtils.getFormattedChangedPriceAt
 import com.vismo.cablemeter.util.GlobalUtils.getFormattedChangedStepPrice
 import com.vismo.cablemeter.util.GlobalUtils.getFormattedStartPrice
 import com.vismo.cablemeter.util.GlobalUtils.getFormattedStepPrice
+import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 
 @Composable
@@ -58,9 +60,13 @@ fun MCUSummaryDashboard(
                 .weight(1f)
                 .padding(end = 16.dp)
         ) {
+            val view = LocalView.current
             // Command Button
             Button(
-                onClick = { navigate() },
+                onClick = {
+                    performVirtualTapFeedback(view)
+                    navigate()
+                          },
                 colors = ButtonDefaults.buttonColors(containerColor = gold350),
                 modifier = Modifier
                     .fillMaxWidth()

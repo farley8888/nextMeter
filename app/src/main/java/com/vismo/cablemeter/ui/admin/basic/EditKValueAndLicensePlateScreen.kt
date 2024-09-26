@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -22,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.ui.admin.EditAdminPropertiesViewModel
@@ -33,6 +36,7 @@ import com.vismo.cablemeter.ui.theme.mineShaft100
 import com.vismo.cablemeter.ui.theme.nobel600
 import com.vismo.cablemeter.ui.theme.nobel900
 import com.vismo.cablemeter.ui.theme.primary800
+import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
 fun EditKValueAndLicensePlateScreen(
@@ -51,6 +55,7 @@ fun EditKValueAndLicensePlateScreen(
             .padding(16.dp)
             .background(nobel900)
     ) {
+        val view = LocalView.current
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -72,8 +77,11 @@ fun EditKValueAndLicensePlateScreen(
                 Text(text = "K値")
                 TextField(
                     value = kValue.takeIf { kValueEntered == null } ?: kValueEntered!!,
-                    onValueChange = { newText -> kValueEntered = newText },
-                    modifier = Modifier.fillMaxWidth()
+                    onValueChange = { newText -> kValueEntered = newText.uppercase() },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number
+                    ),
                 )
             }
             Button(
@@ -90,7 +98,7 @@ fun EditKValueAndLicensePlateScreen(
                         snackbarDelegate.showSnackbar(SnackbarState.SUCCESS,"Values updated")
                         viewModel.reEnquireParameters()
                     }
-
+                    performVirtualTapFeedback(view)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = gold350),
                 modifier = Modifier
@@ -112,7 +120,7 @@ fun EditKValueAndLicensePlateScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Button(onClick = { /*TODO*/ },
+            Button(onClick = { performVirtualTapFeedback(view) },
                 colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -120,7 +128,10 @@ fun EditKValueAndLicensePlateScreen(
             ) {
                 Text(text = "App Settings")
             }
-            Button(onClick = { navigateToAdminAdvancedEdit() },
+            Button(onClick = {
+                performVirtualTapFeedback(view)
+                navigateToAdminAdvancedEdit()
+                             },
                 colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -135,7 +146,7 @@ fun EditKValueAndLicensePlateScreen(
             )
             Text(text = "Current ADB Status")
             Text(text = "Enabled")
-            Button(onClick = { /*TODO*/ },
+            Button(onClick = { performVirtualTapFeedback(view) },
                 colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
                 modifier = Modifier
                     .fillMaxWidth()
