@@ -1,5 +1,6 @@
 package com.vismo.cablemeter.ui.dashboard.trip
 
+import android.view.View
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +27,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.ui.theme.nobel400
@@ -33,6 +35,7 @@ import com.vismo.cablemeter.ui.theme.nobel50
 import com.vismo.cablemeter.ui.theme.nobel500
 import com.vismo.cablemeter.ui.theme.nobel800
 import com.vismo.cablemeter.ui.theme.valencia300
+import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
 fun TripSummaryDashboard(
@@ -75,16 +78,25 @@ fun ActionButtons(viewModel: TripSummaryDashboardViewModel) {
         .fillMaxWidth()
         .padding(16.dp)
     ) {
-        CustomButton(text = "清除\n" + "資料", containerColor = valencia300) { viewModel.clearAllLocalTrips() }
-        CustomButton(text = "打印\n" + "記錄", containerColor = nobel400) {}
+        CustomButton(
+            text = "清除\n" + "資料",
+            containerColor = valencia300,
+            LocalView.current) {
+            viewModel.clearAllLocalTrips()
+        }
+        CustomButton(
+            text = "打印\n" + "記錄",
+            containerColor = nobel400,
+            LocalView.current) {}
     }
 }
 
 @Composable 
-fun RowScope.CustomButton(text: String, containerColor: Color, onClick: () -> Unit) {
+fun RowScope.CustomButton(text: String, containerColor: Color, view: View, onClick: () -> Unit) {
     Button(
         onClick = {
             onClick()
+            performVirtualTapFeedback(view)
         },
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
@@ -113,9 +125,9 @@ fun ColumnScope.Options(
     navigateToTripHistory: () -> Unit,
     navigateToMCUSummary: () -> Unit
 ) {
-    CustomListItem(text = "本更行程數據", navigateToTripHistory)
-    CustomListItem(text = "系統設定", {})
-    CustomListItem(text = "系統資料", navigateToMCUSummary)
+    CustomListItem(text = "本更行程數據", LocalView.current, navigateToTripHistory)
+    CustomListItem(text = "系統設定", LocalView.current) {}
+    CustomListItem(text = "系統資料", LocalView.current, navigateToMCUSummary)
 }
 
 @Composable
@@ -162,13 +174,14 @@ fun RowScope.DataColumn(
 }
 
 @Composable
-fun ColumnScope.CustomListItem(text: String, onClick: () -> Unit) {
+fun ColumnScope.CustomListItem(text: String, view: View, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .weight(1f)  // Makes each item take up an equal share of the column's height
             .clickable {
                 onClick()
+                performVirtualTapFeedback(view = view)
             }
             .padding(16.dp)
             .border(

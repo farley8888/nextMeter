@@ -12,7 +12,7 @@ import com.vismo.cablemeter.ui.shared.GlobalPinWidget
 import com.vismo.cablemeter.ui.theme.nobel900
 
 @Composable
-fun SystemPinScreen() {
+fun SystemPinScreen(navigate: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -33,7 +33,9 @@ fun SystemPinScreen() {
         ) {
             GlobalPinWidget {
                 val otp = it
-
+                if (otp == "191005") {
+                    navigate()
+                }
             }
         }
     }

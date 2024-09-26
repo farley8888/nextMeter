@@ -14,9 +14,16 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -29,6 +36,7 @@ import com.ilin.util.AmapLocationUtils
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.ui.topbar.AppBar
 import com.vismo.cablemeter.ui.NavigationGraph
+import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.cablemeter.ui.theme.CableMeterTheme
 import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
@@ -45,7 +53,6 @@ import java.util.TimeZone
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initObservers()
@@ -67,8 +74,26 @@ class MainActivity : ComponentActivity() {
                             navController.previousBackStackEntry != null
                         )
                     }
+                    val snackbarDelegate: GlobalSnackbarDelegate by remember { mutableStateOf(GlobalSnackbarDelegate()) }
+                    val snackbarHostState = remember { SnackbarHostState() }
+                    snackbarDelegate.apply {
+                        sbHostState = snackbarHostState
+                        coroutineScope = rememberCoroutineScope()
+                    }
 
                     Scaffold(
+                        snackbarHost = {
+                            SnackbarHost(
+                                hostState = snackbarHostState,
+                                snackbar = { data: SnackbarData ->
+                                    Snackbar(
+                                        snackbarData = data,
+                                        containerColor = snackbarDelegate.snackbarBackgroundColor,
+                                        contentColor = snackbarDelegate.snackbarContentColor
+                                    )
+                                }
+                            )
+                        },
                         topBar = {
                             AppBar(
                                 viewModel = mainViewModel,
@@ -78,7 +103,8 @@ class MainActivity : ComponentActivity() {
                     ) { innerPadding ->
                         NavigationGraph(
                             navController = navController,
-                            innerPadding = innerPadding
+                            innerPadding = innerPadding,
+                            snackbarDelegate = snackbarDelegate
                         )
                     }
                 }
@@ -207,6 +233,8 @@ class MainActivity : ComponentActivity() {
             data object TripSummaryDashboard : NavigationDestination("tripSummaryDashboard")
             data object MCUSummaryDashboard : NavigationDestination("mcuSummaryDashboard")
             data object SystemPin : NavigationDestination("systemPin")
+            data object AdminBasicEdit : NavigationDestination("adminBasicEdit")
+            data object AdminAdvancedEdit : NavigationDestination("adminAdvancedEdit")
         }
     }
 }

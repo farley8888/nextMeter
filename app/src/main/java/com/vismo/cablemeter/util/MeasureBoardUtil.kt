@@ -232,6 +232,27 @@ object MeasureBoardUtils {
     }
 
     /**
+     * update MCU params
+     */
+    fun getUpdatePriceParamCmd(startPrice: Int, stepPrice: Int, stepPrice2nd:Int, threshold:Int): String {
+        val paramVersion = "240714A1".padStart(8, '0').chunked(2).joinToString(" ")
+        val startDistance = "0200".padStart(4, '0').chunked(2).joinToString(" ")
+        val mStartPrice = startPrice.toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val startPricePeak = startPrice.toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val mStepPrice = stepPrice.toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val stepPricePeak = stepPrice.toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val mThreshold = threshold.toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val mStepPrice2nd = stepPrice2nd.toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val mStepPrice2ndPeak = stepPrice2nd.toString().padStart(4, '0').chunked(2).joinToString(" ")
+
+        val CMD_UPDATE_PARAMETERS = "00 26 00 00 10 A6 $paramVersion $startDistance $mStartPrice $startPricePeak $mStepPrice $stepPricePeak 08 00 10 30 17 00 19 30 $mThreshold $mStepPrice2nd $mStepPrice2ndPeak 00 20 00 60 01 50"
+        val checkSum = xorHexStrings(CMD_UPDATE_PARAMETERS.trim().split(" "))?.padStart(2, '0')
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_UPDATE_PARAMETERS).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
+    /**
      * Decode the HEX into ASCII format
      */
     fun convertToASCIICharacters(hexString: String): String? {
