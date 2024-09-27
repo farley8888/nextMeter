@@ -76,7 +76,11 @@ class TripRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun printReceipt() {
-        TODO("Not yet implemented")
+    override suspend fun printReceipt() {
+        tripData.value?.let {
+            if (it.tripStatus == TripStatus.PAUSED) {
+                measureBoardRepository.writePrintReceiptCommand(it)
+            }
+        }
     }
 }

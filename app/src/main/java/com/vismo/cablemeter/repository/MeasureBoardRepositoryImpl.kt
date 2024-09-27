@@ -18,6 +18,8 @@ import com.vismo.cablemeter.model.MCUMessage
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
+import com.vismo.cablemeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
+import com.vismo.cablemeter.ui.meter.MeterOpsUtil.getDistanceInKm
 import com.vismo.cablemeter.util.GlobalUtils.divideBy100AndConvertToDouble
 import com.vismo.cablemeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
 import com.vismo.cablemeter.util.MeasureBoardUtils
@@ -31,11 +33,15 @@ import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.Date
+import java.util.Locale
 import java.util.logging.Logger
 import javax.inject.Inject
 
@@ -51,9 +57,10 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     private fun startMessageProcessor() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             for (msg in messageChannel) {
                 when (msg.what) {
                     IAtCmd.W_MSG_DISPLAY -> {
@@ -73,13 +80,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private fun sendMessage(msg: MCUMessage) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             messageChannel.send(msg)
         }
     }
 
     private fun startTaskProcessor() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             for (task in taskChannel) {
                 task()
             }
@@ -87,7 +94,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private fun addTask(task: suspend () -> Unit) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             taskChannel.send(task)
         }
     }
@@ -100,6 +107,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             delay(200)
             setReceiveEvalDataLs()
             mBusModel?.startCommunicate()
+            delay(200)
+            ensureCH3Initialized()
         }
         initHardware()
         setSwitchLs(false)
@@ -141,7 +150,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
                 MCUParamsDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
-                MCUParamsDataStore.setMCUTime(result.substring(40, 40 + 12))
+                MCUParamsDataStore.setMCUTime(currentTime)
 
 
                 val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
@@ -161,6 +170,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                         waitDurationInSeconds = getTimeInSeconds(duration),
                         overSpeedDurationInSeconds = overSpeedLockupDuration,
                         requiresUpdateOnDatabase = requiresUpdate,
+                        licensePlate = licensePlate,
                     )
                     TripDataStore.updateTripDataValue(currentOngoingTrip)
                 }
@@ -189,6 +199,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                         waitDurationInSeconds = getTimeInSeconds(duration),
                         endTime = Timestamp.now(),
                         requiresUpdateOnDatabase = true,
+                        licensePlate = it.licensePlate,
                     )
                     TripDataStore.updateTripDataValue(currentOngoingTrip)
                 }
@@ -333,7 +344,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun setSwitchLs(isChecked: Boolean) {
         Log.d("setSwitchLs", "setSwitchLs: isChecked: $isChecked")
         // isChecked: 落旗
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             try {
                 if (isChecked) {
                     ShellUtils.echo(arrayOf("echo 0 >/sys/class/gpio/gpio117/value"))
@@ -368,26 +379,36 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun writePrintReceiptCommand() {
-        // TODO: Implement this method - take trip details from flow and send to printer
+    private suspend fun ensureCH3Initialized() {
         if (mWorkCh3 == null) {
             openCH3()
-            delay(2000)
-            writePrintReceiptCommand()
+            delay(2000) // Consider optimizing this delay
+        }
+    }
+
+
+    override suspend fun writePrintReceiptCommand(tripData: TripData) {
+        ensureCH3Initialized()
+        if (mWorkCh3 == null) {
+            Log.w(TAG, "mWorkCh3 is still null after initialization")
+            return
         } else {
             try {
-                ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
-                delay(200)
-                ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio65/value")
-                delay(200)
+                withContext(ioDispatcher) {
+                    ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
+                    delay(200)
+                    ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio65/value")
+                    delay(200)
+                }
 
-                val licensePlate = "CABLE03T"
-                val startDateTime = Date()
-                val endDateTime = Date()
-//                val paidKm = String.format("%.2f", BigDecimal(distance).divide(BigDecimal("100")))
-//                val paidMin = String.format("%.2f", getPaidMin(duration))
-//                val surcharge = String.format("%.2f", BigDecimal(extras).divide(BigDecimal("100")))
-//                val total = String.format("%.2f", BigDecimal(totalFare).divide(BigDecimal("100")))
+                val licensePlate = tripData.licensePlate
+                val startDateTime = tripData.startTime.toDate()
+                val endDateTime = tripData.endTime?.toDate() ?: Date()
+                val paidKm = getDistanceInKm(tripData.distanceInMeter)
+                val waitTimeInMinutes = tripData.waitDurationInSeconds / 60.0
+                val paidMin = formatToNDecimalPlace(waitTimeInMinutes, 2)
+                val surcharge = formatToNDecimalPlace(tripData.extra, 2)
+                val total = formatToNDecimalPlace(tripData.totalFare, 2)
 
                 var data = Config.getSPIData()
                 data =
@@ -400,11 +421,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                             .replace("FF", "20"),
                         Config.getSPIDateTime(startDateTime),
                         Config.getSPIDateTime(endDateTime),
-//                        Config.getSPIDecimal(paidKm, 6),
-//                        Config.getSPIDecimal(paidKm, 6),
-//                        Config.getSPIDecimal(paidMin, 6),
-//                        Config.getSPIDecimal(surcharge, 7),
-//                        Config.getSPIDecimal(total, 7),
+                        Config.getSPIDecimal(paidKm, 6),
+                        Config.getSPIDecimal(paidKm, 6),
+                        Config.getSPIDecimal(paidMin, 6),
+                        Config.getSPIDecimal(surcharge, 7),
+                        Config.getSPIDecimal(total, 7),
                     )
 
                 data = data.replace(" ", "")
@@ -419,13 +440,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun openCH3() {
         try {
             mWorkCh3 = UartWorkerCH(Config.SERIAL_CH3, Config.BATE_CH, 0, "CH3")
-            mWorkCh3?.setOnReceiveListener(
-                UartWorkerCH.OnReceiveListener { data: String ->
-                    CoroutineScope(ioDispatcher).launch {
-                        println("CH3.Opt receive = $data")
-                    }
-                },
-            )
+            mWorkCh3?.setOnReceiveListener { data: String ->
+                scope.launch {
+                    println("CH3.Opt receive = $data")
+                }
+            }
             mWorkCh3?.startCommunicate()
         } catch (e: IOException) {
             Logger.getLogger(TAG).warning("openCH3: $e")
@@ -434,6 +453,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun stopCommunication() {
         mBusModel?.stopCommunicate()
+        scope.cancel()
     }
 
     companion object {

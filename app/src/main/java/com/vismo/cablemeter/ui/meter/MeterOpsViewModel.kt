@@ -103,7 +103,14 @@ class MeterOpsViewModel @Inject constructor(
             }
             255 -> {
                 // print receipt
+                printReceipt()
             }
+        }
+    }
+
+    private fun printReceipt() {
+        viewModelScope.launch(ioDispatcher) {
+            tripRepository.printReceipt()
         }
     }
 

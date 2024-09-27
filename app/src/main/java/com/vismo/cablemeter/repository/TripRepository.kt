@@ -13,5 +13,5 @@ interface TripRepository {
 
     fun addExtras(extrasAmount: Int)
 
-    fun printReceipt()
+    suspend fun printReceipt()
 }

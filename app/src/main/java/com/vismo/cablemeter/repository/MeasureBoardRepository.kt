@@ -1,5 +1,7 @@
 package com.vismo.cablemeter.repository
 
+import com.vismo.cablemeter.model.TripData
+
 
 interface MeasureBoardRepository {
 
@@ -15,7 +17,7 @@ interface MeasureBoardRepository {
 
     fun writeAddExtrasCommand(extrasAmount: Int)
 
-    suspend fun writePrintReceiptCommand()
+    suspend fun writePrintReceiptCommand(tripData: TripData)
 
     fun updateKValue(kValue: Int)
 
