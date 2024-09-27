@@ -7,6 +7,7 @@ import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
+import com.vismo.cablemeter.repository.PeripheralControlRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MeterOpsViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val tripRepository: TripRepository
+    private val tripRepository: TripRepository,
+    private val peripheralControlRepository: PeripheralControlRepository
 ) : ViewModel() {
 
     private val _currentTrip = MutableStateFlow<TripData?>(null)
@@ -110,7 +112,11 @@ class MeterOpsViewModel @Inject constructor(
 
     private fun printReceipt() {
         viewModelScope.launch(ioDispatcher) {
-            tripRepository.printReceipt()
+            _currentTrip.value?.let { trip ->
+                if (trip.tripStatus == TripStatus.PAUSED) {
+                    peripheralControlRepository.writePrintReceiptCommand(trip)
+                }
+            }
         }
     }
 
@@ -148,6 +154,11 @@ class MeterOpsViewModel @Inject constructor(
                 tripRepository.endTrip()
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        tripRepository.close()
     }
 
 }

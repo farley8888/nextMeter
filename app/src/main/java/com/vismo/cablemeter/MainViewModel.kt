@@ -9,12 +9,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
+import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.cablemeter.ui.theme.nobel600
-import com.vismo.cablemeter.ui.theme.primary200
-import com.vismo.cablemeter.ui.theme.primary600
 import com.vismo.cablemeter.ui.theme.primary700
-import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import kotlinx.coroutines.CoroutineDispatcher
@@ -31,6 +29,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository,
+    private val peripheralControlRepository: PeripheralControlRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val remoteMCUControlRepository: RemoteMeterControlRepository,
@@ -142,5 +141,6 @@ class MainViewModel @Inject constructor(
         super.onCleared()
         measureBoardRepository.stopCommunication()
         remoteMCUControlRepository.onCleared()
+        peripheralControlRepository.close()
     }
 }

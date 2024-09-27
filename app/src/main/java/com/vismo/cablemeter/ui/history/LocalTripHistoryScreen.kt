@@ -2,6 +2,7 @@ package com.vismo.cablemeter.ui.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,7 +24,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.model.TripData
@@ -52,34 +59,49 @@ fun TripHeader() {
 @Composable
 fun LocalTripHistoryScreen(viewModel: LocalTripHistoryViewModel) {
     val trips = viewModel.trips.collectAsState().value
+    var selectedTripId by remember { mutableStateOf<String?>(null) }
+    val focusRequester = remember { FocusRequester() }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent {
+            if (it.type == KeyDown) {
+                if (selectedTripId != null) {
+                    viewModel.printReceipt(trips.find { trip -> trip.tripId == selectedTripId }!!)
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
         TripHeader()
-        TripList(trips = trips)
-    }
-}
-
-@Composable
-fun TripList(trips: List<TripData>) {
-    var selectedTripId by remember { mutableStateOf<String?>(null) }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp)
-    ) {
-        items(trips) { trip ->
-            TripItem(
-                trip = trip,
-                isSelected = trip.tripId == selectedTripId,
-                onClick = {
-                    selectedTripId = trip.tripId
-                }
-            )
+        // Trip List
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(trips) { trip ->
+                TripItem(
+                    trip = trip,
+                    isSelected = trip.tripId == selectedTripId,
+                    onClick = {
+                        selectedTripId = trip.tripId
+                    }
+                )
+            }
         }
+    }
+    // Request focus when the composable is first composed
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
     }
 }
 

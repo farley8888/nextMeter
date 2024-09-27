@@ -41,7 +41,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.Date
-import java.util.Locale
 import java.util.logging.Logger
 import javax.inject.Inject
 
@@ -53,8 +52,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private val localTripsRepository: LocalTripsRepository,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
-    private var mWorkCh3: UartWorkerCH? = null
-
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
@@ -108,7 +105,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             setReceiveEvalDataLs()
             mBusModel?.startCommunicate()
             delay(200)
-            ensureCH3Initialized()
         }
         initHardware()
         setSwitchLs(false)
@@ -179,11 +175,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             }
 
             TRIP_END_SUMMARY -> {
-                val distance = result.substring(118, 118 + 4).multiplyBy10AndConvertToDouble()
+                val distance = result.substring(118, 118 + 6).multiplyBy10AndConvertToDouble()
                 val duration = result.substring(124, 124 + 6)
                 val fare = result.substring(130, 130 + 6).divideBy100AndConvertToDouble()
                 val extras = result.substring(136, 136 + 6).divideBy100AndConvertToDouble()
                 val totalFare = result.substring(142, 142 + 6).divideBy100AndConvertToDouble()
+
+                Log.d(TAG, "TRIP_END_SUMMARY: $distance, ${getTimeInSeconds(duration)}, $fare, $extras, $totalFare")
 
                 val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
 
@@ -288,12 +286,15 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         ShellUtils.execEcho("echo 1 > /sys/class/gpio/gpio65/value")
     }
 
-    private fun emitBeepSound(
+    override fun emitBeepSound(
         duration: Int,
         interval: Int,
         repeatCount: Int,
     ) {
-        mBusModel?.write(MeasureBoardUtils.getBeepSoundCmd(duration, interval, repeatCount))
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getBeepSoundCmd(duration, interval, repeatCount))
+            delay(200)
+        }
     }
 
     override fun writeStartTripCommand(tripId: String) {
@@ -376,78 +377,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             mBusModel?.init(Config.SERIAL_CH1, Config.BATE)
         } catch (e: Exception) {
             Logger.getLogger(TAG).warning("openCommonUart: $e")
-        }
-    }
-
-    private suspend fun ensureCH3Initialized() {
-        if (mWorkCh3 == null) {
-            openCH3()
-            delay(2000) // Consider optimizing this delay
-        }
-    }
-
-
-    override suspend fun writePrintReceiptCommand(tripData: TripData) {
-        ensureCH3Initialized()
-        if (mWorkCh3 == null) {
-            Log.w(TAG, "mWorkCh3 is still null after initialization")
-            return
-        } else {
-            try {
-                withContext(ioDispatcher) {
-                    ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
-                    delay(200)
-                    ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio65/value")
-                    delay(200)
-                }
-
-                val licensePlate = tripData.licensePlate
-                val startDateTime = tripData.startTime.toDate()
-                val endDateTime = tripData.endTime?.toDate() ?: Date()
-                val paidKm = getDistanceInKm(tripData.distanceInMeter)
-                val waitTimeInMinutes = tripData.waitDurationInSeconds / 60.0
-                val paidMin = formatToNDecimalPlace(waitTimeInMinutes, 2)
-                val surcharge = formatToNDecimalPlace(tripData.extra, 2)
-                val total = formatToNDecimalPlace(tripData.totalFare, 2)
-
-                var data = Config.getSPIData()
-                data =
-                    String.format(
-                        data,
-                        MeasureBoardUtils
-                            .encodeHexString(licensePlate)
-                            .replace(" ", "")
-                            .padStart(16, 'F')
-                            .replace("FF", "20"),
-                        Config.getSPIDateTime(startDateTime),
-                        Config.getSPIDateTime(endDateTime),
-                        Config.getSPIDecimal(paidKm, 6),
-                        Config.getSPIDecimal(paidKm, 6),
-                        Config.getSPIDecimal(paidMin, 6),
-                        Config.getSPIDecimal(surcharge, 7),
-                        Config.getSPIDecimal(total, 7),
-                    )
-
-                data = data.replace(" ", "")
-                val bytes = ByteUtils.hexStr2Byte(data)
-                mWorkCh3?.writer?.writeData(bytes)
-            } catch (e: Exception) {
-                Logger.getLogger(TAG).warning("sendPrintCmd: $e")
-            }
-        }
-    }
-
-    private fun openCH3() {
-        try {
-            mWorkCh3 = UartWorkerCH(Config.SERIAL_CH3, Config.BATE_CH, 0, "CH3")
-            mWorkCh3?.setOnReceiveListener { data: String ->
-                scope.launch {
-                    println("CH3.Opt receive = $data")
-                }
-            }
-            mWorkCh3?.startCommunicate()
-        } catch (e: IOException) {
-            Logger.getLogger(TAG).warning("openCH3: $e")
         }
     }
 

@@ -10,6 +10,8 @@ import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,12 +21,11 @@ class TripRepositoryImpl @Inject constructor(
     private val dashManager: DashManager,
     private val localTripsRepository: LocalTripsRepository
 ) : TripRepository {
-
-    private val tripData = TripDataStore.tripData
+    private val repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     init {
-        CoroutineScope(ioDispatcher).launch {
-            tripData.collect { trip ->
+        repositoryScope.launch {
+            TripDataStore.tripData.collect { trip ->
                 trip?.let {
                     if (trip.requiresUpdateOnDatabase) {
                         val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
@@ -45,7 +46,7 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     override fun resumeTrip() {
-        tripData.value?.let {
+        TripDataStore.tripData.value?.let {
             measureBoardRepository.writeResumeTripCommand()
         }
     }
@@ -62,13 +63,13 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     override fun pauseTrip() {
-        tripData.value?.let {
+        TripDataStore.tripData.value?.let {
             measureBoardRepository.writePauseTripCommand()
         }
     }
 
     override fun addExtras(extrasAmount: Int) {
-        tripData.value?.let {
+        TripDataStore.tripData.value?.let {
             val extrasTotal = (it.extra + extrasAmount).toInt()
             if (extrasTotal < 1000) {
                 measureBoardRepository.writeAddExtrasCommand(extrasTotal)
@@ -76,11 +77,8 @@ class TripRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun printReceipt() {
-        tripData.value?.let {
-            if (it.tripStatus == TripStatus.PAUSED) {
-                measureBoardRepository.writePrintReceiptCommand(it)
-            }
-        }
+    override fun close() {
+        repositoryScope.cancel()
     }
+
 }

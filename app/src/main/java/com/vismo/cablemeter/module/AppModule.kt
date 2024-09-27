@@ -12,6 +12,8 @@ import com.vismo.cablemeter.repository.LocalTripsRepository
 import com.vismo.cablemeter.repository.LocalTripsRepositoryImpl
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepositoryImpl
+import com.vismo.cablemeter.repository.PeripheralControlRepository
+import com.vismo.cablemeter.repository.PeripheralControlRepositoryImpl
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepositoryImpl
 import com.vismo.cablemeter.repository.TripRepository
@@ -64,11 +66,11 @@ object AppModule {
     @Provides
     fun providesLocalTripsRepository(
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        tripsDao: TripsDao
+        tripsDao: TripsDao,
     ): LocalTripsRepository {
         return LocalTripsRepositoryImpl(
             ioDispatcher = ioDispatcher,
-            tripsDao = tripsDao
+            tripsDao = tripsDao,
         )
     }
 
@@ -85,6 +87,18 @@ object AppModule {
             ioDispatcher = ioDispatcher,
             dashManagerConfig = dashManagerConfig,
             localTripsRepository = localTripsRepository
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesPeripheralControlRepository(
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        measureBoardRepository: MeasureBoardRepository,
+    ): PeripheralControlRepository {
+        return PeripheralControlRepositoryImpl(
+            ioDispatcher = ioDispatcher,
+            measureBoardRepository = measureBoardRepository
         )
     }
 
