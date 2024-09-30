@@ -55,6 +55,7 @@ class TripRepositoryImpl @Inject constructor(
         val tripId = MeasureBoardUtils.generateTripId()
         val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED)
         TripDataStore.setTripData(tripData)
+        localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
     }
 

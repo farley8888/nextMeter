@@ -7,7 +7,23 @@ data class MeterOpsUiData(
     val extras: String,
     val distanceInKM: String,
     val duration: String,
+    val languagePref: TtsLanguagePref = TtsLanguagePref.OFF
 )
+
+sealed class TtsLanguagePref {
+    override fun toString(): String {
+        return when (this) {
+            EN -> "英"
+            ZH_CN -> "國"
+            ZH_HK -> "粵"
+            OFF -> ""
+        }
+    }
+    object EN : TtsLanguagePref()
+    object ZH_CN : TtsLanguagePref()
+    object ZH_HK : TtsLanguagePref()
+    object OFF : TtsLanguagePref()
+}
 
 sealed class TripStateInMeterOpsUI {
     open fun toStringEN(): String {

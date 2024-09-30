@@ -18,6 +18,8 @@ import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepositoryImpl
 import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.repository.TripRepositoryImpl
+import com.vismo.cablemeter.util.LocaleHelper
+import com.vismo.cablemeter.util.TtsUtil
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import dagger.Module
@@ -47,6 +49,29 @@ object AppModule {
     @Provides
     @Singleton
     fun providesFirebaseCrashlytics() = FirebaseCrashlytics.getInstance()
+
+    @Provides
+    @Singleton
+    fun providesLocaleHelper(
+        @ApplicationContext context: Context
+    ): LocaleHelper {
+        return LocaleHelper(appContext = context)
+    }
+
+    @Provides
+    @Singleton
+    fun providesTtsUtil(
+        @ApplicationContext context: Context,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        localeHelper: LocaleHelper
+    ): TtsUtil {
+        return TtsUtil(
+            appContext = context,
+            ioDispatcher = ioDispatcher,
+            localeHelper = localeHelper
+        )
+    }
+
 
     @Singleton
     @Provides

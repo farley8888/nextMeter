@@ -1,13 +1,17 @@
 package com.vismo.cablemeter.ui.meter
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.PeripheralControlRepository
+import com.vismo.cablemeter.util.LocaleHelper
+import com.vismo.cablemeter.util.TtsUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +23,9 @@ import javax.inject.Inject
 class MeterOpsViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val tripRepository: TripRepository,
-    private val peripheralControlRepository: PeripheralControlRepository
+    private val peripheralControlRepository: PeripheralControlRepository,
+    private val localeHelper: LocaleHelper,
+    private val ttsUtil: TtsUtil
 ) : ViewModel() {
 
     private val _currentTrip = MutableStateFlow<TripData?>(null)
@@ -63,6 +69,7 @@ class MeterOpsViewModel @Inject constructor(
                                 distanceInKM = "",
                                 duration = "",
                                 totalFare = "",
+                                languagePref = _uiState.value.languagePref
                             )
                             return@collect
                         } else {
@@ -73,6 +80,7 @@ class MeterOpsViewModel @Inject constructor(
                                 distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
                                 duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
                                 totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
+                                languagePref = _uiState.value.languagePref
                             )
                         }
                     }
@@ -81,7 +89,32 @@ class MeterOpsViewModel @Inject constructor(
         }
     }
 
-    fun handleKeyEvent(code: Int, repeatCount: Int, isLongPress: Boolean) {
+    fun toggleLanguagePref() {
+        viewModelScope.launch {
+            withContext(ioDispatcher) {
+                val newLanguagePref = when (_uiState.value.languagePref) {
+                    TtsLanguagePref.EN -> TtsLanguagePref.ZH_CN
+                    TtsLanguagePref.ZH_CN -> TtsLanguagePref.ZH_HK
+                    TtsLanguagePref.ZH_HK -> TtsLanguagePref.OFF
+                    TtsLanguagePref.OFF -> TtsLanguagePref.EN
+                }
+                when (newLanguagePref) {
+                    TtsLanguagePref.EN -> localeHelper.setLocale("en")
+                    TtsLanguagePref.ZH_CN -> localeHelper.setLocale("zh")
+                    TtsLanguagePref.ZH_HK -> localeHelper.setLocale("zh-rHK")
+                    TtsLanguagePref.OFF -> localeHelper.setLocale("en") // default to English
+                }
+                _uiState.value = _uiState.value.copy(languagePref = newLanguagePref)
+                ttsUtil.setLanguagePref(newLanguagePref)
+            }
+        }
+    }
+
+    fun handleKeyEvent(
+        code: Int,
+        repeatCount: Int,
+        isLongPress: Boolean
+    ) {
         when (code) {
             248 -> {
                 // ready for hire
@@ -130,6 +163,7 @@ class MeterOpsViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) {
             if (_currentTrip.value == null) {
                 tripRepository.startTrip()
+                ttsUtil.setWasTripJustStarted(true)
                 return@launch
             } else {
                 tripRepository.resumeTrip()
@@ -141,10 +175,10 @@ class MeterOpsViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) {
             if (_currentTrip.value == null) {
                 tripRepository.startAndPauseTrip()
-                return@launch
             } else {
                 tripRepository.pauseTrip()
             }
+            ttsUtil.setWasTripJustPaused(true)
         }
     }
 
