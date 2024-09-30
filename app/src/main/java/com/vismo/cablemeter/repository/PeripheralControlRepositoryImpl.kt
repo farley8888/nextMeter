@@ -5,7 +5,9 @@ import com.ilin.util.Config
 import com.ilin.util.ShellUtils
 import com.serial.opt.UartWorkerCH
 import com.serial.port.ByteUtils
+import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.model.TripData
+import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
 import com.vismo.cablemeter.ui.meter.MeterOpsUtil.getDistanceInKm
@@ -16,7 +18,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.Date
 import java.util.logging.Logger
@@ -30,7 +31,52 @@ class PeripheralControlRepositoryImpl(
 
     init {
         scope.launch {
+            initHardware()
             ensureCH3Initialized()
+            TripDataStore.tripData.collect { trip ->
+                trip?.let {
+                    if (trip.requiresUpdateOnDatabase) {
+                        if (trip.tripStatus == TripStatus.HIRED || trip.tripStatus == TripStatus.PAUSED) {
+                            toggleForHireFlag(isDown = true)
+                        } else {
+                            toggleForHireFlag(isDown = false)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun initHardware() {
+        // Set the GPIOs to the correct status for the printer
+        ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
+        delay(200)
+        ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio65/value")
+        delay(200)
+
+        //correct the flag status if needed
+        val gpio117 = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio117/value")
+        val gpio116 = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio116/value")
+        Log.d(TAG, "initHardware gpio117 = $gpio117, io116 = $gpio116")
+
+        toggleForHireFlag(isDown = false)
+    }
+
+    private fun toggleForHireFlag(isDown: Boolean) {
+        scope.launch {
+            try {
+                if (isDown) {
+                    ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio117/value"))
+                    delay(300)
+                    ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio116/value"))
+                } else {
+                    ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio117/value"))
+                    delay(300)
+                    ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio116/value"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -63,13 +109,6 @@ class PeripheralControlRepositoryImpl(
             return
         } else {
             try {
-                withContext(ioDispatcher) {
-                    ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
-                    delay(200)
-                    ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio65/value")
-                    delay(200)
-                }
-
                 val licensePlate = tripData.licensePlate
                 val startDateTime = tripData.startTime.toDate()
                 val endDateTime = tripData.endTime?.toDate() ?: Date()

@@ -8,8 +8,6 @@ import com.ilin.atelec.BusModel
 import com.ilin.atelec.IAtCmd
 import com.ilin.util.Config
 import com.ilin.util.ShellUtils
-import com.serial.opt.UartWorkerCH
-import com.serial.port.ByteUtils
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.model.DeviceIdData
@@ -18,8 +16,6 @@ import com.vismo.cablemeter.model.MCUMessage
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
-import com.vismo.cablemeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
-import com.vismo.cablemeter.ui.meter.MeterOpsUtil.getDistanceInKm
 import com.vismo.cablemeter.util.GlobalUtils.divideBy100AndConvertToDouble
 import com.vismo.cablemeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
 import com.vismo.cablemeter.util.MeasureBoardUtils
@@ -38,9 +34,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.util.Date
 import java.util.logging.Logger
 import javax.inject.Inject
 
@@ -106,8 +99,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             mBusModel?.startCommunicate()
             delay(200)
         }
-        initHardware()
-        setSwitchLs(false)
     }
 
     private suspend fun checkStatues(result: String) {
@@ -152,7 +143,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
 
                 currentOngoingTripInDB?.let {
-                    val requiresUpdate = it.fare != fare || it.tripStatus != tripStatus
+                    val requiresUpdate = it.fare != fare || it.tripStatus != tripStatus || it.extra != extras
 
                     val currentOngoingTrip = TripData(
                         tripId = it.tripId,
@@ -281,11 +272,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun initHardware() {
-        ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
-        ShellUtils.execEcho("echo 1 > /sys/class/gpio/gpio65/value")
-    }
-
     override fun emitBeepSound(
         duration: Int,
         interval: Int,
@@ -301,7 +287,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getStartTripCmd(tripId = tripId))
             delay(200)
-            setSwitchLs(true)
         }
     }
 
@@ -316,7 +301,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getEndTripCmd())
             delay(200)
-            setSwitchLs(false)
         }
     }
 
@@ -331,7 +315,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getStartPauseTripCmd(tripId))
             delay(200)
-            setSwitchLs(true)
         }
     }
 
@@ -339,26 +322,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getUpdateExtrasCmd("$extrasAmount"))
             delay(200)
-        }
-    }
-
-    private fun setSwitchLs(isChecked: Boolean) {
-        Log.d("setSwitchLs", "setSwitchLs: isChecked: $isChecked")
-        // isChecked: 落旗
-        scope.launch {
-            try {
-                if (isChecked) {
-                    ShellUtils.echo(arrayOf("echo 0 >/sys/class/gpio/gpio117/value"))
-                    delay(300)
-                    ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio116/value"))
-                } else {
-                    ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio117/value"))
-                    delay(300)
-                    ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio116/value"))
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
         }
     }
 
