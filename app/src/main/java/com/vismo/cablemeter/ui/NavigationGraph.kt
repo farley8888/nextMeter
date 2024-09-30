@@ -85,7 +85,6 @@ fun NavigationGraph(
                 navController.navigate(NavigationDestination.AdminBasicEdit.route)
             })
         }
-
         composable(NavigationDestination.AdminBasicEdit.route) {
             EditKValueAndLicensePlateScreen(
                 viewModel = editAdminPropertiesViewModel,

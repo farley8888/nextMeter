@@ -13,7 +13,6 @@ import com.vismo.cablemeter.util.Constant.SLAT_KEY
 import com.vismo.cablemeter.util.Constant.VECTOR_KEY
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import javax.crypto.Cipher

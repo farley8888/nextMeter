@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.LocalTripsRepository
+import com.vismo.cablemeter.repository.PeripheralControlRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LocalTripHistoryViewModel @Inject constructor(
     private val localTripsRepository: LocalTripsRepository,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    private val peripheralControlRepository: PeripheralControlRepository
 ) : ViewModel() {
 
     private val _trips: MutableStateFlow<List<TripData>> = MutableStateFlow(emptyList())
@@ -27,6 +29,12 @@ class LocalTripHistoryViewModel @Inject constructor(
             withContext(ioDispatcher) {
                 _trips.value = localTripsRepository.getAllTrips()
             }
+        }
+    }
+
+    fun printReceipt(tripData: TripData) {
+        viewModelScope.launch(ioDispatcher) {
+            peripheralControlRepository.writePrintReceiptCommand(tripData)
         }
     }
 }

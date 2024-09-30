@@ -10,7 +10,7 @@ object MeterOpsUtil {
     }
 
     fun getDistanceInKm(distanceInMeters: Double): String {
-        val distanceInKm = BigDecimal(distanceInMeters).divide(BigDecimal("100"))
+        val distanceInKm = BigDecimal(distanceInMeters).divide(BigDecimal("1000"))
         return formatToNDecimalPlace(distanceInKm.toDouble(), 2)
     }
 

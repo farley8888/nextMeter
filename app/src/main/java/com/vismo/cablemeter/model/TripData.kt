@@ -18,6 +18,10 @@ data class TripData (
     @SerializedName("id")
     val tripId: String,
 
+    @ColumnInfo(name = "license_plate")
+    @SerializedName("license_plate")
+    val licensePlate: String = "",
+
     @ColumnInfo(name = "start_time")
     @SerializedName("trip_start")
     val startTime: Timestamp,

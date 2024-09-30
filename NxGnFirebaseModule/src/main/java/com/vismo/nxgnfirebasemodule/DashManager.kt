@@ -238,12 +238,18 @@ class DashManager @Inject constructor(
         return gson.fromJson(json, R::class.java)
     }
 
-    private fun parseSettings(snapshot: DocumentSnapshot): Settings {
+    private fun parseSettings(snapshot: DocumentSnapshot): Settings? {
+        if (snapshot.data?.get(SETTINGS) == null) {
+            return null
+        }
         val settingsJson = gson.toJson(snapshot.data?.get(SETTINGS))
         return gson.fromJson(settingsJson, Settings::class.java)
     }
 
-    private fun parseMcuInfo(snapshot: DocumentSnapshot): McuInfo {
+    private fun parseMcuInfo(snapshot: DocumentSnapshot): McuInfo? {
+        if (snapshot.data?.get(MCU_INFO) == null) {
+            return null
+        }
         val mcuInfoJson = gson.toJson(snapshot.data?.get(MCU_INFO))
         return gson.fromJson(mcuInfoJson, McuInfo::class.java)
     }

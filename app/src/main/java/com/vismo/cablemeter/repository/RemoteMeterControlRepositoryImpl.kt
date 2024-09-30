@@ -21,8 +21,6 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository
 ) : RemoteMeterControlRepository {
 
-    val mcuParams = MCUParamsDataStore.mcuPriceParams
-
     private val _meterInfo = MutableStateFlow<MeterInfo?>(null)
     override val meterInfo: StateFlow<MeterInfo?> = _meterInfo
 
@@ -32,7 +30,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     override fun observeFlows() {
         CoroutineScope(ioDispatcher).launch {
             launch {
-                mcuParams.collectLatest { mcuParams ->
+                MCUParamsDataStore.mcuPriceParams.collectLatest { mcuParams ->
                     mcuParams?.let {
                         val mcuInfo: McuInfo = dashManager.convertToType(it)
                         dashManager.setMCUInfoOnFirestore(mcuInfo)

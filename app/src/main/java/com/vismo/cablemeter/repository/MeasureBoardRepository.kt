@@ -15,7 +15,11 @@ interface MeasureBoardRepository {
 
     fun writeAddExtrasCommand(extrasAmount: Int)
 
-    suspend fun writePrintReceiptCommand()
+    fun emitBeepSound(
+        duration: Int,
+        interval: Int,
+        repeatCount: Int,
+    )
 
     fun updateKValue(kValue: Int)
 
