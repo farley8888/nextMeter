@@ -92,6 +92,9 @@ class MeterOpsViewModel @Inject constructor(
     fun toggleLanguagePref() {
         viewModelScope.launch {
             withContext(ioDispatcher) {
+                if (ttsUtil.isPlaying()) {
+                    return@withContext
+                }
                 val newLanguagePref = when (_uiState.value.languagePref) {
                     TtsLanguagePref.EN -> TtsLanguagePref.ZH_CN
                     TtsLanguagePref.ZH_CN -> TtsLanguagePref.ZH_HK

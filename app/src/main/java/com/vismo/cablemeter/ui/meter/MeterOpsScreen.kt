@@ -67,8 +67,10 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToDashBoard: () -> Unit
                 true
             }
             .clickable {
-                navigateToDashBoard()
-                performVirtualTapFeedback(view)
+                if (uiState.status == ForHire) {
+                    navigateToDashBoard()
+                    performVirtualTapFeedback(view)
+                }
             }
     ) {
         TaxiMeterUI(uiState, viewModel)

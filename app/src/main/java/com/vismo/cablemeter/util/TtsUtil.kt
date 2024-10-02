@@ -61,18 +61,14 @@ class TtsUtil @Inject constructor(
                     when (trip.tripStatus) {
                         TripStatus.HIRED -> {
                             if (_currentLanguagePref.value != TtsLanguagePref.OFF && _wasTripJustStarted.value && trip.licensePlate.isNotBlank()) {
-                                playWhenTripStarted(trip.licensePlate) {
-
-                                }
+                                playWhenTripStarted(trip.licensePlate)
                                 setWasTripJustStarted(false)
                             }
                         }
 
                         TripStatus.PAUSED -> {
                             if (_currentLanguagePref.value != TtsLanguagePref.OFF && _wasTripJustPaused.value) {
-                                playWhenTripPaused(trip.totalFare, trip.extra > 0) {
-
-                                }
+                                playWhenTripPaused(trip.totalFare, trip.extra > 0)
                                 setWasTripJustPaused(false)
                             }
                         }
@@ -87,7 +83,7 @@ class TtsUtil @Inject constructor(
     }
 
 
-    private fun playWhenTripStarted(licensePlate: String, callback: () -> Unit) {
+    private fun playWhenTripStarted(licensePlate: String) {
         stopAndReleaseMediaPlayer()
         currentFileIndex = 0
 
@@ -103,14 +99,13 @@ class TtsUtil @Inject constructor(
         audioFiles = startTripAudioFiles
 
         scope.launch {
-            playNextAudio(appContext, callback)
+            playNextAudio(appContext)
         }
     }
 
-    private fun playNextAudio(context: Context, callback: () -> Unit) {
+    private fun playNextAudio(context: Context) {
         if (currentFileIndex >= audioFiles.size) {
             currentFileIndex = 0
-            callback()
             return
         }
 
@@ -131,24 +126,21 @@ class TtsUtil @Inject constructor(
                     }
                     setOnCompletionListener {
                         currentFileIndex++
-                        playNextAudio(context, callback)
+                        playNextAudio(context)
                     }
                 }
                 descriptor.close()
             } catch (e: IOException) {
                 Log.e("TTS", "Error playing audio file [${audioFiles[currentFileIndex]}]", e)
-                callback()
             }
         } ?: run {
             Log.e("TTS", "FileNotFound: ${audioFiles[currentFileIndex]}")
-            callback()
         }
     }
 
     private fun playWhenTripPaused(
         tripAmount: Double,
         includedSurcharged: Boolean,
-        callback: () -> Unit
     ) {
         val locale = localeHelper.getLocale()
         stopAndReleaseMediaPlayer()
@@ -186,7 +178,7 @@ class TtsUtil @Inject constructor(
             listOf(R.raw.end_before) + amountAudioFiles + if (includedSurcharged) R.raw.end_after_with_surcharge else R.raw.end_after
         }
         scope.launch {
-            playNextAudio(appContext, callback)
+            playNextAudio(appContext)
         }
     }
 
@@ -287,5 +279,9 @@ class TtsUtil @Inject constructor(
         val decimalPart = ((number - intPart) * 100).roundToInt()
 
         return Pair(convertIntegerPart(intPart), convertDecimalPart(decimalPart))
+    }
+
+    fun isPlaying(): Boolean {
+        return (mediaPlayer?.isPlaying == true)
     }
 }
