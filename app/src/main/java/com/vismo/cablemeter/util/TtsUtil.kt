@@ -124,7 +124,7 @@ class TtsUtil @Inject constructor(
             mediaPlayer?.reset() ?: run { mediaPlayer = MediaPlayer() }
             try {
                 mediaPlayer?.apply {
-                    setDataSource(descriptor.fileDescriptor, descriptor.startOffset, descriptor.length)
+                    setDataSource(descriptor.fileDescriptor, descriptor.startOffset, 3000L.coerceAtLeast(descriptor.length))
                     prepareAsync()
                     setOnPreparedListener {
                         start()
@@ -179,8 +179,10 @@ class TtsUtil @Inject constructor(
         }
 
         audioFiles = if (appContext.resources.configuration.locale.language == "zh-rhk" && includedSurcharged) {
+            currentFileIndex = 1
             listOf(R.raw.end_before, R.raw.end_after_with_surcharge) + amountAudioFiles + R.raw.end_after
         } else {
+            currentFileIndex = 0
             listOf(R.raw.end_before) + amountAudioFiles + if (includedSurcharged) R.raw.end_after_with_surcharge else R.raw.end_after
         }
         scope.launch {
@@ -263,7 +265,22 @@ class TtsUtil @Inject constructor(
         }
 
         fun convertDecimalPart(num: Int): List<Int> {
-            return num.toString().mapNotNull { digit -> numbersCN.getOrNull(digit.digitToInt()) }
+            if (num <= 0) return emptyList()
+
+            val result = mutableListOf<Int>()
+            val numStr = num.toString()
+
+            if (num < 10) {
+                result.add(numbersCN[0]) // Leading zero for decimals like 0.X
+            }
+
+            numStr.forEach { digit ->
+                val intDigit = digit.digitToInt()
+                if (intDigit > 0) {
+                    result.add(numbersCN[intDigit])
+                }
+            }
+            return result
         }
 
         val intPart = number.toInt()
