@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -66,11 +67,13 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToDashBoard: () -> Unit
                 true
             }
             .clickable {
-                navigateToDashBoard()
-                performVirtualTapFeedback(view)
+                if (uiState.status == ForHire) {
+                    navigateToDashBoard()
+                    performVirtualTapFeedback(view)
+                }
             }
     ) {
-        TaxiMeterUI(uiState)
+        TaxiMeterUI(uiState, viewModel)
     }
 
     // Request focus when the composable is first composed
@@ -80,7 +83,7 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToDashBoard: () -> Unit
 }
 
 @Composable
-fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData) {
+fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, viewModel: MeterOpsViewModel) {
     Row(
         horizontalArrangement = Arrangement.Start,
         modifier = Modifier.weight(3f)
@@ -99,7 +102,7 @@ fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData) {
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {
-        DistanceTimeAndStatusBox(uiState)
+        DistanceTimeAndStatusBox(uiState, viewModel = viewModel)
     }
 }
 
@@ -235,7 +238,7 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
 }
 
 @Composable
-fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData) {
+fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, viewModel: MeterOpsViewModel) {
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -268,19 +271,39 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData) {
             }
         }
         Button(
-            onClick = { /*TODO*/ },
+            onClick = {
+                viewModel.toggleLanguagePref()
+            },
             modifier = Modifier
                 .weight(1.3f)
                 .padding(2.dp),
             shape = RoundedCornerShape(10.dp),
         ) {
-            Text(
-                text = "${uiState.status.toStringCN()} ${uiState.status.toStringEN()}",
-                color = Color.White,
-                fontSize = 24.sp,
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = uiState.languagePref.toString(),
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.wrapContentWidth(Alignment.Start)
+                )
+
+                Spacer(modifier = Modifier.weight(1f))  // Space to push the second Text to the right
+
+                Text(
+                    text = "${uiState.status.toStringCN()} ${uiState.status.toStringEN()}",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.wrapContentWidth(Alignment.End)
+                )
+            }
         }
     }
 }
