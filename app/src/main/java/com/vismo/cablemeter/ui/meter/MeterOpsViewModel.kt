@@ -1,9 +1,7 @@
 package com.vismo.cablemeter.ui.meter
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.model.TripData
@@ -53,7 +51,7 @@ class MeterOpsViewModel @Inject constructor(
                                 Hired
                             }
 
-                            TripStatus.PAUSED -> {
+                            TripStatus.STOP -> {
                                 Paused
                             }
 
@@ -149,7 +147,7 @@ class MeterOpsViewModel @Inject constructor(
     private fun printReceipt() {
         viewModelScope.launch(ioDispatcher) {
             _currentTrip.value?.let { trip ->
-                if (trip.tripStatus == TripStatus.PAUSED) {
+                if (trip.tripStatus == TripStatus.STOP) {
                     peripheralControlRepository.writePrintReceiptCommand(trip)
                 }
             }
@@ -187,7 +185,7 @@ class MeterOpsViewModel @Inject constructor(
 
     private fun endTripAndReadyForHire() {
         viewModelScope.launch(ioDispatcher) {
-            if (_currentTrip.value?.tripStatus == TripStatus.PAUSED) {
+            if (_currentTrip.value?.tripStatus == TripStatus.STOP) {
                 tripRepository.endTrip()
             }
         }

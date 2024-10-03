@@ -123,7 +123,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             ONGOING_HEARTBEAT -> {
                 val measureBoardStatus = result.substring(16, 16 + 2)
                 val isStopped = (measureBoardStatus.toInt() == 1)
-                val tripStatus = if (isStopped) TripStatus.PAUSED else TripStatus.HIRED
+                val tripStatus = if (isStopped) TripStatus.STOP else TripStatus.HIRED
                 val lockedDuration = result.substring(18, 18 + 4)
                 val overSpeedLockupDuration = MeasureBoardUtils.hexToDecimal(lockedDuration)
                 val distance = result.substring(22, 22 + 6).multiplyBy10AndConvertToDouble()
