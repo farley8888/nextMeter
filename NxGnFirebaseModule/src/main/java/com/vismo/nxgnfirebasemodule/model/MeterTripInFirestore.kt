@@ -3,6 +3,9 @@ package com.vismo.nxgnfirebasemodule.model
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.GeoPoint
 import com.google.gson.annotations.SerializedName
+import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
+import org.json.JSONObject
+import java.io.Serializable
 
 
 data class MeterTripInFirestore(
@@ -20,14 +23,138 @@ data class MeterTripInFirestore(
     @SerializedName("trip_total") val tripTotal: Double? = null,
     @SerializedName("estimated_dash_amount") val estimatedDashAmount: Double? = null,
     @SerializedName("total_fare") val totalFare: Double? = null,
-    @SerializedName("trip_status") val tripStatus: String? = null,
+    @SerializedName("trip_status") val tripStatus: TripStatus? = null,
     @SerializedName("location_start") val locationStart: GeoPoint? = null,
     @SerializedName("location_end") val locationEnd: GeoPoint? = null,
     @SerializedName("dash_tips") val tips: Double? = null,
     @SerializedName("dash_fee") val dashFee: Double? = null,
     @SerializedName("dash_fee_rate") val dashFeeRate: Double? = null,
     @SerializedName("dash_fee_constant") val dashFeeConstant: Double? = null,
-    @SerializedName("dash_discount") val dashDiscount: Double? = null,
-    @SerializedName("dash_discount_rate") val dashDiscountRate: Double? = null,
-    @SerializedName("dash_discount_constant") val dashDiscountConstant: Double? = null
-)
+    @SerializedName("user") val user: PairedUserInformation? = null,
+    @SerializedName("discount_rules") val discountRules: List<DiscountRule?>? = null,
+    @SerializedName("applicable_payment_method_for_discount") val applicablePaymentMethodForDiscount: List<String>? = null,
+    @SerializedName("payment_method_selected") val paymentMethodSelectedOnPOS: String? = null,
+    @SerializedName("payment_information") val paymentInformation: List<Map<String, *>>? = null
+): Serializable
+
+enum class TripStatus {
+    HIRED,
+    PAUSED,
+    ENDED
+}
+
+data class DiscountRule(
+    @SerializedName("discount_fix") var discountFix: Double = 0.0,
+    @SerializedName("discount_rate") var discountRate: Double = 0.0,
+    @SerializedName("from") var from: Double = 0.0,
+    @SerializedName("to") var to: Double = 0.0,
+) : Serializable
+
+data class PairedUserInformation(
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("phone") val phone: String? = null,
+): Serializable
+
+enum class TripPaidStatus {
+    NOT_PAID,
+    PARTIALLY_PAID,
+    COMPLETELY_PAID
+}
+
+fun MeterTripInFirestore.paidStatus(): TripPaidStatus {
+    val pricingResult = getPricingResult()
+    val amountPaid = amountPaid()
+
+    return when {
+        // if user is not null - it means the user's card is already processed by the user app
+        amountPaid >= pricingResult.applicableTotal || user != null -> TripPaidStatus.COMPLETELY_PAID
+        amountPaid > 0 -> TripPaidStatus.PARTIALLY_PAID
+        else -> TripPaidStatus.NOT_PAID
+    }
+}
+
+fun MeterTripInFirestore.isDashPayment(): Boolean {
+    return paymentType?.lowercase() == "dash"
+}
+
+private fun MeterTripInFirestore.amountPaid(): Double {
+    // Filter successful transactions - this assumes all successful transactions either AUTH or SALE type as we don't have VOID from POS anymore
+    val successTransactions = paymentInformation?.filter { it["status"] == "SUCCESS" }.orEmpty()
+
+    val latestTransaction = successTransactions.lastOrNull() ?: return 0.0
+
+    val transactionResponse = latestTransaction["body"] as? String ?: return 0.0
+    val transactionObject = JSONObject(transactionResponse)
+    // Check if the transaction is approved and return the total amount
+    val tranStatus = transactionObject.optString("tranStatus")
+    return if (tranStatus == "APPROVED") {
+        transactionObject.optDouble("totalAmount", 0.0)
+    } else {
+        0.0
+    }
+}
+
+fun MeterTripInFirestore.getPricingResult(): PricingResult {
+    val feeAndExtra = tripTotal ?: 0.0
+    val feeRate = dashFeeRate ?: 0.0
+    val feeConstant = dashFeeConstant ?: 0.0
+    val applicableTip = tips ?: 0.0
+
+    val validDiscountPair = if (tripTotal != null && paymentMethodSelectedOnPOS != null) {
+        getValidDashDiscountRule(
+            tripTotal = tripTotal,
+            selectedPaymentMethod =  paymentMethodSelectedOnPOS,
+            applicablePaymentMethodsForDiscount = applicablePaymentMethodForDiscount ?: listOf(),
+            discountRules = discountRules?.filterNotNull() ?: listOf()
+        )
+    } else null
+
+    val applicableFee = if (isDashPayment()) {
+        ((feeAndExtra + applicableTip) * feeRate).roundTo(2) + feeConstant
+    } else {
+        0.0
+    }
+
+    val applicableDiscount = validDiscountPair?.let {
+        val (discountConstant, discountRate) = it
+        val discountAmount = (feeAndExtra * discountRate).roundTo(2) + discountConstant
+        discountAmount
+    } ?: 0.0
+
+    val applicableTotal = feeAndExtra + applicableTip + applicableFee - applicableDiscount
+
+    return PricingResult(
+        applicableFee = applicableFee,
+        applicableDiscount = applicableDiscount,
+        applicableTotal = applicableTotal
+    )
+}
+
+private fun getValidDashDiscountRule(
+    tripTotal: Double,
+    selectedPaymentMethod: String,
+    applicablePaymentMethodsForDiscount: List<String>,
+    discountRules:List<DiscountRule>
+): Pair<Int, Double>? {
+    if (discountRules.isEmpty()) {
+        return null
+    }
+
+    if (!applicablePaymentMethodsForDiscount.contains(selectedPaymentMethod)) {
+        return null
+    }
+
+    for (discountRuleCandidate in discountRules) {
+        if (
+            tripTotal >= discountRuleCandidate.from
+            && tripTotal < discountRuleCandidate.to
+        ){
+            return Pair(
+                discountRuleCandidate.discountFix.toInt(),
+                discountRuleCandidate.discountRate
+            )
+        }
+    }
+
+    return null
+}

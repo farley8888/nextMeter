@@ -39,7 +39,7 @@ data class TripData (
     val extra: Double = 0.0,
 
     @ColumnInfo(name = "total_fare")
-    @SerializedName("total_fare")
+    @SerializedName("trip_total")
     val totalFare: Double = 0.0,
 
     @ColumnInfo(name = "distance_in_meter")

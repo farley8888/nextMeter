@@ -17,8 +17,10 @@ import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.MeterFields
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
+import com.vismo.nxgnfirebasemodule.model.OperatingArea
 import com.vismo.nxgnfirebasemodule.model.Session
 import com.vismo.nxgnfirebasemodule.model.Settings
+import com.vismo.nxgnfirebasemodule.model.TripStatus
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
@@ -45,6 +47,7 @@ class DashManager @Inject constructor(
 ) {
     private val metersCollection = firestore.collection(METERS_COLLECTION)
     private var meterDocumentListener: ListenerRegistration? = null
+    private var tripDocumentListener: ListenerRegistration? = null
 
     private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)
     val meterFields: StateFlow<MeterFields?> = _meterFields
@@ -54,6 +57,9 @@ class DashManager @Inject constructor(
 
     private val _mcuParamsUpdateRequired: MutableStateFlow<UpdateMCUParamsRequest?> = MutableStateFlow(null)
     val mcuParamsUpdateRequired: StateFlow<UpdateMCUParamsRequest?> = _mcuParamsUpdateRequired
+
+    private val _tripInFirestore: MutableStateFlow<MeterTripInFirestore?> = MutableStateFlow(null)
+    val tripInFirestore: StateFlow<MeterTripInFirestore?> = _tripInFirestore
 
     init {
         meterSdkConfigurationListener()
@@ -151,6 +157,78 @@ class DashManager @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    fun updateFirestoreTripTotalAndFee(tripId: String, total: Double, fee: Double) {
+        CoroutineScope(ioDispatcher).launch {
+            updateTripOnFirestore(
+                MeterTripInFirestore(
+                    tripId = tripId,
+                    total = total,
+                    dashFee = fee
+                )
+            )
+        }
+    }
+
+    fun createTripAndSetDocumentListenerOnFirestore(tripId: String) {
+        CoroutineScope(ioDispatcher).launch {
+            tripDocumentListener?.remove() // Remove the previous listener
+
+            tripDocumentListener = getMeterDocument()
+                .collection(TRIPS_COLLECTION)
+                .document(tripId)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null && snapshot.exists()) {
+                        val tripJson = gson.toJson(snapshot.data)
+                        val trip = gson.fromJson(tripJson, MeterTripInFirestore::class.java)
+                        _tripInFirestore.value = trip
+
+                        if (trip.tripStatus == TripStatus.ENDED) {
+                            endTripDocumentListener()
+                        }
+                    }
+                }
+            // should only run once when trip is created
+            writeTripFeeInFirestore(tripId)
+        }
+    }
+
+    private fun endTripDocumentListener() {
+        tripDocumentListener?.remove()
+        _tripInFirestore.value = null
+    }
+
+    private fun writeTripFeeInFirestore(tripId: String) {
+        CoroutineScope(ioDispatcher).launch {
+            // check in meter settings by default
+            val settingsFeeRate = _meterFields.value?.settings?.dashFeeRate
+            val settingsFeeConstant = _meterFields.value?.settings?.dashFeeConstant
+
+            // fall back to config if not found in settings
+            val operatingArea = _meterFields.value?.settings?.operatingArea
+            val transactionFee = when (operatingArea) {
+                OperatingArea.LANTAU -> _meterSdkConfig.value?.dashFeesConfig?.lantau
+                OperatingArea.NT -> _meterSdkConfig.value?.dashFeesConfig?.nt
+                OperatingArea.URBAN -> _meterSdkConfig.value?.dashFeesConfig?.urban
+                else -> null
+            }
+
+            val applicableFeeRate = settingsFeeRate ?: transactionFee?.dashFeeRate ?: _meterSdkConfig.value?.common?.dashFeeRate ?: 0.0
+            val applicableFeeConstant = settingsFeeConstant ?: transactionFee?.dashFeeConstant ?: _meterSdkConfig.value?.common?.dashFeeConstant ?: 0.0
+
+            updateTripOnFirestore(
+                MeterTripInFirestore(
+                    tripId = tripId,
+                    dashFeeRate = applicableFeeRate,
+                    dashFeeConstant = applicableFeeConstant
+                )
+            )
         }
     }
 

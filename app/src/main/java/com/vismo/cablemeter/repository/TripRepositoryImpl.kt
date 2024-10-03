@@ -8,10 +8,15 @@ import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.util.MeasureBoardUtils
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
+import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
+import com.vismo.nxgnfirebasemodule.model.getPricingResult
+import com.vismo.nxgnfirebasemodule.model.paidStatus
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,14 +28,40 @@ class TripRepositoryImpl @Inject constructor(
 ) : TripRepository {
     private val repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
+    private val _currentTripPaidStatus: MutableStateFlow<TripPaidStatus> = MutableStateFlow(TripPaidStatus.NOT_PAID)
+    val currentTripPaidStatus = _currentTripPaidStatus
+
     init {
+        initObservers()
+    }
+
+    private fun initObservers() {
         repositoryScope.launch {
-            TripDataStore.tripData.collect { trip ->
-                trip?.let {
-                    if (trip.requiresUpdateOnDatabase) {
-                        val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
-                        dashManager.updateTripOnFirestore(tripInFirestore)
-                        localTripsRepository.updateTrip(it)
+            launch {
+                TripDataStore.tripData.collect { trip ->
+                    trip?.let {
+                        if (trip.requiresUpdateOnDatabase) {
+                            val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
+                            dashManager.updateTripOnFirestore(tripInFirestore)
+                            localTripsRepository.updateTrip(it)
+                        }
+                    }
+                }
+            }
+
+            launch {
+                dashManager.tripInFirestore.collectLatest { tripInFirestore ->
+                    tripInFirestore?.let {
+                        val pricingResult = tripInFirestore.getPricingResult()
+                        if (pricingResult.applicableTotal != tripInFirestore.total
+                            || pricingResult.applicableFee != tripInFirestore.dashFee) {
+                            dashManager.updateFirestoreTripTotalAndFee(
+                                tripId = tripInFirestore.tripId,
+                                total = pricingResult.applicableTotal,
+                                fee = pricingResult.applicableFee
+                            )
+                        }
+                        _currentTripPaidStatus.value = tripInFirestore.paidStatus()
                     }
                 }
             }
@@ -43,6 +74,7 @@ class TripRepositoryImpl @Inject constructor(
         TripDataStore.setTripData(tripData)
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
+        dashManager.createTripAndSetDocumentListenerOnFirestore(tripId)
     }
 
     override fun resumeTrip() {

@@ -87,4 +87,8 @@ object DashUtil {
         val mgLon = gcjLon + dLon
         return Pair(gcjLat * 2 - mgLat, gcjLon * 2 - mgLon)
     }
+
+    fun Double.roundTo(decimals: Int): Double {
+        return "%.${decimals}f".format(this).toDouble()
+    }
 }
