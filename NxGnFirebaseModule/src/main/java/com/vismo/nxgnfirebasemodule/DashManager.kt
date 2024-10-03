@@ -29,6 +29,7 @@ import com.vismo.nxgnfirebasemodule.util.Constant.METERS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_SDK_DOCUMENT
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
+import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -165,8 +166,8 @@ class DashManager @Inject constructor(
             updateTripOnFirestore(
                 MeterTripInFirestore(
                     tripId = tripId,
-                    total = total,
-                    dashFee = fee
+                    total = total.roundTo(2),
+                    dashFee = fee.roundTo(2)
                 )
             )
         }

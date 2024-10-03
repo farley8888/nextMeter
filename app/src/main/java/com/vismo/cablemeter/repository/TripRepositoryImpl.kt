@@ -10,6 +10,7 @@ import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.getPricingResult
+import com.vismo.nxgnfirebasemodule.model.isDashPayment
 import com.vismo.nxgnfirebasemodule.model.paidStatus
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -52,7 +53,7 @@ class TripRepositoryImpl @Inject constructor(
             launch {
                 dashManager.tripInFirestore.collectLatest { tripInFirestore ->
                     tripInFirestore?.let {
-                        val pricingResult = tripInFirestore.getPricingResult()
+                        val pricingResult = tripInFirestore.getPricingResult(tripInFirestore.isDashPayment())
                         if (pricingResult.applicableTotal != tripInFirestore.total
                             || pricingResult.applicableFee != tripInFirestore.dashFee) {
                             dashManager.updateFirestoreTripTotalAndFee(

@@ -62,8 +62,8 @@ enum class TripPaidStatus {
 }
 
 fun MeterTripInFirestore.paidStatus(): TripPaidStatus {
-    val pricingResult = getPricingResult()
     val amountPaid = amountPaid()
+    val pricingResult = getPricingResult(amountPaid > 0)
 
     return when {
         // if user is not null - it means the user's card is already processed by the user app
@@ -94,7 +94,7 @@ private fun MeterTripInFirestore.amountPaid(): Double {
     }
 }
 
-fun MeterTripInFirestore.getPricingResult(): PricingResult {
+fun MeterTripInFirestore.getPricingResult(asDashTransaction: Boolean): PricingResult {
     val feeAndExtra = tripTotal ?: 0.0
     val feeRate = dashFeeRate ?: 0.0
     val feeConstant = dashFeeConstant ?: 0.0
@@ -109,7 +109,7 @@ fun MeterTripInFirestore.getPricingResult(): PricingResult {
         )
     } else null
 
-    val applicableFee = if (isDashPayment()) {
+    val applicableFee = if (asDashTransaction) {
         ((feeAndExtra + applicableTip) * feeRate).roundTo(2) + feeConstant
     } else {
         0.0
