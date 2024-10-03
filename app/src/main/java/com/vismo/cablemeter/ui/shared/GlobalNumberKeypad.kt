@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.vismo.cablemeter.ui.theme.mineShaft100
 import com.vismo.cablemeter.ui.theme.nobel700
-import com.vismo.cablemeter.ui.theme.valencia800
+import com.vismo.cablemeter.ui.theme.valencia900
 
 @Composable
 fun GlobalNumberKeypad (
@@ -59,7 +59,7 @@ onDeleteClick: () -> Unit
                             modifier = Modifier
                                 .height(40.dp)
                                 .width(60.dp)
-                                .background(valencia800)
+                                .background(valencia900)
                                 .clickable { onDeleteClick() },
                             contentAlignment = Alignment.Center
                         ) {

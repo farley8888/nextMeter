@@ -11,15 +11,20 @@ import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
+import com.vismo.cablemeter.repository.TripRepository
+import com.vismo.cablemeter.ui.theme.gold600
 import com.vismo.cablemeter.ui.theme.nobel600
+import com.vismo.cablemeter.ui.theme.pastelGreen600
 import com.vismo.cablemeter.ui.theme.primary700
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
+import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -34,6 +39,7 @@ class MainViewModel @Inject constructor(
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val remoteMCUControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
+    private val tripRepository: TripRepository
     ) : ViewModel(){
 
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
@@ -74,21 +80,34 @@ class MainViewModel @Inject constructor(
             }
 
             launch {
-                remoteMCUControlRepository.meterInfo.collectLatest { meterInfo ->
+                combine(
+                    remoteMCUControlRepository.meterInfo,
+                    tripRepository.currentTripPaidStatus
+                ) { meterInfo, tripPaidStatus ->
+                    Pair(meterInfo, tripPaidStatus)
+                }.collectLatest { (meterInfo, tripPaidStatus) ->
                     meterInfo?.let {
                         if (it.session != null) {
                             val driverPhoneNumber = it.session.driver.driverPhoneNumber
                             _topAppBarUiState.value = _topAppBarUiState.value.copy(
                                 driverPhoneNumber = driverPhoneNumber,
-                                color = primary700
+
                             )
                         } else {
                             _topAppBarUiState.value = _topAppBarUiState.value.copy(
                                 driverPhoneNumber = "",
-                                color = nobel600
                             )
                         }
                     }
+
+                    val toolbarColor = when (tripPaidStatus) {
+                        TripPaidStatus.NOT_PAID -> if (meterInfo?.session != null) primary700 else nobel600
+                        TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
+                        TripPaidStatus.PARTIALLY_PAID -> gold600
+                    }
+                    _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                        color = toolbarColor
+                    )
                 }
             }
         }

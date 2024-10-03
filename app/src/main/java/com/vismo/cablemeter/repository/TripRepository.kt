@@ -1,6 +1,11 @@
 package com.vismo.cablemeter.repository
 
+import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
+import kotlinx.coroutines.flow.StateFlow
+
 interface TripRepository {
+    val currentTripPaidStatus: StateFlow<TripPaidStatus>
+
     suspend fun startTrip()
 
     suspend fun startAndPauseTrip()

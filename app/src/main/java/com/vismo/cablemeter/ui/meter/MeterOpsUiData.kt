@@ -1,5 +1,8 @@
 package com.vismo.cablemeter.ui.meter
 
+import androidx.compose.ui.graphics.Color
+import com.vismo.cablemeter.ui.theme.valencia900
+
 data class MeterOpsUiData(
     val status: TripStateInMeterOpsUI,
     val totalFare: String,
@@ -7,7 +10,8 @@ data class MeterOpsUiData(
     val extras: String,
     val distanceInKM: String,
     val duration: String,
-    val languagePref: TtsLanguagePref = TtsLanguagePref.OFF
+    val languagePref: TtsLanguagePref = TtsLanguagePref.OFF,
+    val totalColor: Color = valencia900
 )
 
 sealed class TtsLanguagePref {

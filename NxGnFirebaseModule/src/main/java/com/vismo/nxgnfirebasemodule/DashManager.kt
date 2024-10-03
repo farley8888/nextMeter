@@ -189,9 +189,6 @@ class DashManager @Inject constructor(
                         val trip = gson.fromJson(tripJson, MeterTripInFirestore::class.java)
                         _tripInFirestore.value = trip
 
-                        if (trip.tripStatus == TripStatus.ENDED) {
-                            endTripDocumentListener()
-                        }
                     }
                 }
             // should only run once when trip is created
@@ -199,7 +196,7 @@ class DashManager @Inject constructor(
         }
     }
 
-    private fun endTripDocumentListener() {
+    fun endTripDocumentListener() {
         tripDocumentListener?.remove()
         _tripInFirestore.value = null
     }

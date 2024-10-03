@@ -138,7 +138,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             if (fareDouble != null && fareDouble > 0) {
                 Text(
                     text = fare.substring(0, uiState.fare.length - 1),
-                    color = Color.Green,
+                    color = uiState.totalColor,
                     fontSize = 60.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.End
@@ -170,7 +170,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             if (extrasDouble != null && fareDouble != null && fareDouble > 0) {
                 Text(
                     text = extras,
-                    color = Color.Green,
+                    color = uiState.totalColor,
                     fontSize = 60.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.End
@@ -227,7 +227,7 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             if (totalFareDouble != null && totalFareDouble > 0) {
                 Text(
                     text = totalFare,
-                    color = Color.Green,
+                    color = uiState.totalColor,
                     fontSize = fontSize,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.End

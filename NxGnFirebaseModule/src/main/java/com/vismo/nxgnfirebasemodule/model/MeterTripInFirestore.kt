@@ -67,7 +67,7 @@ fun MeterTripInFirestore.paidStatus(): TripPaidStatus {
 
     return when {
         // if user is not null - it means the user's card is already processed by the user app
-        amountPaid >= pricingResult.applicableTotal || user != null -> TripPaidStatus.COMPLETELY_PAID
+        (pricingResult.applicableTotal > 0 && amountPaid >= pricingResult.applicableTotal) || user != null -> TripPaidStatus.COMPLETELY_PAID
         amountPaid > 0 -> TripPaidStatus.PARTIALLY_PAID
         else -> TripPaidStatus.NOT_PAID
     }

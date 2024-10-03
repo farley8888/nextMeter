@@ -29,7 +29,7 @@ class TripRepositoryImpl @Inject constructor(
     private val repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     private val _currentTripPaidStatus: MutableStateFlow<TripPaidStatus> = MutableStateFlow(TripPaidStatus.NOT_PAID)
-    val currentTripPaidStatus = _currentTripPaidStatus
+    override val currentTripPaidStatus = _currentTripPaidStatus
 
     init {
         initObservers()
@@ -62,6 +62,10 @@ class TripRepositoryImpl @Inject constructor(
                             )
                         }
                         _currentTripPaidStatus.value = tripInFirestore.paidStatus()
+                        if (tripInFirestore.tripStatus == com.vismo.nxgnfirebasemodule.model.TripStatus.ENDED) {
+                            dashManager.endTripDocumentListener()
+                            _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
+                        }
                     }
                 }
             }
