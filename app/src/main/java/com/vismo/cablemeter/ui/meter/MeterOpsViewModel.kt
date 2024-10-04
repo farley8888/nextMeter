@@ -1,20 +1,23 @@
 package com.vismo.cablemeter.ui.meter
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.PeripheralControlRepository
+import com.vismo.cablemeter.ui.theme.gold600
+import com.vismo.cablemeter.ui.theme.pastelGreen600
+import com.vismo.cablemeter.ui.theme.valencia900
 import com.vismo.cablemeter.util.LocaleHelper
 import com.vismo.cablemeter.util.TtsUtil
+import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -45,44 +48,58 @@ class MeterOpsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                TripDataStore.tripData.collect { trip ->
-                    _currentTrip.value = trip
-                    if (trip != null) {
-                        val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
-                            TripStatus.HIRED -> {
-                                Hired
-                            }
+                launch {
+                    TripDataStore.tripData.collect { trip ->
+                        _currentTrip.value = trip
+                        if (trip != null) {
+                            val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
+                                TripStatus.HIRED -> {
+                                    Hired
+                                }
 
-                            TripStatus.PAUSED -> {
-                                Paused
-                            }
+                                TripStatus.STOP -> {
+                                    Paused
+                                }
 
-                            TripStatus.ENDED, null -> {
-                                ForHire
+                                TripStatus.ENDED, null -> {
+                                    ForHire
+                                }
+                            }
+                            if (status == ForHire) {
+                                _uiState.value = MeterOpsUiData(
+                                    status = status,
+                                    fare = "",
+                                    extras = "",
+                                    distanceInKM = "",
+                                    duration = "",
+                                    totalFare = "",
+                                    languagePref = _uiState.value.languagePref,
+                                    totalColor = valencia900
+                                )
+                                return@collect
+                            } else {
+                                _uiState.value = _uiState.value.copy(
+                                    status = status,
+                                    extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
+                                    fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
+                                    distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
+                                    duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
+                                    totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
+                                    languagePref = _uiState.value.languagePref
+                                )
                             }
                         }
-                        if (status == ForHire) {
-                            _uiState.value = MeterOpsUiData(
-                                status = status,
-                                fare = "",
-                                extras = "",
-                                distanceInKM = "",
-                                duration = "",
-                                totalFare = "",
-                                languagePref = _uiState.value.languagePref
-                            )
-                            return@collect
-                        } else {
-                            _uiState.value = MeterOpsUiData(
-                                status = status,
-                                extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
-                                fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
-                                distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
-                                duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
-                                totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
-                                languagePref = _uiState.value.languagePref
-                            )
-                        }
+                    }
+                }
+                launch {
+                    tripRepository.currentTripPaidStatus.collectLatest {
+                        _uiState.value = _uiState.value.copy(
+                            totalColor = when (it) {
+                                TripPaidStatus.NOT_PAID -> valencia900
+                                TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
+                                TripPaidStatus.PARTIALLY_PAID -> gold600
+                            }
+                        )
                     }
                 }
             }
@@ -149,7 +166,7 @@ class MeterOpsViewModel @Inject constructor(
     private fun printReceipt() {
         viewModelScope.launch(ioDispatcher) {
             _currentTrip.value?.let { trip ->
-                if (trip.tripStatus == TripStatus.PAUSED) {
+                if (trip.tripStatus == TripStatus.STOP) {
                     peripheralControlRepository.writePrintReceiptCommand(trip)
                 }
             }
@@ -187,7 +204,7 @@ class MeterOpsViewModel @Inject constructor(
 
     private fun endTripAndReadyForHire() {
         viewModelScope.launch(ioDispatcher) {
-            if (_currentTrip.value?.tripStatus == TripStatus.PAUSED) {
+            if (_currentTrip.value?.tripStatus == TripStatus.STOP) {
                 tripRepository.endTrip()
             }
         }

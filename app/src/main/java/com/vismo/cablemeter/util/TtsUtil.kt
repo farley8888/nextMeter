@@ -66,7 +66,7 @@ class TtsUtil @Inject constructor(
                             }
                         }
 
-                        TripStatus.PAUSED -> {
+                        TripStatus.STOP -> {
                             if (_currentLanguagePref.value != TtsLanguagePref.OFF && _wasTripJustPaused.value) {
                                 playWhenTripPaused(trip.totalFare, trip.extra > 0)
                                 setWasTripJustPaused(false)

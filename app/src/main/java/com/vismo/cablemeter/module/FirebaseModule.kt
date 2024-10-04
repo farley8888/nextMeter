@@ -28,7 +28,6 @@ object FirebaseModule {
             .registerTypeAdapter(Heartbeat::class.java, HeartbeatSerializer())
             .registerTypeAdapter(Timestamp::class.java, TimestampSerializer())
             .registerTypeAdapter(Timestamp::class.java, TimestampDeserializer())
-            .serializeNulls()
             .create()
     }
 

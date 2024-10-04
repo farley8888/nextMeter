@@ -39,7 +39,7 @@ data class TripData (
     val extra: Double = 0.0,
 
     @ColumnInfo(name = "total_fare")
-    @SerializedName("total_fare")
+    @SerializedName("trip_total")
     val totalFare: Double = 0.0,
 
     @ColumnInfo(name = "distance_in_meter")
@@ -55,6 +55,9 @@ data class TripData (
     @SerializedName("trip_end")
     val endTime: Timestamp? = null,
 
+    @ColumnInfo(name = "is_dash")
+    @SerializedName("is_dash")
+    val isDash: Boolean = false,
 
     val overSpeedDurationInSeconds: Int = 0,
     val requiresUpdateOnDatabase: Boolean = false,
@@ -63,6 +66,6 @@ data class TripData (
 
 enum class TripStatus {
     HIRED,
-    PAUSED,
+    STOP, // - this means the meter is PAUSED - TODO: rename later so that it is compatible with POS
     ENDED
 }

@@ -36,7 +36,7 @@ class PeripheralControlRepositoryImpl(
             TripDataStore.tripData.collect { trip ->
                 trip?.let {
                     if (trip.requiresUpdateOnDatabase) {
-                        if (trip.tripStatus == TripStatus.HIRED || trip.tripStatus == TripStatus.PAUSED) {
+                        if (trip.tripStatus == TripStatus.HIRED || trip.tripStatus == TripStatus.STOP) {
                             toggleForHireFlag(isDown = true)
                         } else {
                             toggleForHireFlag(isDown = false)

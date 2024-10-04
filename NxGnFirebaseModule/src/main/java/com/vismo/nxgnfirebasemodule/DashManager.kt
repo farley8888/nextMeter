@@ -17,6 +17,7 @@ import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.MeterFields
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
+import com.vismo.nxgnfirebasemodule.model.OperatingArea
 import com.vismo.nxgnfirebasemodule.model.Session
 import com.vismo.nxgnfirebasemodule.model.Settings
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
@@ -27,9 +28,12 @@ import com.vismo.nxgnfirebasemodule.util.Constant.METERS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_SDK_DOCUMENT
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
+import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -45,6 +49,7 @@ class DashManager @Inject constructor(
 ) {
     private val metersCollection = firestore.collection(METERS_COLLECTION)
     private var meterDocumentListener: ListenerRegistration? = null
+    private var tripDocumentListener: ListenerRegistration? = null
 
     private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)
     val meterFields: StateFlow<MeterFields?> = _meterFields
@@ -55,11 +60,16 @@ class DashManager @Inject constructor(
     private val _mcuParamsUpdateRequired: MutableStateFlow<UpdateMCUParamsRequest?> = MutableStateFlow(null)
     val mcuParamsUpdateRequired: StateFlow<UpdateMCUParamsRequest?> = _mcuParamsUpdateRequired
 
+    private val _tripInFirestore: MutableStateFlow<MeterTripInFirestore?> = MutableStateFlow(null)
+    val tripInFirestore: StateFlow<MeterTripInFirestore?> = _tripInFirestore
+
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
     init {
         meterSdkConfigurationListener()
         //TODO: needs to be called after code 682682 is entered - not like this
         isMCUParamsUpdateRequired()
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             dashManagerConfig.meterIdentifier.collectLatest {
                 meterDocumentListener()
             }
@@ -67,7 +77,7 @@ class DashManager @Inject constructor(
     }
 
     fun clearDriverSession() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val currentSessionId = _meterFields.value?.session?.sessionId
             if (currentSessionId != null) {
                 val deleteSessionMap = mapOf(SESSION to FieldValue.delete())
@@ -77,7 +87,7 @@ class DashManager @Inject constructor(
     }
 
     private fun isMCUParamsUpdateRequired() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val mcuParamsUpdateCollection = getMeterDocument()
                 .collection(UPDATE_MCU_PARAMS)
 
@@ -100,7 +110,7 @@ class DashManager @Inject constructor(
     }
 
     fun setMCUParamsUpdateComplete(updateRequest: UpdateMCUParamsRequest) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val json = gson.toJson(updateRequest)
             val map =
                 (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
@@ -130,7 +140,7 @@ class DashManager @Inject constructor(
     }
 
     private fun meterDocumentListener() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             meterDocumentListener?.remove() // Remove the previous listener
 
             meterDocumentListener = getMeterDocument()
@@ -154,8 +164,77 @@ class DashManager @Inject constructor(
         }
     }
 
+    fun updateFirestoreTripTotalAndFee(tripId: String, total: Double, fee: Double) {
+        scope.launch {
+            updateTripOnFirestore(
+                MeterTripInFirestore(
+                    tripId = tripId,
+                    total = total.roundTo(2),
+                    dashFee = fee.roundTo(2)
+                )
+            )
+        }
+    }
+
+    fun createTripAndSetDocumentListenerOnFirestore(tripId: String) {
+        scope.launch {
+            tripDocumentListener?.remove() // Remove the previous listener
+
+            tripDocumentListener = getMeterDocument()
+                .collection(TRIPS_COLLECTION)
+                .document(tripId)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null && snapshot.exists()) {
+                        val tripJson = gson.toJson(snapshot.data)
+                        val trip = gson.fromJson(tripJson, MeterTripInFirestore::class.java)
+                        _tripInFirestore.value = trip
+
+                    }
+                }
+            // should only run once when trip is created
+            writeTripFeeInFirestore(tripId)
+        }
+    }
+
+    fun endTripDocumentListener() {
+        tripDocumentListener?.remove()
+        _tripInFirestore.value = null
+    }
+
+    private fun writeTripFeeInFirestore(tripId: String) {
+        scope.launch {
+            // check in meter settings by default
+            val settingsFeeRate = _meterFields.value?.settings?.dashFeeRate
+            val settingsFeeConstant = _meterFields.value?.settings?.dashFeeConstant
+
+            // fall back to config if not found in settings
+            val operatingArea = _meterFields.value?.settings?.operatingArea
+            val transactionFee = when (operatingArea) {
+                OperatingArea.LANTAU -> _meterSdkConfig.value?.dashFeesConfig?.lantau
+                OperatingArea.NT -> _meterSdkConfig.value?.dashFeesConfig?.nt
+                OperatingArea.URBAN -> _meterSdkConfig.value?.dashFeesConfig?.urban
+                else -> null
+            }
+
+            val applicableFeeRate = settingsFeeRate ?: transactionFee?.dashFeeRate ?: _meterSdkConfig.value?.common?.dashFeeRate ?: 0.0
+            val applicableFeeConstant = settingsFeeConstant ?: transactionFee?.dashFeeConstant ?: _meterSdkConfig.value?.common?.dashFeeConstant ?: 0.0
+
+            updateTripOnFirestore(
+                MeterTripInFirestore(
+                    tripId = tripId,
+                    dashFeeRate = applicableFeeRate,
+                    dashFeeConstant = applicableFeeConstant
+                )
+            )
+        }
+    }
+
     fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val json = gson.toJson(mcuInfo)
             val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>)
 
@@ -166,7 +245,7 @@ class DashManager @Inject constructor(
 
 
     fun updateTripOnFirestore(trip: MeterTripInFirestore) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val json = gson.toJson(trip)
             val map =
                 (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
@@ -181,7 +260,7 @@ class DashManager @Inject constructor(
     }
 
     fun sendHeartbeat() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val meterLocation = dashManagerConfig.meterLocation.value
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
@@ -278,6 +357,7 @@ class DashManager @Inject constructor(
 
     fun onCleared() {
         meterDocumentListener?.remove()
+        scope.cancel()
     }
 
     companion object {

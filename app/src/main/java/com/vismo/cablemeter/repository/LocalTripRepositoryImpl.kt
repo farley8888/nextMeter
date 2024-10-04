@@ -25,6 +25,12 @@ class LocalTripsRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean) {
+        CoroutineScope(ioDispatcher).launch {
+            tripsDao.setDashPaymentStatus(tripId, isDashPayment)
+        }
+    }
+
     override fun deleteTrip(tripData: TripData) {
         CoroutineScope(ioDispatcher).launch {
             tripsDao.deleteTrip(tripData)
