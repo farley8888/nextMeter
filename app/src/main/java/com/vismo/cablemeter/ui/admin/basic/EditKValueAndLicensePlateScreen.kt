@@ -35,7 +35,9 @@ import com.vismo.cablemeter.ui.theme.gold350
 import com.vismo.cablemeter.ui.theme.mineShaft100
 import com.vismo.cablemeter.ui.theme.nobel600
 import com.vismo.cablemeter.ui.theme.nobel900
+import com.vismo.cablemeter.ui.theme.pastelGreen700
 import com.vismo.cablemeter.ui.theme.primary800
+import com.vismo.cablemeter.ui.theme.valencia700
 import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
@@ -48,6 +50,7 @@ fun EditKValueAndLicensePlateScreen(
     val mcuPriceParams = viewModel.mcuPriceParams.collectAsState()
     var kValueEntered: String? by remember { mutableStateOf(null) }
     var licensePlateEntered: String? by remember { mutableStateOf(null) }
+    val adbStatus = viewModel.currentADBStatus.collectAsState()
 
     Row(
         modifier = Modifier
@@ -145,9 +148,19 @@ fun EditKValueAndLicensePlateScreen(
                 thickness = 2.dp
             )
             Text(text = "Current ADB Status")
-            Text(text = "Enabled")
-            Button(onClick = { performVirtualTapFeedback(view) },
-                colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
+            Text(text = adbStatus.value?.name ?: "",
+                color = if (adbStatus.value == EditAdminPropertiesViewModel.ADBStatus.ENABLED) pastelGreen700 else valencia700,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+            Button(onClick = {
+                performVirtualTapFeedback(view)
+                viewModel.toggleADB()
+                             },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = primary800,
+                    contentColor = mineShaft100
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
