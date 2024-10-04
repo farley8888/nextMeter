@@ -91,10 +91,11 @@ class TripRepositoryImpl @Inject constructor(
 
     override suspend fun startAndPauseTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
-        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED)
+        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.STOP)
         TripDataStore.setTripData(tripData)
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
+        dashManager.createTripAndSetDocumentListenerOnFirestore(tripId)
     }
 
     override fun endTrip() {
