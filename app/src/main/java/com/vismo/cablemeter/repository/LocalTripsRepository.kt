@@ -9,6 +9,8 @@ interface LocalTripsRepository {
 
     fun updateTrip(tripData: TripData)
 
+    fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean)
+
     fun deleteTrip(tripData: TripData)
 
     suspend fun getAllTrips() : List<TripData>

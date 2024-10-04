@@ -55,6 +55,9 @@ data class TripData (
     @SerializedName("trip_end")
     val endTime: Timestamp? = null,
 
+    @ColumnInfo(name = "is_dash")
+    @SerializedName("is_dash")
+    val isDash: Boolean = false,
 
     val overSpeedDurationInSeconds: Int = 0,
     val requiresUpdateOnDatabase: Boolean = false,

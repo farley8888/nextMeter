@@ -61,11 +61,24 @@ object GlobalUtils {
         return Base64.encodeToString(encrypted, Base64.DEFAULT)
     }
 
-    fun formatTimestampToTime(timestamp: Timestamp?): String {
+    fun formatTimestampToTime(timestamp: Timestamp?, showDate: Boolean = false): String {
         return timestamp?.let {
-            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val dateFormat = if (showDate) "dd/MM" else ""
+            val sdf = SimpleDateFormat("$dateFormat HH:mm", Locale.getDefault())
             sdf.format(Date(it.seconds * 1000))
         } ?: "N/A"
+    }
+
+    fun isSameDay(startTime: Timestamp?, endTime: Timestamp?): Boolean {
+        if (startTime == null || endTime == null) {
+            return false
+        }
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // Only the date part
+        val startDate = sdf.format(Date(startTime.seconds * 1000))
+        val endDate = sdf.format(Date(endTime.seconds * 1000))
+
+        return startDate == endDate
     }
 
     /*

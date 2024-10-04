@@ -65,6 +65,7 @@ class TripRepositoryImpl @Inject constructor(
                         _currentTripPaidStatus.value = tripInFirestore.paidStatus()
                         if (tripInFirestore.tripStatus == com.vismo.nxgnfirebasemodule.model.TripStatus.ENDED) {
                             dashManager.endTripDocumentListener()
+                            localTripsRepository.setDashPaymentStatus(tripInFirestore.tripId, tripInFirestore.isDashPayment())
                             _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
                         }
                     }

@@ -20,7 +20,6 @@ import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import com.vismo.nxgnfirebasemodule.model.OperatingArea
 import com.vismo.nxgnfirebasemodule.model.Session
 import com.vismo.nxgnfirebasemodule.model.Settings
-import com.vismo.nxgnfirebasemodule.model.TripStatus
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
@@ -33,6 +32,8 @@ import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -62,11 +63,13 @@ class DashManager @Inject constructor(
     private val _tripInFirestore: MutableStateFlow<MeterTripInFirestore?> = MutableStateFlow(null)
     val tripInFirestore: StateFlow<MeterTripInFirestore?> = _tripInFirestore
 
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
     init {
         meterSdkConfigurationListener()
         //TODO: needs to be called after code 682682 is entered - not like this
         isMCUParamsUpdateRequired()
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             dashManagerConfig.meterIdentifier.collectLatest {
                 meterDocumentListener()
             }
@@ -74,7 +77,7 @@ class DashManager @Inject constructor(
     }
 
     fun clearDriverSession() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val currentSessionId = _meterFields.value?.session?.sessionId
             if (currentSessionId != null) {
                 val deleteSessionMap = mapOf(SESSION to FieldValue.delete())
@@ -84,7 +87,7 @@ class DashManager @Inject constructor(
     }
 
     private fun isMCUParamsUpdateRequired() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val mcuParamsUpdateCollection = getMeterDocument()
                 .collection(UPDATE_MCU_PARAMS)
 
@@ -107,7 +110,7 @@ class DashManager @Inject constructor(
     }
 
     fun setMCUParamsUpdateComplete(updateRequest: UpdateMCUParamsRequest) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val json = gson.toJson(updateRequest)
             val map =
                 (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
@@ -137,7 +140,7 @@ class DashManager @Inject constructor(
     }
 
     private fun meterDocumentListener() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             meterDocumentListener?.remove() // Remove the previous listener
 
             meterDocumentListener = getMeterDocument()
@@ -162,7 +165,7 @@ class DashManager @Inject constructor(
     }
 
     fun updateFirestoreTripTotalAndFee(tripId: String, total: Double, fee: Double) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             updateTripOnFirestore(
                 MeterTripInFirestore(
                     tripId = tripId,
@@ -174,7 +177,7 @@ class DashManager @Inject constructor(
     }
 
     fun createTripAndSetDocumentListenerOnFirestore(tripId: String) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             tripDocumentListener?.remove() // Remove the previous listener
 
             tripDocumentListener = getMeterDocument()
@@ -203,7 +206,7 @@ class DashManager @Inject constructor(
     }
 
     private fun writeTripFeeInFirestore(tripId: String) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             // check in meter settings by default
             val settingsFeeRate = _meterFields.value?.settings?.dashFeeRate
             val settingsFeeConstant = _meterFields.value?.settings?.dashFeeConstant
@@ -231,7 +234,7 @@ class DashManager @Inject constructor(
     }
 
     fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val json = gson.toJson(mcuInfo)
             val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>)
 
@@ -242,7 +245,7 @@ class DashManager @Inject constructor(
 
 
     fun updateTripOnFirestore(trip: MeterTripInFirestore) {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val json = gson.toJson(trip)
             val map =
                 (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
@@ -257,7 +260,7 @@ class DashManager @Inject constructor(
     }
 
     fun sendHeartbeat() {
-        CoroutineScope(ioDispatcher).launch {
+        scope.launch {
             val meterLocation = dashManagerConfig.meterLocation.value
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
@@ -354,6 +357,7 @@ class DashManager @Inject constructor(
 
     fun onCleared() {
         meterDocumentListener?.remove()
+        scope.cancel()
     }
 
     companion object {

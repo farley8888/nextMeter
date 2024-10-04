@@ -18,6 +18,9 @@ interface TripsDao {
     @Update
     suspend fun updateTrip(trip: TripData)
 
+    @Query("UPDATE trips SET is_dash = :isDashPayment WHERE tripId = :tripId")
+    suspend fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean)
+
     @Delete
     suspend fun deleteTrip(trip: TripData)
 

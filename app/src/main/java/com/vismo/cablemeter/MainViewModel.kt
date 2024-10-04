@@ -161,5 +161,6 @@ class MainViewModel @Inject constructor(
         measureBoardRepository.stopCommunication()
         remoteMCUControlRepository.onCleared()
         peripheralControlRepository.close()
+
     }
 }
