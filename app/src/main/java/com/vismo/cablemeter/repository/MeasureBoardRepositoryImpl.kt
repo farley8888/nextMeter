@@ -149,6 +149,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                         tripId = it.tripId,
                         startTime = it.startTime,
                         tripStatus = tripStatus,
+                        endTime = if (tripStatus == TripStatus.STOP) Timestamp.now() else null,
                         isLocked = overSpeedLockupDuration > 0,
                         fare = fare,
                         extra = extras,
@@ -186,7 +187,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                         totalFare = totalFare,
                         distanceInMeter = distance,
                         waitDurationInSeconds = getTimeInSeconds(duration),
-                        endTime = Timestamp.now(),
+                        endTime = it.endTime,
                         requiresUpdateOnDatabase = true,
                         licensePlate = it.licensePlate,
                     )
