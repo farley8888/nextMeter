@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -27,12 +28,14 @@ class DriverPairViewModel @Inject constructor(
     private val _driverPairScreenUiData = MutableStateFlow(DriverPairUiData())
     val driverPairScreenUiData: StateFlow<DriverPairUiData> = _driverPairScreenUiData
 
+    private val uiUpdateMutex = Mutex()
+
     init {
         viewModelScope.launch {
-            withContext(ioDispatcher) {
-                launch {
-                    MCUParamsDataStore.deviceIdData.collectLatest { deviceIdData ->
-                        deviceIdData?.let {
+            launch(ioDispatcher) {
+                MCUParamsDataStore.deviceIdData.collectLatest { deviceIdData ->
+                    deviceIdData?.let {
+                        uiUpdateMutex.withLock {
                             _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
                                 qrString = genQR(it.licensePlate),
                                 licensePlate = it.licensePlate,
@@ -41,9 +44,11 @@ class DriverPairViewModel @Inject constructor(
                         }
                     }
                 }
-                launch {
-                    remoteMeterControlRepository.meterInfo.collectLatest { meterInfo ->
-                        meterInfo?.let {
+            }
+            launch(ioDispatcher) {
+                remoteMeterControlRepository.meterInfo.collectLatest { meterInfo ->
+                    meterInfo?.let {
+                        uiUpdateMutex.withLock {
                             if (it.session != null) {
                                 _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
                                     driverPhoneNumber = it.session.driver.driverPhoneNumber
@@ -65,8 +70,12 @@ class DriverPairViewModel @Inject constructor(
     }
 
     fun refreshQr() {
-        val newQr = genQR(_driverPairScreenUiData.value.licensePlate)
-        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(qrString = newQr)
+        viewModelScope.launch {
+            val newQr = genQR(_driverPairScreenUiData.value.licensePlate)
+            uiUpdateMutex.withLock {
+                _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(qrString = newQr)
+            }
+        }
     }
 
     /**

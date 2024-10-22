@@ -126,7 +126,7 @@ fun TripItemRow(trip: TripData, isSelected: Boolean, onClick: () -> Unit) {
         )
         val isEndDateDifferentFromStart = trip.endTime != null && !GlobalUtils.isSameDay(trip.startTime, trip.endTime)
         Text(
-            text = GlobalUtils.formatTimestampToTime(trip.endTime, showDate = isEndDateDifferentFromStart),
+            text = GlobalUtils.formatTimestampToTime(trip.pauseTime, showDate = isEndDateDifferentFromStart),
             modifier = Modifier.weight(columnWeight),
             fontSize = 18.sp,
             color = textColor,

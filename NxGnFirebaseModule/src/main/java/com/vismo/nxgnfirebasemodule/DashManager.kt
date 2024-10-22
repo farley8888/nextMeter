@@ -1,5 +1,6 @@
 package com.vismo.nxgnfirebasemodule
 
+import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -256,6 +257,12 @@ class DashManager @Inject constructor(
             tripsCollection
                 .document(trip.tripId)
                 .set(map, SetOptions.merge())
+                .addOnSuccessListener {
+                    Log.d(TAG, "updateTripOnFirestore successfully")
+                }
+                .addOnFailureListener {
+                    Log.e(TAG, "updateTripOnFirestore error", it)
+                }
         }
     }
 
@@ -361,6 +368,7 @@ class DashManager @Inject constructor(
     }
 
     companion object {
+        private const val TAG = "DashManager"
         private const val SETTINGS = "settings"
         private const val MCU_INFO = "mcu_info"
         private const val SESSION = "session"

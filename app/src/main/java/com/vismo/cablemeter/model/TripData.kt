@@ -50,6 +50,10 @@ data class TripData (
     @SerializedName("wait_time")
     val waitDurationInSeconds: Long = 0,
 
+    @ColumnInfo(name = "pause_time")
+    @SerializedName("trip_pause")
+    val pauseTime: Timestamp? = null,
+
 
     @ColumnInfo(name = "end_time")
     @SerializedName("trip_end")
@@ -66,6 +70,6 @@ data class TripData (
 
 enum class TripStatus {
     HIRED,
-    STOP, // - this means the meter is PAUSED - TODO: rename later so that it is compatible with POS
+    STOP, // - this means the meter is PAUSED - TODO: rename later so that POS is compatible with PAUSED status
     ENDED
 }

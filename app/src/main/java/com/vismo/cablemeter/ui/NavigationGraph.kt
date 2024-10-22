@@ -28,6 +28,8 @@ import com.vismo.cablemeter.ui.pair.DriverPairScreen
 import com.vismo.cablemeter.ui.pair.DriverPairViewModel
 import com.vismo.cablemeter.ui.pin.SystemPinScreen
 import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
+import com.vismo.cablemeter.ui.splash.SplashScreen
+import com.vismo.cablemeter.ui.splash.SplashScreenViewModel
 
 @Composable
 fun NavigationGraph(
@@ -40,7 +42,7 @@ fun NavigationGraph(
 
     NavHost(
         navController = navController,
-        startDestination = NavigationDestination.Pair.route,
+        startDestination = NavigationDestination.Splash.route,
         modifier = Modifier.padding(innerPadding),
         enterTransition = {
             fadeIn(tween(700))
@@ -49,6 +51,22 @@ fun NavigationGraph(
             fadeOut(tween(700))
         }
     ) {
+        composable(NavigationDestination.Splash.route) {
+            val viewModel = hiltViewModel<SplashScreenViewModel>()
+            SplashScreen(viewModel, navigateToPair = {
+                navController.navigate(NavigationDestination.Pair.route) {
+                    popUpTo(NavigationDestination.Splash.route) { inclusive = true }
+                    restoreState = true
+                    launchSingleTop = true
+                }
+            }, navigateToMeterOps = {
+                navController.navigate(NavigationDestination.MeterOps.route) {
+                    popUpTo(NavigationDestination.Splash.route) { inclusive = true }
+                    restoreState = true
+                    launchSingleTop = true
+                }
+            },)
+        }
         composable(NavigationDestination.MeterOps.route) {
             val viewModel = hiltViewModel<MeterOpsViewModel>()
             MeterOpsScreen(viewModel, navigateToDashBoard = {
