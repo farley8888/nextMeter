@@ -94,33 +94,21 @@ class MainViewModel @Inject constructor(
                     Pair(meterInfo, tripPaidStatus)
                 }.collectLatest { (meterInfo, tripPaidStatus) ->
                     meterInfo?.let {
-                        toolbarUiDataUpdateMutex.withLock {
-                            if (it.session != null) {
-                                val driverPhoneNumber = it.session.driver.driverPhoneNumber
-                                _topAppBarUiState.value = _topAppBarUiState.value.copy(
-                                    driverPhoneNumber = if (it.settings.showLoginToggle) driverPhoneNumber else "",
-
-                                    )
-                            } else {
-                                _topAppBarUiState.value = _topAppBarUiState.value.copy(
-                                    driverPhoneNumber = "",
-                                )
-                            }
-                        }
-
                         _showLoginToggle.value = it.settings.showLoginToggle
+
+                        toolbarUiDataUpdateMutex.withLock {
+                            _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                                showLoginToggle = it.settings.showLoginToggle,
+                                driverPhoneNumber = it.session?.driver?.driverPhoneNumber ?: "",
+                            )
+                        }
                     }
 
-                    val toolbarColor =
-                        if (meterInfo?.settings?.showLoginToggle == true) {
-                            when (tripPaidStatus) {
-                                TripPaidStatus.NOT_PAID -> if (meterInfo.session != null) primary700 else nobel600
-                                TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
-                                TripPaidStatus.PARTIALLY_PAID -> gold600
-                            }
-                        } else {
-                            nobel600
-                        }
+                    val toolbarColor = when (tripPaidStatus) {
+                        TripPaidStatus.NOT_PAID -> if (meterInfo?.session != null) primary700 else nobel600
+                        TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
+                        TripPaidStatus.PARTIALLY_PAID -> gold600
+                    }
                     toolbarUiDataUpdateMutex.withLock {
                         _topAppBarUiState.value = _topAppBarUiState.value.copy(
                             color = toolbarColor

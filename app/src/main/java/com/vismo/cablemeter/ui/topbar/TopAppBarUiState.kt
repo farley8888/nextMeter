@@ -22,5 +22,6 @@ data class TopAppBarUiState (
         ENV_QA -> "Q"
         ENV_PROD -> "P"
         else -> "INVALID"
-    }
+    },
+    val showLoginToggle:Boolean = false,
 )

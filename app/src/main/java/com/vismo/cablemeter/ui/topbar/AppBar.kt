@@ -111,7 +111,7 @@ fun AppBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
-                if (uiState.driverPhoneNumber.isNotEmpty()) {
+                if (uiState.driverPhoneNumber.isNotEmpty() && uiState.showLoginToggle) {
                     Icon(
                         imageVector = Icons.Outlined.Person,
                         contentDescription = "User Icon",
@@ -125,7 +125,7 @@ fun AppBar(
                             .padding(end = 16.dp)
                     )
                 }
-                if (uiState.isLocationIconVisible) {
+                if (uiState.isLocationIconVisible && uiState.showLoginToggle) {
                     Icon(
                         imageVector = Icons.Outlined.LocationOn,
                         contentDescription = "Location",
@@ -133,7 +133,7 @@ fun AppBar(
                             .padding(end = 4.dp)
                     )
                 }
-                if (uiState.isWifiIconVisible) {
+                if (uiState.isWifiIconVisible && uiState.showLoginToggle) {
                     Icon(
                         imageVector = Icons.Outlined.Wifi,
                         contentDescription = "Wifi",
@@ -141,41 +141,43 @@ fun AppBar(
                             .padding(end = 4.dp)
                     )
                 }
-                when (uiState.signalStrength) {
-                    1 -> {
-                        Icon(
-                            imageVector = Icons.Outlined.SignalCellularAlt1Bar,
-                            contentDescription = "Low Signal",
-                            modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                                .padding(end = 4.dp)
-                        )
-                    }
+                if (uiState.showLoginToggle) {
+                    when (uiState.signalStrength) {
+                        1 -> {
+                            Icon(
+                                imageVector = Icons.Outlined.SignalCellularAlt1Bar,
+                                contentDescription = "Low Signal",
+                                modifier = Modifier.wrapContentSize(align = Alignment.Center)
+                                    .padding(end = 4.dp)
+                            )
+                        }
 
-                    2 -> {
-                        Icon(
-                            imageVector = Icons.Outlined.SignalCellularAlt2Bar,
-                            contentDescription = "Low Signal",
-                            modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                                .padding(end = 4.dp)
-                        )
-                    }
+                        2 -> {
+                            Icon(
+                                imageVector = Icons.Outlined.SignalCellularAlt2Bar,
+                                contentDescription = "Low Signal",
+                                modifier = Modifier.wrapContentSize(align = Alignment.Center)
+                                    .padding(end = 4.dp)
+                            )
+                        }
 
-                    3, 4 -> {
-                        Icon(
-                            imageVector = Icons.Outlined.SignalCellularAlt,
-                            contentDescription = "High Signal",
-                            modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                                .padding(end = 4.dp)
-                        )
-                    }
+                        3, 4 -> {
+                            Icon(
+                                imageVector = Icons.Outlined.SignalCellularAlt,
+                                contentDescription = "High Signal",
+                                modifier = Modifier.wrapContentSize(align = Alignment.Center)
+                                    .padding(end = 4.dp)
+                            )
+                        }
 
-                    else -> {
-                        Icon(
-                            imageVector = Icons.Outlined.SignalCellularNodata,
-                            contentDescription = "No Signal",
-                            modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                                .padding(end = 4.dp)
-                        )
+                        else -> {
+                            Icon(
+                                imageVector = Icons.Outlined.SignalCellularNodata,
+                                contentDescription = "No Signal",
+                                modifier = Modifier.wrapContentSize(align = Alignment.Center)
+                                    .padding(end = 4.dp)
+                            )
+                        }
                     }
                 }
             }
