@@ -70,6 +70,6 @@ data class TripData (
 
 enum class TripStatus {
     HIRED,
-    STOP, // - this means the meter is PAUSED - TODO: rename later so that it is compatible with POS
+    STOP, // - this means the meter is PAUSED - TODO: rename later so that POS is compatible with PAUSED status
     ENDED
 }

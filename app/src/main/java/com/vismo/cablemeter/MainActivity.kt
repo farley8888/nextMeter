@@ -20,6 +20,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -82,7 +83,7 @@ class MainActivity : ComponentActivity() {
                         sbHostState = snackbarHostState
                         coroutineScope = rememberCoroutineScope()
                     }
-
+                    val isTripInProgress = mainViewModel.isTripInProgress.collectAsState().value
                     Scaffold(
                         snackbarHost = {
                             SnackbarHost(
@@ -99,7 +100,11 @@ class MainActivity : ComponentActivity() {
                         topBar = {
                             AppBar(
                                 viewModel = mainViewModel,
-                                onBackButtonClick = { navController!!.popBackStack() }
+                                onBackButtonClick = {
+                                    if (!isTripInProgress) {
+                                        navController!!.popBackStack()
+                                    }
+                                }
                             )
                         }
                     ) { innerPadding ->

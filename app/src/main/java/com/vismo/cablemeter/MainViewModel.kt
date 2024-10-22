@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
@@ -51,6 +52,9 @@ class MainViewModel @Inject constructor(
     private val dateFormat = SimpleDateFormat("M月d日 HH:mm", Locale.TRADITIONAL_CHINESE)
 
     private val toolbarUiDataUpdateMutex = Mutex()
+
+    private val _isTripInProgress = MutableStateFlow(false)
+    val isTripInProgress: StateFlow<Boolean> = _isTripInProgress
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
@@ -113,6 +117,18 @@ class MainViewModel @Inject constructor(
                         _topAppBarUiState.value = _topAppBarUiState.value.copy(
                             color = toolbarColor
                         )
+                    }
+                }
+            }
+
+            launch {
+                TripDataStore.tripData.collectLatest {
+                    if (it != null && it.endTime == null) {
+                        updateBackButtonVisibility(false)
+                        _isTripInProgress.value = true
+                    } else {
+                        updateBackButtonVisibility(true)
+                        _isTripInProgress.value = false
                     }
                 }
             }
