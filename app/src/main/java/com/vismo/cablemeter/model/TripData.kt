@@ -50,6 +50,10 @@ data class TripData (
     @SerializedName("wait_time")
     val waitDurationInSeconds: Long = 0,
 
+    @ColumnInfo(name = "pause_time")
+    @SerializedName("trip_pause")
+    val pauseTime: Timestamp? = null,
+
 
     @ColumnInfo(name = "end_time")
     @SerializedName("trip_end")
