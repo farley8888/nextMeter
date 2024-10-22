@@ -6,6 +6,7 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.vismo.cablemeter.dao.TripsDao
+import com.vismo.cablemeter.network.ConnectivityManager
 import com.vismo.cablemeter.network.api.MeterOApi
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.LocalTripsRepository
@@ -56,6 +57,14 @@ object AppModule {
         @ApplicationContext context: Context
     ): LocaleHelper {
         return LocaleHelper(appContext = context)
+    }
+
+    @Provides
+    @Singleton
+    fun providesConnectivityManager(
+        @ApplicationContext context: Context
+    ): ConnectivityManager {
+        return ConnectivityManager(context)
     }
 
     @Provides

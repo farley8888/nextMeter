@@ -36,7 +36,6 @@ class MainViewModel @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository,
     private val peripheralControlRepository: PeripheralControlRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val firebaseAuthRepository: FirebaseAuthRepository,
     private val remoteMCUControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
     private val tripRepository: TripRepository
@@ -44,6 +43,9 @@ class MainViewModel @Inject constructor(
 
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
+
+    private val _showLoginToggle = MutableStateFlow<Boolean?>(null)
+    val showLoginToggle: StateFlow<Boolean?> = _showLoginToggle
 
     private val dateFormat = SimpleDateFormat("M月d日 HH:mm", Locale.TRADITIONAL_CHINESE)
 
@@ -98,6 +100,8 @@ class MainViewModel @Inject constructor(
                                 driverPhoneNumber = "",
                             )
                         }
+
+                        _showLoginToggle.value = it.settings.showLoginToggle
                     }
 
                     val toolbarColor = when (tripPaidStatus) {
@@ -149,7 +153,6 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                firebaseAuthRepository.initToken()
                 remoteMCUControlRepository.observeFlows()
             }
         }

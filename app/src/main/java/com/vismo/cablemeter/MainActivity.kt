@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.amap.api.location.AMapLocation
@@ -53,6 +54,7 @@ import java.util.TimeZone
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
+    private var navController: NavHostController? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initObservers()
@@ -66,12 +68,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    val navController = rememberNavController()
+                    navController = rememberNavController()
                     // Observe the currentBackStackEntry
-                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentBackStackEntry by navController!!.currentBackStackEntryAsState()
                     LaunchedEffect(currentBackStackEntry) {
                         mainViewModel.updateBackButtonVisibility(
-                            navController.previousBackStackEntry != null
+                            navController!!.previousBackStackEntry != null
                         )
                     }
                     val snackbarDelegate: GlobalSnackbarDelegate by remember { mutableStateOf(GlobalSnackbarDelegate()) }
@@ -97,18 +99,27 @@ class MainActivity : ComponentActivity() {
                         topBar = {
                             AppBar(
                                 viewModel = mainViewModel,
-                                onBackButtonClick = { navController.popBackStack() }
+                                onBackButtonClick = { navController!!.popBackStack() }
                             )
                         }
                     ) { innerPadding ->
                         NavigationGraph(
-                            navController = navController,
+                            navController = navController!!,
                             innerPadding = innerPadding,
                             snackbarDelegate = snackbarDelegate
                         )
                     }
                 }
             }
+        }
+    }
+
+    private fun isPairScreenInBackStack(): Boolean {
+        return try {
+            navController?.getBackStackEntry(NavigationDestination.Pair.route)
+            true
+        } catch (_: IllegalArgumentException) {
+            false
         }
     }
 
@@ -119,6 +130,20 @@ class MainActivity : ComponentActivity() {
                     MCUParamsDataStore.mcuTime.collectLatest {
                         it?.let { time ->
                             setDeviceTime(time)
+                        }
+                    }
+                }
+                launch {
+                    mainViewModel.showLoginToggle.collectLatest {
+                        if ((it == true && !isPairScreenInBackStack()) || (it == false && isPairScreenInBackStack())) {
+                            // clean up the back stack and navigate to splash screen
+                            navController?.navigate(NavigationDestination.Splash.route) {
+                                navController?.graph?.id?.let { it1 -> popUpTo(it1) {
+                                    inclusive = true
+                                } } // Clear the backstack
+                                restoreState = true
+                                launchSingleTop = true // Prevent multiple instances
+                            }
                         }
                     }
                 }
@@ -227,6 +252,7 @@ class MainActivity : ComponentActivity() {
         sealed class NavigationDestination(
             val route: String,
         ) {
+            data object Splash : NavigationDestination("splash")
             data object MeterOps : NavigationDestination("meterOps")
             data object Pair : NavigationDestination("pair")
             data object TripHistory : NavigationDestination("tripHistory")
