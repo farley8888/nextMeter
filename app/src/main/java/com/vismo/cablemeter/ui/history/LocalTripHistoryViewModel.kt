@@ -27,7 +27,9 @@ class LocalTripHistoryViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                _trips.value = localTripsRepository.getAllTrips()
+                val trips = localTripsRepository.getAllTrips()
+                // sort by most recent trip first
+                _trips.value = trips.sortedByDescending { it.startTime }
             }
         }
     }
