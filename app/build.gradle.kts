@@ -27,6 +27,15 @@ android {
     namespace = "com.vismo.cablemeter"
     compileSdk = 34
 
+    signingConfigs {
+        create("myConfig") {
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            storeFile = file("..\\keystore\\debug.keystore")
+            storePassword = "android"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.vismo.cablemeter"
         minSdk = 24
@@ -41,17 +50,19 @@ android {
     }
 
     buildTypes {
-        debug {
+        getByName("debug") {
             isMinifyEnabled = false
             isDebuggable = true
+            signingConfig = signingConfigs.getByName("myConfig")
         }
-        release {
+        getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = signingConfigs.getByName("myConfig")
         }
     }
     compileOptions {

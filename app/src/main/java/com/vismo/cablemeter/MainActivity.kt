@@ -266,6 +266,7 @@ class MainActivity : ComponentActivity() {
             data object SystemPin : NavigationDestination("systemPin")
             data object AdminBasicEdit : NavigationDestination("adminBasicEdit")
             data object AdminAdvancedEdit : NavigationDestination("adminAdvancedEdit")
+            data object AdjustBrightnessOrVolume : NavigationDestination("adjustBrightnessOrVolume")
         }
     }
 }
