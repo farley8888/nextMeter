@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.ui.admin
+package com.vismo.cablemeter.ui.settings.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

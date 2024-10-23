@@ -41,6 +41,7 @@ import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 fun TripSummaryDashboard(
     viewModel: TripSummaryDashboardViewModel,
     navigateToTripHistory: () -> Unit,
+    navigateToAdjustBrightnessOrVolume: () -> Unit,
     navigateToMCUSummary: () -> Unit
 ) {
     val allTripsSummary = viewModel.allTripSummary.collectAsState().value
@@ -55,7 +56,7 @@ fun TripSummaryDashboard(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Options(navigateToTripHistory, navigateToMCUSummary)
+            Options(navigateToTripHistory, navigateToAdjustBrightnessOrVolume, navigateToMCUSummary)
         }
         Column(
             modifier = Modifier
@@ -123,10 +124,11 @@ fun RowScope.CustomButton(text: String, containerColor: Color, view: View, onCli
 @Composable
 fun ColumnScope.Options(
     navigateToTripHistory: () -> Unit,
+    navigateToAdjustBrightnessOrVolume: () -> Unit,
     navigateToMCUSummary: () -> Unit
 ) {
     CustomListItem(text = "本更行程數據", LocalView.current, navigateToTripHistory)
-    CustomListItem(text = "系統設定", LocalView.current) {}
+    CustomListItem(text = "系統設定", LocalView.current, navigateToAdjustBrightnessOrVolume)
     CustomListItem(text = "系統資料", LocalView.current, navigateToMCUSummary)
 }
 

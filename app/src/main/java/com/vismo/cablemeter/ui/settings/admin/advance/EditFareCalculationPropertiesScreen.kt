@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.ui.admin.advance
+package com.vismo.cablemeter.ui.settings.admin.advance
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vismo.cablemeter.ui.admin.EditAdminPropertiesViewModel
+import com.vismo.cablemeter.ui.settings.admin.EditAdminPropertiesViewModel
 import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.cablemeter.ui.shared.SnackbarState
 import com.vismo.cablemeter.ui.theme.gold350

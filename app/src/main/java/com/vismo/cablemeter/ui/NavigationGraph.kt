@@ -13,9 +13,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.vismo.cablemeter.MainActivity.Companion.NavigationDestination
-import com.vismo.cablemeter.ui.admin.EditAdminPropertiesViewModel
-import com.vismo.cablemeter.ui.admin.advance.EditFareCalculationPropertiesScreen
-import com.vismo.cablemeter.ui.admin.basic.EditKValueAndLicensePlateScreen
+import com.vismo.cablemeter.ui.settings.admin.EditAdminPropertiesViewModel
+import com.vismo.cablemeter.ui.settings.admin.advance.EditFareCalculationPropertiesScreen
+import com.vismo.cablemeter.ui.settings.admin.basic.EditKValueAndLicensePlateScreen
 import com.vismo.cablemeter.ui.dashboard.mcu.MCUSummaryDashboard
 import com.vismo.cablemeter.ui.dashboard.mcu.MCUSummaryDashboardViewModel
 import com.vismo.cablemeter.ui.dashboard.trip.TripSummaryDashboard
@@ -27,6 +27,8 @@ import com.vismo.cablemeter.ui.meter.MeterOpsViewModel
 import com.vismo.cablemeter.ui.pair.DriverPairScreen
 import com.vismo.cablemeter.ui.pair.DriverPairViewModel
 import com.vismo.cablemeter.ui.pin.SystemPinScreen
+import com.vismo.cablemeter.ui.settings.AdjustBrightnessOrVolumeScreen
+import com.vismo.cablemeter.ui.settings.AdjustBrightnessOrVolumeViewModel
 import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.cablemeter.ui.splash.SplashScreen
 import com.vismo.cablemeter.ui.splash.SplashScreenViewModel
@@ -87,6 +89,8 @@ fun NavigationGraph(
             val viewModel = hiltViewModel<TripSummaryDashboardViewModel>()
             TripSummaryDashboard(viewModel, navigateToTripHistory = {
                 navController.navigate(NavigationDestination.TripHistory.route)
+            }, navigateToAdjustBrightnessOrVolume = {
+               navController.navigate(NavigationDestination.AdjustBrightnessOrVolume.route)
             }, navigateToMCUSummary = {
                 navController.navigate(NavigationDestination.MCUSummaryDashboard.route)
             })
@@ -115,6 +119,9 @@ fun NavigationGraph(
                 viewModel = editAdminPropertiesViewModel,
                 snackbarDelegate = snackbarDelegate
             )
+        }
+        composable(NavigationDestination.AdjustBrightnessOrVolume.route) {
+            AdjustBrightnessOrVolumeScreen(viewModel = hiltViewModel<AdjustBrightnessOrVolumeViewModel>())
         }
     }
 }
