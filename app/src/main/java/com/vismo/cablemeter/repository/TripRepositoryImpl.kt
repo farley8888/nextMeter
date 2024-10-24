@@ -121,4 +121,13 @@ class TripRepositoryImpl @Inject constructor(
         repositoryScope.cancel()
     }
 
+    override fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int) {
+        measureBoardRepository.emitBeepSound(beepDuration, beepInterval, beepRepeatCount)
+        dashManager.writeLockMeter()
+    }
+
+    override fun unlockMeter() {
+        measureBoardRepository.unlockMeter()
+    }
+
 }

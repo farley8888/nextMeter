@@ -20,4 +20,8 @@ interface TripRepository {
 
     fun close()
 
+    fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int)
+
+    fun unlockMeter()
+
 }

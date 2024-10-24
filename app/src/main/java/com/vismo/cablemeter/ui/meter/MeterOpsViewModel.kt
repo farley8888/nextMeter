@@ -18,6 +18,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -32,9 +33,7 @@ class MeterOpsViewModel @Inject constructor(
     private val localeHelper: LocaleHelper,
     private val ttsUtil: TtsUtil
 ) : ViewModel() {
-
     private val _currentTrip = MutableStateFlow<TripData?>(null)
-
     private val _uiState = MutableStateFlow<MeterOpsUiData>(
         MeterOpsUiData(
             status = ForHire,
@@ -46,57 +45,40 @@ class MeterOpsViewModel @Inject constructor(
         )
     )
     val uiState = _uiState
-
+    private val _meterDialogState = MutableStateFlow<MeterLockAction>(MeterLockAction.Unlock)
+    val meterLockState = _meterDialogState
     private val uiUpdateMutex = Mutex()
+    private var isUnlockRun = false
 
     init {
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 launch {
-                    TripDataStore.tripData.collect { trip ->
-                        _currentTrip.value = trip
-                        if (trip != null) {
-                            uiUpdateMutex.withLock {
-                                val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
-                                    TripStatus.HIRED -> {
-                                        Hired
-                                    }
+                    combine(
+                        TripDataStore.tripData,
+                        TripDataStore.isAbnormalPulseTriggered
+                    ) { tripData, isAbnormalPulseTriggered -> tripData to isAbnormalPulseTriggered }
+                    .collectLatest { (tripData, isAbnormalPulseTriggered) ->
+                        _currentTrip.value = tripData
 
-                                    TripStatus.STOP -> {
-                                        Paused
-                                    }
+                        val trip = tripData ?: return@collectLatest
 
-                                    TripStatus.ENDED, null -> {
-                                        ForHire
-                                    }
-                                }
-                                if (status == ForHire) {
-                                    _uiState.value = MeterOpsUiData(
-                                        status = status,
-                                        fare = "",
-                                        extras = "",
-                                        distanceInKM = "",
-                                        duration = "",
-                                        totalFare = "",
-                                        languagePref = _uiState.value.languagePref,
-                                        totalColor = valencia900
-                                    )
-                                    return@collect
-                                } else {
-                                    _uiState.value = _uiState.value.copy(
-                                        status = status,
-                                        extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
-                                        fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
-                                        distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
-                                        duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
-                                        totalFare = MeterOpsUtil.formatToNDecimalPlace(
-                                            trip.totalFare,
-                                            2
-                                        ),
-                                        languagePref = _uiState.value.languagePref
-                                    )
-                                }
-                            }
+                        val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
+                            TripStatus.HIRED -> Hired
+                            TripStatus.STOP -> Paused
+                            TripStatus.ENDED, null -> ForHire
+                        }
+
+                        if (status == ForHire) {
+                            updateUIStateForHire()
+                            return@collectLatest
+                        }
+                        else if (trip.overSpeedDurationInSeconds > 0) {
+                            handleOverSpeed(trip.overSpeedDurationInSeconds, isAbnormalPulseTriggered)
+                            return@collectLatest
+                        }
+                        else {
+                            updateUIStateForTrip(trip, status)
                         }
                     }
                 }
@@ -113,7 +95,71 @@ class MeterOpsViewModel @Inject constructor(
                         }
                     }
                 }
+                launch {
+                    meterLockState.collectLatest {
+                        when (it) {
+                            is MeterLockAction.Lock -> {
+                                tripRepository.lockMeter(20, 80, OVERSPEED_BEEP_COUNTER)
+                            }
+                            MeterLockAction.Unlock -> {
+                                tripRepository.unlockMeter()
+                                tripRepository.endTrip()
+                            }
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    private suspend fun handleOverSpeed(overSpeedDurationInSeconds: Int, isAbnormalPulseTriggered: Boolean) {
+        if (overSpeedDurationInSeconds > 3) {
+            _meterDialogState.value = MeterLockAction.Lock(isAbnormalPulseTriggered)
+        }
+        if (overSpeedDurationInSeconds > OVERSPEED_BEEP_COUNTER) {
+            uiUpdateMutex.withLock {
+                _uiState.value = _uiState.value.copy(
+                    remainingOverSpeedTimeInSeconds =
+                    MeterOpsUtil.getFormattedDurationFromSeconds((OVERSPEED_LOCKUP_COUNTER - overSpeedDurationInSeconds).toLong())
+                )
+            }
+        }
+        if (overSpeedDurationInSeconds > OVERSPEED_LOCKUP_COUNTER && !isUnlockRun) {
+            isUnlockRun = true
+            if (isAbnormalPulseTriggered) {
+               TripDataStore.setAbnormalPulseTriggered(false)
+            }
+            _meterDialogState.value = MeterLockAction.Unlock
+        }
+    }
+
+    private suspend fun updateUIStateForHire() {
+        uiUpdateMutex.withLock {
+            _uiState.value = MeterOpsUiData(
+                status = ForHire,
+                fare = "",
+                extras = "",
+                distanceInKM = "",
+                duration = "",
+                totalFare = "",
+                languagePref = _uiState.value.languagePref,
+                totalColor = valencia900
+            )
+        }
+        isUnlockRun = false
+    }
+
+    private suspend fun updateUIStateForTrip(trip: TripData, status: TripStateInMeterOpsUI) {
+        uiUpdateMutex.withLock {
+            _uiState.value = _uiState.value.copy(
+                status = status,
+                extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
+                fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
+                distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
+                duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
+                totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
+                languagePref = _uiState.value.languagePref
+            )
         }
     }
 
@@ -228,4 +274,14 @@ class MeterOpsViewModel @Inject constructor(
         tripRepository.close()
     }
 
+    companion object {
+        const val OVERSPEED_LOCKUP_COUNTER = 60*1 // seconds
+        const val OVERSPEED_BEEP_COUNTER = 30 //seconds
+    }
+
+}
+
+sealed class MeterLockAction {
+    data class Lock(val isAbnormalPulse: Boolean) : MeterLockAction()
+    object Unlock : MeterLockAction()
 }

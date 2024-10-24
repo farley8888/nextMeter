@@ -30,4 +30,6 @@ interface MeasureBoardRepository {
     fun stopCommunication()
 
     fun enquireParameters()
+
+    fun unlockMeter()
 }

@@ -11,7 +11,8 @@ data class MeterOpsUiData(
     val distanceInKM: String,
     val duration: String,
     val languagePref: TtsLanguagePref = TtsLanguagePref.OFF,
-    val totalColor: Color = valencia900
+    val totalColor: Color = valencia900,
+    val remainingOverSpeedTimeInSeconds: String? = null,
 )
 
 sealed class TtsLanguagePref {

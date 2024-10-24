@@ -70,7 +70,7 @@ val fuchsia800 = Color(0xFF520D3D)
 
 // Valencia
 val valencia50 = Color(0xFFFBEAED)
-val valencia100 = Color(0xFFF6CBCF)
+val valencia100 = Color(0x80F6CBCF)
 val valencia200 = Color(0xFFE09797)
 val valencia300 = Color(0xFFD17170)
 val valencia400 = Color(0xFFD8534F)

@@ -154,11 +154,13 @@ class DashManager @Inject constructor(
                         val settings = parseSettings(snapshot)
                         val mcuInfo = parseMcuInfo(snapshot)
                         val session = parseSession(snapshot)
+                        val lockedAt = snapshot.getTimestamp(LOCKED_AT)
 
                          _meterFields.value = MeterFields(
-                            settings = settings,
-                            session = session,
-                            mcuInfo = mcuInfo
+                             settings = settings,
+                             session = session,
+                             mcuInfo = mcuInfo,
+                             lockedAt = lockedAt
                         )
                     }
                 }
@@ -198,6 +200,15 @@ class DashManager @Inject constructor(
                 }
             // should only run once when trip is created
             writeTripFeeInFirestore(tripId)
+        }
+    }
+
+    fun writeLockMeter() {
+        scope.launch {
+            val lockedAt = Timestamp.now()
+            getMeterDocument()
+                .set(mapOf(LOCKED_AT to lockedAt), SetOptions.merge())
+
         }
     }
 
@@ -378,5 +389,6 @@ class DashManager @Inject constructor(
         private const val DRIVER_NAME = "name"
         private const val DRIVER_NAME_CH = "name_ch"
         private const val DRIVER_LICENSE = "driver_license"
+        private const val LOCKED_AT = "locked_at"
     }
 }

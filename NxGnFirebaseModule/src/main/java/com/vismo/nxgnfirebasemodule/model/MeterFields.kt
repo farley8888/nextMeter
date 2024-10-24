@@ -1,11 +1,13 @@
 package com.vismo.nxgnfirebasemodule.model
 
+import com.google.firebase.Timestamp
 import com.google.gson.annotations.SerializedName
 
 data class MeterFields(
     @SerializedName("settings") val settings: Settings?,
     @SerializedName("mcu_info") val mcuInfo: McuInfo?,
     @SerializedName("session") val session: Session?,
+    @SerializedName("locked_at") val lockedAt: Timestamp?,
 )
 
 data class Session(

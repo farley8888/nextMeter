@@ -10,6 +10,9 @@ object TripDataStore {
     private val _tripData = MutableStateFlow<TripData?>(null)
     val tripData: StateFlow<TripData?> = _tripData
 
+    private val _isAbnormalPulseTriggered = MutableStateFlow(false)
+    val isAbnormalPulseTriggered: StateFlow<Boolean> = _isAbnormalPulseTriggered
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setTripData(tripData: TripData) {
@@ -27,6 +30,12 @@ object TripDataStore {
     suspend fun updateTripDataValue(updatedTripData: TripData) {
         mutex.withLock {
             this._tripData.value = updatedTripData
+        }
+    }
+
+    suspend fun setAbnormalPulseTriggered(isAbnormalPulseTriggered: Boolean) {
+        mutex.withLock {
+            this._isAbnormalPulseTriggered.value = isAbnormalPulseTriggered
         }
     }
 }

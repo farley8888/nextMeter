@@ -1,5 +1,6 @@
 package com.vismo.cablemeter.ui.splash
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
@@ -50,8 +51,10 @@ class SplashScreenViewModel @Inject constructor(
                     if (meterFields?.settings != null) {
                         if (meterFields.settings!!.showLoginToggle) {
                             _showLoginToggle.value = true
+                            Log.d(TAG, "Show login toggle")
                         } else {
                             _isLoading.value = false
+                            Log.d(TAG, "Hide login toggle")
                         }
                     }
                 }
@@ -61,11 +64,13 @@ class SplashScreenViewModel @Inject constructor(
 
     private suspend fun checkNetworkConnection() {
         // Continuously monitor network status
-        while (_timeoutReached.value == TOTAL_TIMEOUT_DURATION) {
+        while (_timeoutReached.value <= TOTAL_TIMEOUT_DURATION) {
             val isConnected = connectivityManager.isDeviceOnline()
             _isNetworkConnected.value = isConnected
+            Log.d(TAG, "Network status: $isConnected")
             if (isConnected) {
                 firebaseAuthRepository.initToken()
+                Log.d(TAG, "Firebase token initialized")
                 break
             }
             delay(1000L)
@@ -75,13 +80,16 @@ class SplashScreenViewModel @Inject constructor(
     private suspend fun startTimeout() {
         delay(MINIMUM_TIMEOUT_DURATION)
         _timeoutReached.value = TIMEOUT_DURATION
+        Log.d(TAG, "Timeout started")
         delay(TIMEOUT_DURATION)
         _timeoutReached.value = TOTAL_TIMEOUT_DURATION
+        Log.d(TAG, "Timeout reached")
     }
 
     companion object {
         const val MINIMUM_TIMEOUT_DURATION = 5000L
         private const val TIMEOUT_DURATION = 20000L
         const val TOTAL_TIMEOUT_DURATION = MINIMUM_TIMEOUT_DURATION + TIMEOUT_DURATION
+        const val TAG = "SplashScreenViewModel"
     }
 }

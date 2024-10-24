@@ -71,7 +71,8 @@ fun NavigationGraph(
         }
         composable(NavigationDestination.MeterOps.route) {
             val viewModel = hiltViewModel<MeterOpsViewModel>()
-            MeterOpsScreen(viewModel, navigateToDashBoard = {
+            MeterOpsScreen(viewModel,
+                navigateToDashBoard = {
                 navController.navigate(NavigationDestination.TripSummaryDashboard.route)
             })
         }
