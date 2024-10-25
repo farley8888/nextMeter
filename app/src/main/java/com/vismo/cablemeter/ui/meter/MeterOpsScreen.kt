@@ -71,7 +71,7 @@ fun MeterOpsScreen(
             .focusable()
             .fillMaxSize()
             .onKeyEvent {
-                if (it.type == KeyDown) {
+                if (it.type == KeyDown && meterLockState !is MeterLockAction.Lock) {
                     val code = it.nativeKeyEvent.scanCode
                     val repeatCount = it.nativeKeyEvent.repeatCount
                     val isLongPress = it.nativeKeyEvent.isLongPress
@@ -98,7 +98,7 @@ fun MeterOpsScreen(
             shouldAutoDismissAfter = 30_000L,
             backgroundColor = valencia100
         )
-        TaxiMeterUI(uiState, viewModel)
+        TaxiMeterUI(uiState, meterLockState, viewModel)
     }
 
     // Request focus when the composable is first composed
@@ -108,7 +108,7 @@ fun MeterOpsScreen(
 }
 
 @Composable
-fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, viewModel: MeterOpsViewModel) {
+fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, meterLockState: MeterLockAction, viewModel: MeterOpsViewModel) {
     Row(
         horizontalArrangement = Arrangement.Start,
         modifier = Modifier.weight(3f)
@@ -127,7 +127,7 @@ fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, viewModel: MeterOpsViewMode
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {
-        DistanceTimeAndStatusBox(uiState, viewModel = viewModel)
+        DistanceTimeAndStatusBox(uiState, meterLockState = meterLockState, viewModel = viewModel)
     }
 }
 
@@ -248,19 +248,22 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
                 size < 7 -> 120.sp
                 else -> 100.sp
             }
-            Text(
-                text = totalFare,
-                color = uiState.totalColor,
-                fontSize = fontSize,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.End
-            )
+            val totalFareDouble = uiState.totalFare.toDoubleOrNull()
+            if (totalFareDouble != null && totalFareDouble > 0) { // So that we don't show 0 as the total fare
+                Text(
+                    text = totalFare,
+                    color = uiState.totalColor,
+                    fontSize = fontSize,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.End
+                )
+            }
         }
     }
 }
 
 @Composable
-fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, viewModel: MeterOpsViewModel) {
+fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: MeterLockAction, viewModel: MeterOpsViewModel) {
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -295,7 +298,9 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, viewModel: MeterO
         }
         Button(
             onClick = {
-                viewModel.toggleLanguagePref()
+                if(meterLockState !is MeterLockAction.Lock) {
+                    viewModel.toggleLanguagePref()
+                }
             },
             modifier = Modifier
                 .weight(1.3f)
