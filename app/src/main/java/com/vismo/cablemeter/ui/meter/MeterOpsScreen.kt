@@ -95,7 +95,7 @@ fun MeterOpsScreen(
             onDismiss = {},
             showDialog = lockDialogShowState,
             isBlinking = true,
-            shouldAutoDismissAfter = 28_000L,
+            shouldAutoDismissAfter = 30_000L,
             backgroundColor = valencia100
         )
         TaxiMeterUI(uiState, viewModel)

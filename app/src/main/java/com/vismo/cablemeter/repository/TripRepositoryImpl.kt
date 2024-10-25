@@ -32,6 +32,8 @@ class TripRepositoryImpl @Inject constructor(
     private val _currentTripPaidStatus: MutableStateFlow<TripPaidStatus> = MutableStateFlow(TripPaidStatus.NOT_PAID)
     override val currentTripPaidStatus = _currentTripPaidStatus
 
+    override val remoteUnlockMeter = dashManager.remoteUnlockMeter
+
     init {
         initObservers()
     }
@@ -128,6 +130,10 @@ class TripRepositoryImpl @Inject constructor(
 
     override fun unlockMeter() {
         measureBoardRepository.unlockMeter()
+    }
+
+    override fun resetUnlockMeterStatusInRemote() {
+        dashManager.resetUnlockMeterStatusInRemote()
     }
 
 }

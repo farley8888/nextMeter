@@ -64,6 +64,9 @@ class DashManager @Inject constructor(
     private val _tripInFirestore: MutableStateFlow<MeterTripInFirestore?> = MutableStateFlow(null)
     val tripInFirestore: StateFlow<MeterTripInFirestore?> = _tripInFirestore
 
+    private val _remoteUnlockMeter: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    val remoteUnlockMeter: StateFlow<Boolean> = _remoteUnlockMeter
+
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     init {
@@ -154,16 +157,31 @@ class DashManager @Inject constructor(
                         val settings = parseSettings(snapshot)
                         val mcuInfo = parseMcuInfo(snapshot)
                         val session = parseSession(snapshot)
-                        val lockedAt = snapshot.getTimestamp(LOCKED_AT)
+
+                        if (snapshot.contains(LOCKED_AT)) {
+                            val lockedAt = snapshot.get(LOCKED_AT)
+                            if (lockedAt == null) {
+                                // The field exists in the document and is explicitly set to null
+                                _remoteUnlockMeter.value = true
+                            }
+                        }
 
                          _meterFields.value = MeterFields(
                              settings = settings,
                              session = session,
                              mcuInfo = mcuInfo,
-                             lockedAt = lockedAt
                         )
                     }
                 }
+        }
+    }
+
+    fun resetUnlockMeterStatusInRemote() {
+        scope.launch {
+            // remove the unlock meter flag
+            getMeterDocument()
+                .set(mapOf(LOCKED_AT to FieldValue.delete()), SetOptions.merge())
+            _remoteUnlockMeter.value = false
         }
     }
 

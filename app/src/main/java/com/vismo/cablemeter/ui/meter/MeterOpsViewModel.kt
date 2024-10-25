@@ -45,8 +45,8 @@ class MeterOpsViewModel @Inject constructor(
         )
     )
     val uiState = _uiState
-    private val _meterDialogState = MutableStateFlow<MeterLockAction>(MeterLockAction.Unlock)
-    val meterLockState = _meterDialogState
+    private val _meterLockState = MutableStateFlow<MeterLockAction>(MeterLockAction.NoAction)
+    val meterLockState = _meterLockState
     private val uiUpdateMutex = Mutex()
     private var isUnlockRun = false
 
@@ -56,12 +56,18 @@ class MeterOpsViewModel @Inject constructor(
                 launch {
                     combine(
                         TripDataStore.tripData,
-                        TripDataStore.isAbnormalPulseTriggered
-                    ) { tripData, isAbnormalPulseTriggered -> tripData to isAbnormalPulseTriggered }
-                    .collectLatest { (tripData, isAbnormalPulseTriggered) ->
+                        TripDataStore.isAbnormalPulseTriggered,
+                        tripRepository.remoteUnlockMeter,
+                    ) { tripData, isAbnormalPulseTriggered, remoteUnlockMeter -> Triple(tripData, isAbnormalPulseTriggered, remoteUnlockMeter) }
+                    .collectLatest { (tripData, isAbnormalPulseTriggered, remoteUnlockMeter) ->
                         _currentTrip.value = tripData
 
                         val trip = tripData ?: return@collectLatest
+
+                        if (remoteUnlockMeter) {
+                            unlockMeterInMCU(isAbnormalPulseTriggered)
+                            tripRepository.resetUnlockMeterStatusInRemote()
+                        }
 
                         val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
                             TripStatus.HIRED -> Hired
@@ -105,6 +111,10 @@ class MeterOpsViewModel @Inject constructor(
                                 tripRepository.unlockMeter()
                                 tripRepository.endTrip()
                             }
+
+                            MeterLockAction.NoAction -> {
+                                // do nothing
+                            }
                         }
                     }
                 }
@@ -113,8 +123,8 @@ class MeterOpsViewModel @Inject constructor(
     }
 
     private suspend fun handleOverSpeed(overSpeedDurationInSeconds: Int, isAbnormalPulseTriggered: Boolean) {
-        if (overSpeedDurationInSeconds > 3) {
-            _meterDialogState.value = MeterLockAction.Lock(isAbnormalPulseTriggered)
+        if (overSpeedDurationInSeconds > 3 && _meterLockState.value == MeterLockAction.NoAction) {
+            _meterLockState.value = MeterLockAction.Lock(isAbnormalPulseTriggered)
         }
         if (overSpeedDurationInSeconds > OVERSPEED_BEEP_COUNTER) {
             uiUpdateMutex.withLock {
@@ -125,12 +135,16 @@ class MeterOpsViewModel @Inject constructor(
             }
         }
         if (overSpeedDurationInSeconds > OVERSPEED_LOCKUP_COUNTER && !isUnlockRun) {
-            isUnlockRun = true
-            if (isAbnormalPulseTriggered) {
-               TripDataStore.setAbnormalPulseTriggered(false)
-            }
-            _meterDialogState.value = MeterLockAction.Unlock
+            unlockMeterInMCU(isAbnormalPulseTriggered)
         }
+    }
+
+    private suspend fun unlockMeterInMCU(isAbnormalPulse: Boolean) {
+        isUnlockRun = true
+        if (isAbnormalPulse) {
+            TripDataStore.setAbnormalPulseTriggered(false)
+        }
+        _meterLockState.value = MeterLockAction.Unlock
     }
 
     private suspend fun updateUIStateForHire() {
@@ -143,9 +157,11 @@ class MeterOpsViewModel @Inject constructor(
                 duration = "",
                 totalFare = "",
                 languagePref = _uiState.value.languagePref,
-                totalColor = valencia900
+                totalColor = valencia900,
+                remainingOverSpeedTimeInSeconds = null
             )
         }
+        _meterLockState.value = MeterLockAction.NoAction
         isUnlockRun = false
     }
 
@@ -284,4 +300,5 @@ class MeterOpsViewModel @Inject constructor(
 sealed class MeterLockAction {
     data class Lock(val isAbnormalPulse: Boolean) : MeterLockAction()
     object Unlock : MeterLockAction()
+    object NoAction : MeterLockAction()
 }

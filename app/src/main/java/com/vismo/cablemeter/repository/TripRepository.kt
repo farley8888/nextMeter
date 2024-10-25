@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface TripRepository {
     val currentTripPaidStatus: StateFlow<TripPaidStatus>
+    val remoteUnlockMeter: StateFlow<Boolean>
 
     suspend fun startTrip()
 
@@ -23,5 +24,7 @@ interface TripRepository {
     fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int)
 
     fun unlockMeter()
+
+    fun resetUnlockMeterStatusInRemote()
 
 }

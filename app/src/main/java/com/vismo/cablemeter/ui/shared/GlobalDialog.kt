@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.vismo.cablemeter.ui.theme.Black
 import com.vismo.cablemeter.ui.theme.Purple40
 import com.vismo.cablemeter.ui.theme.Purple80
@@ -64,7 +65,7 @@ fun GlobalDialog(
     Dialog(onDismissRequest = {
         showDialog.value = false
         onDismiss()
-    }) {
+    }, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
         AnimatedVisibility(
             visible = showDialog.value,
             enter = fadeIn(animationSpec = tween(700)) + scaleIn(
@@ -198,8 +199,8 @@ private fun BlinkingVisibility(
 ) {
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = tween(durationMillis = 500)),
-        exit = fadeOut(animationSpec = tween(durationMillis = 500))
+        enter = fadeIn(animationSpec = tween(durationMillis = 1000)),
+        exit = fadeOut(animationSpec = tween(durationMillis = 1000))
     ) {
         content()
     }
