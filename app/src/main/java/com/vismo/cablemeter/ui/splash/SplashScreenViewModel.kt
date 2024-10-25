@@ -7,6 +7,8 @@ import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.network.ConnectivityManager
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
+import com.vismo.cablemeter.repository.MeasureBoardRepository
+import com.vismo.cablemeter.repository.NetworkTimeRepository
 import com.vismo.nxgnfirebasemodule.DashManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -24,6 +26,8 @@ class SplashScreenViewModel @Inject constructor(
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val connectivityManager: ConnectivityManager,
     private val dashManager: DashManager,
+    private val networkTimeRepository: NetworkTimeRepository,
+    private val measureBoardRepository: MeasureBoardRepository
 ): ViewModel() {
     private val _isNetworkConnected = MutableStateFlow(false)
 
@@ -70,6 +74,10 @@ class SplashScreenViewModel @Inject constructor(
             Log.d(TAG, "Network status: $isConnected")
             if (isConnected) {
                 firebaseAuthRepository.initToken()
+                networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
+                    measureBoardRepository.updateMeasureBoardTime(networkTime)
+                    Log.d(TAG, "Network time: $networkTime")
+                }
                 Log.d(TAG, "Firebase token initialized")
                 break
             }

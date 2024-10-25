@@ -345,6 +345,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun updateMeasureBoardTime(formattedDateStr: String) {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getUpdateTimeCmd(formattedDateStr = formattedDateStr))
+            delay(200)
+        }
+    }
+
     private fun setReceiveEvalDataLs() {
         mBusModel?.setListener { data: String ->
             sendMessage(MCUMessage(IAtCmd.W_MSG_DISPLAY, data))

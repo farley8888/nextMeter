@@ -13,6 +13,7 @@ import com.vismo.cablemeter.repository.LocalTripsRepository
 import com.vismo.cablemeter.repository.LocalTripsRepositoryImpl
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepositoryImpl
+import com.vismo.cablemeter.repository.NetworkTimeRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepositoryImpl
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
@@ -163,6 +164,16 @@ object AppModule {
             ioDispatcher = ioDispatcher,
             dashManager = dashManager,
             measureBoardRepository = measureBoardRepository
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesNetworkTimeRepository(
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+    ): NetworkTimeRepository {
+        return NetworkTimeRepository(
+            ioDispatcher = ioDispatcher,
         )
     }
 
