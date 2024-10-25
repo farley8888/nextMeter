@@ -154,7 +154,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 totalFare = totalFare,
                 distanceInMeter = distance,
                 waitDurationInSeconds = getTimeInSeconds(duration),
-                overSpeedDurationInSeconds = lockedDurationDecimal,
+                overSpeedDurationInSeconds = if (it.overSpeedDurationInSeconds > lockedDurationDecimal) (it.overSpeedDurationInSeconds + lockedDurationDecimal) else lockedDurationDecimal, // if the meter turns off and on, we need to save the previous over speed duration and add the new one
                 requiresUpdateOnDatabase = requiresUpdate,
                 licensePlate = licensePlate,
             )
