@@ -142,7 +142,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
 
         currentOngoingTripInDB?.let {
-            val requiresUpdate = it.fare != fare || it.tripStatus != tripStatus || it.extra != extras
+            val requiresUpdate = it.fare != fare || it.tripStatus != tripStatus || it.extra != extras || lockedDurationDecimal > 0
 
             val currentOngoingTrip = TripData(
                 tripId = it.tripId,

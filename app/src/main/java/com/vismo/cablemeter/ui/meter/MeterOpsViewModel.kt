@@ -64,23 +64,23 @@ class MeterOpsViewModel @Inject constructor(
 
                         val trip = tripData ?: return@collectLatest
 
-                        if (remoteUnlockMeter) {
-                            unlockMeterInMCU(isAbnormalPulseTriggered)
-                            tripRepository.resetUnlockMeterStatusInRemote()
-                        }
-
                         val status: TripStateInMeterOpsUI = when (trip.tripStatus) {
                             TripStatus.HIRED -> Hired
                             TripStatus.STOP -> Paused
                             TripStatus.ENDED, null -> ForHire
                         }
 
-                        if (status == ForHire) {
+                        if (remoteUnlockMeter && status is Hired) {
+                            unlockMeterInMCU(isAbnormalPulseTriggered)
+                            tripRepository.resetUnlockMeterStatusInRemote()
+                            return@collectLatest
+                        }
+                        else if (status == ForHire) {
                             updateUIStateForHire()
                             return@collectLatest
                         }
                         else if (trip.overSpeedDurationInSeconds > 0) {
-                            handleOverSpeed(trip.overSpeedDurationInSeconds, isAbnormalPulseTriggered)
+                            handleOverSpeed(trip, isAbnormalPulseTriggered)
                             return@collectLatest
                         }
                         else {
@@ -122,19 +122,14 @@ class MeterOpsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun handleOverSpeed(overSpeedDurationInSeconds: Int, isAbnormalPulseTriggered: Boolean) {
-        if (overSpeedDurationInSeconds > 3 && _meterLockState.value == MeterLockAction.NoAction) {
+    private suspend fun handleOverSpeed(trip: TripData, isAbnormalPulseTriggered: Boolean) {
+        if (trip.overSpeedDurationInSeconds > 3 && _meterLockState.value == MeterLockAction.NoAction) {
             _meterLockState.value = MeterLockAction.Lock(isAbnormalPulseTriggered)
         }
-        if (overSpeedDurationInSeconds > OVERSPEED_BEEP_COUNTER) {
-            uiUpdateMutex.withLock {
-                _uiState.value = _uiState.value.copy(
-                    remainingOverSpeedTimeInSeconds =
-                    MeterOpsUtil.getFormattedDurationFromSeconds((OVERSPEED_LOCKUP_COUNTER - overSpeedDurationInSeconds).toLong())
-                )
-            }
+        if (trip.overSpeedDurationInSeconds > OVERSPEED_BEEP_COUNTER) {
+            updateUIStateForTrip(trip, Hired)
         }
-        if (overSpeedDurationInSeconds > OVERSPEED_LOCKUP_COUNTER && !isUnlockRun) {
+        if (trip.overSpeedDurationInSeconds > OVERSPEED_LOCKUP_COUNTER && !isUnlockRun) {
             unlockMeterInMCU(isAbnormalPulseTriggered)
         }
     }
@@ -174,7 +169,8 @@ class MeterOpsViewModel @Inject constructor(
                 distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
                 duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
                 totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
-                languagePref = _uiState.value.languagePref
+                languagePref = _uiState.value.languagePref,
+                remainingOverSpeedTimeInSeconds = if(trip.overSpeedDurationInSeconds > 0) MeterOpsUtil.getFormattedDurationFromSeconds((OVERSPEED_LOCKUP_COUNTER - trip.overSpeedDurationInSeconds).toLong()) else null
             )
         }
     }
