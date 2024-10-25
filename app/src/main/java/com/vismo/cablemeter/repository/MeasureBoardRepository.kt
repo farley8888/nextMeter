@@ -32,4 +32,6 @@ interface MeasureBoardRepository {
     fun enquireParameters()
 
     fun unlockMeter()
+
+    fun updateMeasureBoardTime(formattedDateStr: String)
 }
