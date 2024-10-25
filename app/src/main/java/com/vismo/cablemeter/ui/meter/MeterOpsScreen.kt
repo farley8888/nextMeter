@@ -20,11 +20,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.TaxiAlert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,15 +43,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.cablemeter.ui.shared.GlobalDialog
 import com.vismo.cablemeter.ui.theme.Black
+import com.vismo.cablemeter.ui.theme.valencia100
 import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 
 @Composable
-fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToDashBoard: () -> Unit) {
+fun MeterOpsScreen(
+    viewModel: MeterOpsViewModel,
+    navigateToDashBoard: () -> Unit
+) {
     val focusRequester = remember { FocusRequester() }
     val uiState = viewModel.uiState.collectAsState().value
     val view = LocalView.current
+    val meterLockState = viewModel.meterLockState.collectAsState().value
+    val lockTitle = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "Abnormal Pulse" else if (meterLockState is MeterLockAction.Lock) "Over-Speed" else ""
+    val lockMessage = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "Please check the pulse sensor" else if (meterLockState is MeterLockAction.Lock) "Please drive safely" else ""
+    val lockDialogShowState = remember { mutableStateOf(false) }
 
     Column(
         modifier =
@@ -58,7 +70,7 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToDashBoard: () -> Unit
             .focusable()
             .fillMaxSize()
             .onKeyEvent {
-                if (it.type == KeyDown) {
+                if (it.type == KeyDown && meterLockState !is MeterLockAction.Lock) {
                     val code = it.nativeKeyEvent.scanCode
                     val repeatCount = it.nativeKeyEvent.repeatCount
                     val isLongPress = it.nativeKeyEvent.isLongPress
@@ -73,7 +85,19 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToDashBoard: () -> Unit
                 }
             }
     ) {
-        TaxiMeterUI(uiState, viewModel)
+        lockDialogShowState.value = lockTitle.isNotEmpty() && uiState.remainingOverSpeedTimeInSeconds == null // cause this becomes non null 30 seconds after. and we only want to show the dialog once
+        GlobalDialog(
+            title = lockTitle,
+            message = lockMessage,
+            iconResId = Icons.Rounded.TaxiAlert,
+            actions = emptyList(),
+            onDismiss = {},
+            showDialog = lockDialogShowState,
+            isBlinking = true,
+            shouldAutoDismissAfter = 30_000L,
+            backgroundColor = valencia100
+        )
+        TaxiMeterUI(uiState, meterLockState, viewModel)
     }
 
     // Request focus when the composable is first composed
@@ -83,7 +107,7 @@ fun MeterOpsScreen(viewModel: MeterOpsViewModel, navigateToDashBoard: () -> Unit
 }
 
 @Composable
-fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, viewModel: MeterOpsViewModel) {
+fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, meterLockState: MeterLockAction, viewModel: MeterOpsViewModel) {
     Row(
         horizontalArrangement = Arrangement.Start,
         modifier = Modifier.weight(3f)
@@ -102,7 +126,7 @@ fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, viewModel: MeterOpsViewMode
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {
-        DistanceTimeAndStatusBox(uiState, viewModel = viewModel)
+        DistanceTimeAndStatusBox(uiState, meterLockState = meterLockState, viewModel = viewModel)
     }
 }
 
@@ -216,15 +240,15 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.End
         ){
-            val totalFare = uiState.totalFare
+            val totalFare = if(uiState.remainingOverSpeedTimeInSeconds != null) "c${uiState.totalFare}" else uiState.totalFare
             val size = totalFare.length
             val fontSize = when {
                 size < 6 -> 150.sp
                 size < 7 -> 120.sp
                 else -> 100.sp
             }
-            val totalFareDouble = totalFare.toDoubleOrNull()
-            if (totalFareDouble != null && totalFareDouble > 0) {
+            val totalFareDouble = uiState.totalFare.toDoubleOrNull()
+            if (totalFareDouble != null && totalFareDouble > 0) { // So that we don't show 0 as the total fare
                 Text(
                     text = totalFare,
                     color = uiState.totalColor,
@@ -238,7 +262,7 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
 }
 
 @Composable
-fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, viewModel: MeterOpsViewModel) {
+fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: MeterLockAction, viewModel: MeterOpsViewModel) {
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -253,7 +277,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, viewModel: MeterO
             ) {
                 Text(text = "DIST. (KM)", color = Color.Gray, textAlign = TextAlign.Start)
                 Spacer(modifier = Modifier.width(2.dp))
-                Text(text = uiState.distanceInKM, color = Color.Gray, fontSize = 36.sp, textAlign = TextAlign.End)
+                Text(text = if(uiState.remainingOverSpeedTimeInSeconds != null) "c0.0" else uiState.distanceInKM, color = Color.Gray, fontSize = 36.sp, textAlign = TextAlign.End)
             }
         }
         Column(
@@ -267,12 +291,15 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, viewModel: MeterO
             ) {
                 Text(text = "TIME", color = Color.Gray, textAlign = TextAlign.Start)
                 Spacer(modifier = Modifier.width(2.dp))
-                Text(text = uiState.duration, color = Color.Gray, fontSize = 36.sp, textAlign = TextAlign.End)
+                Text(
+                    text = uiState.remainingOverSpeedTimeInSeconds ?: uiState.duration, color = Color.Gray, fontSize = 36.sp, textAlign = TextAlign.End)
             }
         }
         Button(
             onClick = {
-                viewModel.toggleLanguagePref()
+                if(meterLockState !is MeterLockAction.Lock) {
+                    viewModel.toggleLanguagePref()
+                }
             },
             modifier = Modifier
                 .weight(1.3f)

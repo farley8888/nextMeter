@@ -64,6 +64,9 @@ class DashManager @Inject constructor(
     private val _tripInFirestore: MutableStateFlow<MeterTripInFirestore?> = MutableStateFlow(null)
     val tripInFirestore: StateFlow<MeterTripInFirestore?> = _tripInFirestore
 
+    private val _remoteUnlockMeter: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    val remoteUnlockMeter: StateFlow<Boolean> = _remoteUnlockMeter
+
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     init {
@@ -155,13 +158,30 @@ class DashManager @Inject constructor(
                         val mcuInfo = parseMcuInfo(snapshot)
                         val session = parseSession(snapshot)
 
+                        if (snapshot.contains(LOCKED_AT)) {
+                            val lockedAt = snapshot.get(LOCKED_AT)
+                            if (lockedAt == null) {
+                                // The field exists in the document and is explicitly set to null
+                                _remoteUnlockMeter.value = true
+                            }
+                        }
+
                          _meterFields.value = MeterFields(
-                            settings = settings,
-                            session = session,
-                            mcuInfo = mcuInfo
+                             settings = settings,
+                             session = session,
+                             mcuInfo = mcuInfo,
                         )
                     }
                 }
+        }
+    }
+
+    fun resetUnlockMeterStatusInRemote() {
+        scope.launch {
+            // remove the unlock meter flag
+            getMeterDocument()
+                .set(mapOf(LOCKED_AT to FieldValue.delete()), SetOptions.merge())
+            _remoteUnlockMeter.value = false
         }
     }
 
@@ -198,6 +218,15 @@ class DashManager @Inject constructor(
                 }
             // should only run once when trip is created
             writeTripFeeInFirestore(tripId)
+        }
+    }
+
+    fun writeLockMeter() {
+        scope.launch {
+            val lockedAt = Timestamp.now()
+            getMeterDocument()
+                .set(mapOf(LOCKED_AT to lockedAt), SetOptions.merge())
+
         }
     }
 
@@ -378,5 +407,6 @@ class DashManager @Inject constructor(
         private const val DRIVER_NAME = "name"
         private const val DRIVER_NAME_CH = "name_ch"
         private const val DRIVER_LICENSE = "driver_license"
+        private const val LOCKED_AT = "locked_at"
     }
 }

@@ -65,7 +65,6 @@ data class TripData (
 
     val overSpeedDurationInSeconds: Int = 0,
     val requiresUpdateOnDatabase: Boolean = false,
-    val isLocked: Boolean = false,
 )
 
 enum class TripStatus {
