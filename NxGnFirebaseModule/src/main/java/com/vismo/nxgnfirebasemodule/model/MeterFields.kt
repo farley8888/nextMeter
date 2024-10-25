@@ -1,6 +1,5 @@
 package com.vismo.nxgnfirebasemodule.model
 
-import com.google.firebase.Timestamp
 import com.google.gson.annotations.SerializedName
 
 data class MeterFields(

@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.sp
 import com.vismo.cablemeter.ui.shared.GlobalDialog
 import com.vismo.cablemeter.ui.theme.Black
 import com.vismo.cablemeter.ui.theme.valencia100
-import com.vismo.cablemeter.ui.theme.valencia400
 import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 
