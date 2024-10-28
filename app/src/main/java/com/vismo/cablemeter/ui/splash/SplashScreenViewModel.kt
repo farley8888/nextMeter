@@ -42,25 +42,21 @@ class SplashScreenViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(ioDispatcher) {
-            launch {
-                startTimeout()
-            }
+            launch { startTimeout() }
+            launch { checkNetworkConnection() }
+            launch { observeMeterFields() }
+        }
+    }
 
-            launch {
-                checkNetworkConnection()
-            }
-
-            launch {
-                dashManager.meterFields.collectLatest {  meterFields ->
-                    if (meterFields?.settings != null) {
-                        if (meterFields.settings!!.showLoginToggle) {
-                            _showLoginToggle.value = true
-                            Log.d(TAG, "Show login toggle")
-                        } else {
-                            _isLoading.value = false
-                            Log.d(TAG, "Hide login toggle")
-                        }
-                    }
+    private suspend fun observeMeterFields() {
+        dashManager.meterFields.collectLatest {  meterFields ->
+            if (meterFields?.settings != null) {
+                if (meterFields.settings!!.showLoginToggle) {
+                    _showLoginToggle.value = true
+                    Log.d(TAG, "Show login toggle")
+                } else {
+                    _isLoading.value = false
+                    Log.d(TAG, "Hide login toggle")
                 }
             }
         }

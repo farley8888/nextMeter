@@ -32,34 +32,38 @@ class DriverPairViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            launch(ioDispatcher) {
-                MCUParamsDataStore.deviceIdData.collectLatest { deviceIdData ->
-                    deviceIdData?.let {
-                        uiUpdateMutex.withLock {
-                            _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
-                                qrString = genQR(it.licensePlate),
-                                licensePlate = it.licensePlate,
-                                deviceSerialNumber = it.deviceId,
-                            )
-                        }
+            launch(ioDispatcher) { observeDeviceIdDate() }
+            launch(ioDispatcher) { observeMeterInfo() }
+        }
+    }
+
+    private suspend fun observeMeterInfo() {
+        remoteMeterControlRepository.meterInfo.collectLatest { meterInfo ->
+            meterInfo?.let {
+                uiUpdateMutex.withLock {
+                    if (it.session != null) {
+                        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                            driverPhoneNumber = it.session.driver.driverPhoneNumber
+                        )
+                    } else {
+                        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                            driverPhoneNumber = ""
+                        )
                     }
                 }
             }
-            launch(ioDispatcher) {
-                remoteMeterControlRepository.meterInfo.collectLatest { meterInfo ->
-                    meterInfo?.let {
-                        uiUpdateMutex.withLock {
-                            if (it.session != null) {
-                                _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
-                                    driverPhoneNumber = it.session.driver.driverPhoneNumber
-                                )
-                            } else {
-                                _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
-                                    driverPhoneNumber = ""
-                                )
-                            }
-                        }
-                    }
+        }
+    }
+
+    private suspend fun observeDeviceIdDate() {
+        MCUParamsDataStore.deviceIdData.collectLatest { deviceIdData ->
+            deviceIdData?.let {
+                uiUpdateMutex.withLock {
+                    _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                        qrString = genQR(it.licensePlate),
+                        licensePlate = it.licensePlate,
+                        deviceSerialNumber = it.deviceId,
+                    )
                 }
             }
         }
