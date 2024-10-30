@@ -70,11 +70,6 @@ fun DriverPairScreen(
     val showDialog = remember(uiState.licensePlate) { mutableStateOf(uiState.licensePlate.isBlank()) }
     val isDeviceInfoSetAfterHealthCheck = viewModel.isLicensePlateAndKVUpdated.collectAsState().value
 
-    if (isDeviceInfoSetAfterHealthCheck) {
-        snackbarDelegate.showSnackbar(SnackbarState.SUCCESS,"License Plate and K-Value set successfully")
-        viewModel.clearLicensePlateAndKVUpdated()
-    }
-
     val healthCheckTitle = "請用車房APP掃描二維碼"
     val healthCheckMessage = "咪錶編號: %s"
 
@@ -90,6 +85,11 @@ fun DriverPairScreen(
             )
         }
     )
+
+    if (isDeviceInfoSetAfterHealthCheck) {
+        snackbarDelegate.showSnackbar(SnackbarState.SUCCESS,"License Plate and K-Value set successfully")
+        viewModel.clearLicensePlateAndKVUpdated()
+    }
 
     Row (
         modifier =
@@ -136,7 +136,7 @@ fun HealthCheckDialogContent(title: String, message: String, qrLink: String) {
             fontSize = 18.sp,
             textAlign = TextAlign.Center
         )
-        DashAndGoldQrCodeView(primaryColor = secondary800, data = qrLink)
+        DashAndGoldQrCodeView(data = qrLink)
     }
 }
 
@@ -253,7 +253,7 @@ fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
 }
 
 @Composable
-fun DashAndGoldQrCodeView(primaryColor: Color = blueLink, data: String, size: Int = 200) {
+fun DashAndGoldQrCodeView(primaryColor: Color = secondary800, data: String, size: Int = 200) {
     val gold = gold350
     QrCodeView(
         data = data,
