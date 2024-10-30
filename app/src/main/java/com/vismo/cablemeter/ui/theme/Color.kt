@@ -45,6 +45,7 @@ val primary500 = Color(0xFF3795D4)
 val primary600 = Color(0xFF1479C7)
 val primary700 = Color(0xFF0659A1)
 val primary800 = Color(0xFF003D7A)
+val blueLink = Color(0xFF1E88E5)
 
 // Secondary
 val secondary50 = Color(0xFFEEFFFD)

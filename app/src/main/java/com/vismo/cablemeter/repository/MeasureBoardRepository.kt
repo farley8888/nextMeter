@@ -1,7 +1,11 @@
 package com.vismo.cablemeter.repository
 
+import kotlinx.coroutines.flow.StateFlow
+
 
 interface MeasureBoardRepository {
+
+    val meterIdentifierInRemote: StateFlow<String>
 
     fun writeStartTripCommand(tripId: String)
 

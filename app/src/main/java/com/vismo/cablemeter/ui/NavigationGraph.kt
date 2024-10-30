@@ -78,7 +78,8 @@ fun NavigationGraph(
         }
         composable(NavigationDestination.Pair.route) {
             val viewModel = hiltViewModel<DriverPairViewModel>()
-            DriverPairScreen(viewModel, navigateToMeterOps = {
+            DriverPairScreen(viewModel, snackbarDelegate,
+                navigateToMeterOps = {
                 navController.navigate(NavigationDestination.MeterOps.route)
             })
         }

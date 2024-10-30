@@ -94,11 +94,11 @@ class MainViewModel @Inject constructor(
             Pair(meterInfo, tripPaidStatus)
         }.collectLatest { (meterInfo, tripPaidStatus) ->
             meterInfo?.let {
-                _showLoginToggle.value = it.settings.showLoginToggle
+                _showLoginToggle.value = it.settings?.showLoginToggle
 
                 toolbarUiDataUpdateMutex.withLock {
                     _topAppBarUiState.value = _topAppBarUiState.value.copy(
-                        showLoginToggle = it.settings.showLoginToggle,
+                        showLoginToggle = it.settings?.showLoginToggle ?: false,
                         driverPhoneNumber = it.session?.driver?.driverPhoneNumber ?: "",
                     )
                 }

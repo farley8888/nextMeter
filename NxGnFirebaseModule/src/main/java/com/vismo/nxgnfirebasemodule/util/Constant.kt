@@ -3,6 +3,7 @@ package com.vismo.nxgnfirebasemodule.util
 object Constant {
     const val METERS_COLLECTION = "meters"
     const val HEARTBEAT_COLLECTION = "heartbeat"
+    const val METER_DEVICES_COLLECTION = "meter_devices"
     const val CONFIGURATIONS_COLLECTION = "configurations"
     const val DEFAULT_LICENSE_PLATE = "DASH-DEFAULT"
     const val TRIPS_COLLECTION = "trips"

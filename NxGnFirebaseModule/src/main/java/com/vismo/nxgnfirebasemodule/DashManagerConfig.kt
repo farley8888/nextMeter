@@ -7,6 +7,7 @@ import com.vismo.nxgnfirebasemodule.util.Constant.DEFAULT_LICENSE_PLATE
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -14,13 +15,18 @@ class DashManagerConfig @Inject constructor(
     private val ioDispatcher: CoroutineDispatcher
 ) {
     private val _meterIdentifier: MutableStateFlow<String> = MutableStateFlow(DEFAULT_LICENSE_PLATE)
-    val meterIdentifier: MutableStateFlow<String> = _meterIdentifier
+    val meterIdentifier: StateFlow<String> = _meterIdentifier
+
+    private val _deviceId: MutableStateFlow<String> = MutableStateFlow("")
+    val deviceID: StateFlow<String> = _deviceId
 
     private val _meterLocation: MutableStateFlow<MeterLocation> = MutableStateFlow(defaultMeterLocation)
-    val meterLocation: MutableStateFlow<MeterLocation> = _meterLocation
+    val meterLocation: StateFlow<MeterLocation> = _meterLocation
 
-    fun setLicensePlate(licensePlate: String) {
+    fun setDeviceIdData(deviceId: String, licensePlate: String) {
         CoroutineScope(ioDispatcher).launch {
+            _deviceId.value = deviceId
+
             if (licensePlate.isBlank()) {
                 _meterIdentifier.value = DEFAULT_LICENSE_PLATE
             } else if (_meterIdentifier.value != licensePlate) {
