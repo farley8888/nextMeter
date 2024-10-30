@@ -1,16 +1,23 @@
 package com.vismo.cablemeter.ui.pair
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vismo.cablemeter.BuildConfig
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
+import com.vismo.cablemeter.util.Constant.ENV_DEV
+import com.vismo.cablemeter.util.Constant.ENV_PROD
+import com.vismo.cablemeter.util.Constant.ENV_QA
 import com.vismo.cablemeter.util.GlobalUtils.encrypt
+import com.vismo.nxgnfirebasemodule.util.Constant.DEFAULT_LICENSE_PLATE
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,11 +37,43 @@ class DriverPairViewModel @Inject constructor(
 
     private val uiUpdateMutex = Mutex()
 
+    val isLicensePlateAndKVUpdated = MutableStateFlow(false)
+
     init {
         viewModelScope.launch {
             launch(ioDispatcher) { observeDeviceIdDate() }
             launch(ioDispatcher) { observeMeterInfo() }
+            launch(ioDispatcher) { observeMeterDevicesProperties() }
         }
+    }
+
+    private suspend fun observeMeterDevicesProperties() {
+        combine(
+            remoteMeterControlRepository.meterDeviceProperties,
+            remoteMeterControlRepository.meterIdentifier
+        ) { meterDeviceProperties, licensePlateInRemote -> Pair(meterDeviceProperties, licensePlateInRemote) }
+            .collectLatest { (meterDeviceProperties, licensePlateInRemote) ->
+            meterDeviceProperties?.let {
+                if (meterDeviceProperties.isHealthCheckComplete == false) {
+                    remoteMeterControlRepository.performHealthCheck()
+                } else if (meterDeviceProperties.isHealthCheckComplete == true && licensePlateInRemote == DEFAULT_LICENSE_PLATE &&
+                    !meterDeviceProperties.licensePlate.isNullOrEmpty() && !meterDeviceProperties.kValue.isNullOrEmpty()) {
+
+                    val formattedKValue = meterDeviceProperties.kValue.toString().padStart(4, '0')
+                    val licensePlate = meterDeviceProperties.licensePlate.toString()
+
+                    remoteMeterControlRepository.updateLicensePlateAndKValue(
+                        licensePlate = licensePlate,
+                        kValue = formattedKValue
+                    )
+                    isLicensePlateAndKVUpdated.value = true
+                }
+            }
+        }
+    }
+
+    fun clearLicensePlateAndKVUpdated() {
+        isLicensePlateAndKVUpdated.value = false
     }
 
     private suspend fun observeMeterInfo() {
@@ -64,6 +103,7 @@ class DriverPairViewModel @Inject constructor(
                         licensePlate = it.licensePlate,
                         deviceSerialNumber = it.deviceId,
                     )
+                    Log.d("DriverPairViewModel", "License Plate: ${it.licensePlate}")
                 }
             }
         }

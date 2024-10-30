@@ -34,6 +34,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.logging.Logger
 import javax.inject.Inject
@@ -49,6 +50,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
+    override val meterIdentifierInRemote: StateFlow<String> = dashManagerConfig.meterIdentifier
 
     private fun startMessageProcessor() {
         scope.launch {
@@ -115,7 +118,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 TripDataStore.clearTripData()
             }
         }
-        dashManagerConfig.setLicensePlate(licensePlate)
+        dashManagerConfig.setDeviceIdData(deviceId = measureBoardDeviceId, licensePlate =  licensePlate)
         Log.d(TAG, "IDLE_HEARTBEAT: $result")
     }
 
@@ -160,7 +163,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             )
             TripDataStore.updateTripDataValue(currentOngoingTrip)
         }
-        dashManagerConfig.setLicensePlate(licensePlate)
+        dashManagerConfig.setDeviceIdData(deviceId = measureBoardDeviceId, licensePlate =  licensePlate)
         Log.d(TAG, "ONGOING_HEARTBEAT: $result")
     }
 

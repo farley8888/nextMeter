@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.cablemeter.ui.shared.GenericActionDialogContent
 import com.vismo.cablemeter.ui.shared.GlobalDialog
 import com.vismo.cablemeter.ui.theme.Black
 import com.vismo.cablemeter.ui.theme.valencia100
@@ -87,15 +88,19 @@ fun MeterOpsScreen(
     ) {
         lockDialogShowState.value = lockTitle.isNotEmpty() && uiState.remainingOverSpeedTimeInSeconds == null // cause this becomes non null 30 seconds after. and we only want to show the dialog once
         GlobalDialog(
-            title = lockTitle,
-            message = lockMessage,
-            iconResId = Icons.Rounded.TaxiAlert,
-            actions = emptyList(),
             onDismiss = {},
             showDialog = lockDialogShowState,
-            isBlinking = true,
-            shouldAutoDismissAfter = 30_000L,
-            backgroundColor = valencia100
+            isBlinking = false,
+            content = {
+                GenericActionDialogContent(
+                    title = lockTitle,
+                    message = lockMessage,
+                    actions = emptyList(),
+                    iconResId = Icons.Rounded.TaxiAlert,
+                    backgroundColor = valencia100,
+                    dismissDialog = { lockDialogShowState.value = false }
+                )
+            }
         )
         TaxiMeterUI(uiState, meterLockState, viewModel)
     }

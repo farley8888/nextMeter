@@ -158,12 +158,12 @@ object AppModule {
     fun providesRemoteMCUControlRepository(
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManager: DashManager,
-        measureBoardRepository: MeasureBoardRepository
+        measureBoardRepository: MeasureBoardRepository,
     ): RemoteMeterControlRepository {
         return RemoteMeterControlRepositoryImpl(
             ioDispatcher = ioDispatcher,
             dashManager = dashManager,
-            measureBoardRepository = measureBoardRepository
+            measureBoardRepository = measureBoardRepository,
         )
     }
 

@@ -89,13 +89,13 @@ fun EditKValueAndLicensePlateScreen(
             }
             Button(
                 onClick = {
-                    if (!licensePlateEntered.isNullOrBlank()) {
-                        viewModel.updateLicensePlate(licensePlateEntered!!)
+                    if (licensePlateEntered != null && licensePlateEntered != deviceIdData.value?.licensePlate) {
+                        viewModel.updateLicensePlate(licensePlateEntered.toString())
                     }
                     if (!kValueEntered.isNullOrBlank() && kValueEntered!!.toIntOrNull() != null) {
                         viewModel.updateKValue(kValue = kValueEntered!!.toInt())
                     }
-                    if (licensePlateEntered.isNullOrBlank() && kValueEntered?.toIntOrNull() == null) {
+                    if (kValueEntered?.toIntOrNull() == null && licensePlateEntered == deviceIdData.value?.licensePlate) {
                         snackbarDelegate.showSnackbar(SnackbarState.ERROR, "No changes made. Please check if values are correctly entered.")
                     } else {
                         snackbarDelegate.showSnackbar(SnackbarState.SUCCESS,"Values updated")

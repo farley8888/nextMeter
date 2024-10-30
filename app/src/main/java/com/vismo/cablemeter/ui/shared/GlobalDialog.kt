@@ -9,8 +9,17 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.TaxiAlert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -39,17 +48,14 @@ import com.vismo.cablemeter.ui.theme.Black
 import com.vismo.cablemeter.ui.theme.Purple40
 import com.vismo.cablemeter.ui.theme.Purple80
 import com.vismo.cablemeter.ui.theme.mineShaft700
+import com.vismo.cablemeter.ui.theme.valencia100
 import kotlinx.coroutines.delay
 
 @Composable
 fun GlobalDialog(
-    title: String,
-    message: String,
-    iconResId: Any,
-    actions: List<Pair<String, () -> Unit>>,
-    onDismiss: () -> Unit,
     showDialog: MutableState<Boolean>,
-    backgroundColor: Color,
+    onDismiss: () -> Unit,
+    content: @Composable () -> Unit,
     isBlinking: Boolean = false, // Optional blinking effect
     shouldAutoDismissAfter: Long = 0 // Optional auto dismiss after x milliseconds
 ) {
@@ -78,16 +84,8 @@ fun GlobalDialog(
             )
         ) {
             GlobalDialogUI(
-                title = title,
-                message = message,
-                iconResId = iconResId,
-                actions = actions,
-                onDismiss = {
-                    showDialog.value = false
-                    onDismiss()
-                },
-                isBlinking = isBlinking,
-                backgroundColor = backgroundColor
+                content = content,
+                isBlinking = isBlinking
             )
         }
     }
@@ -95,13 +93,8 @@ fun GlobalDialog(
 
 @Composable
 private fun GlobalDialogUI(
-    title: String,
-    message: String,
-    iconResId: Any,
-    actions: List<Pair<String, () -> Unit>>,
-    onDismiss: () -> Unit,
-    isBlinking: Boolean = false, // Optional blinking effect
-    backgroundColor: Color
+    content: @Composable () -> Unit,
+    isBlinking: Boolean = false // Optional blinking effect
 ) {
     var isVisible by remember { mutableStateOf(true) }
     if (isBlinking) {
@@ -119,75 +112,7 @@ private fun GlobalDialogUI(
             modifier = Modifier.padding(10.dp),
             elevation = CardDefaults.cardElevation(8.dp)
         ) {
-            Column(
-                Modifier
-                    .background(backgroundColor)
-                    .padding(16.dp)
-            ) {
-                Image(
-                    painter = when (iconResId) {
-                        is Int -> painterResource(id = iconResId)
-                        is androidx.compose.ui.graphics.vector.ImageVector -> rememberVectorPainter(
-                            image = iconResId
-                        )
-
-                        else -> throw IllegalArgumentException("Unsupported icon type")
-                    },
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    colorFilter = ColorFilter.tint(Purple40),
-                    modifier = Modifier
-                        .padding(top = 16.dp)
-                        .height(70.dp)
-                        .fillMaxWidth()
-                )
-
-                Text(
-                    text = title,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(top = 16.dp)
-                        .fillMaxWidth(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = Black
-                )
-
-                Text(
-                    text = message,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(vertical = 16.dp, horizontal = 24.dp)
-                        .fillMaxWidth(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = mineShaft700,
-                )
-
-                if (actions.isNotEmpty()) {
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp)
-                            .background(Purple80),
-                        horizontalArrangement = Arrangement.SpaceAround
-                    ) {
-                        actions.forEach { (label, action) ->
-                            TextButton(onClick = {
-                                action()
-                                onDismiss()
-                            }) {
-                                Text(
-                                    text = label,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Black,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            content() // Using the passed composable content
         }
     }
 }
@@ -203,5 +128,86 @@ private fun BlinkingVisibility(
         exit = fadeOut(animationSpec = tween(durationMillis = 1000))
     ) {
         content()
+    }
+}
+
+@Composable
+fun GenericActionDialogContent(
+    title: String,
+    message: String,
+    iconResId: Any,
+    backgroundColor: Color,
+    textColor: Color = Black,
+    actions: List<Pair<String, () -> Unit>>,
+    dismissDialog: () -> Unit
+) {
+    Column(
+        Modifier
+            .background(backgroundColor)
+            .padding(16.dp)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+    ) {
+        Image(
+            painter = when (iconResId) {
+                is Int -> painterResource(id = iconResId)
+                is androidx.compose.ui.graphics.vector.ImageVector -> rememberVectorPainter(
+                    image = iconResId
+                )
+                else -> throw IllegalArgumentException("Unsupported icon type")
+            },
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .padding(top = 16.dp)
+                .height(70.dp)
+                .fillMaxWidth()
+        )
+
+        Text(
+            text = title,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(top = 16.dp)
+                .fillMaxWidth(),
+            style = MaterialTheme.typography.headlineSmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            color = textColor
+        )
+
+        Text(
+            text = message,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .padding(vertical = 16.dp, horizontal = 24.dp)
+                .fillMaxWidth(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = textColor,
+        )
+
+        if (actions.isNotEmpty()) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .background(Purple80),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                actions.forEach { (label, action) ->
+                    TextButton(onClick = {
+                        action()
+                        dismissDialog()
+                    }) {
+                        Text(
+                            text = label,
+                            fontWeight = FontWeight.Bold,
+                            color = textColor,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }

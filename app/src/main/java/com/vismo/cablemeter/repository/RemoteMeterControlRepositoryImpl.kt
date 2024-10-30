@@ -5,10 +5,12 @@ import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.model.MeterInfo
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.nxgnfirebasemodule.DashManager
+import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -18,7 +20,7 @@ import javax.inject.Inject
 class RemoteMeterControlRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val dashManager: DashManager,
-    private val measureBoardRepository: MeasureBoardRepository
+    private val measureBoardRepository: MeasureBoardRepository,
 ) : RemoteMeterControlRepository {
 
     private val _meterInfo = MutableStateFlow<MeterInfo?>(null)
@@ -26,6 +28,9 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     private val _heartBeatInterval = MutableStateFlow(DEFAULT_HEARTBEAT_INTERVAL)
     override val heartBeatInterval: StateFlow<Int> = _heartBeatInterval
+
+    override val meterDeviceProperties = dashManager.meterDeviceProperties
+    override val meterIdentifier = measureBoardRepository.meterIdentifierInRemote
 
     override fun observeFlows() {
         CoroutineScope(ioDispatcher).launch {
@@ -61,12 +66,29 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
                         val meterInfo: MeterInfo = dashManager.convertToType(meterFields)
                         _meterInfo.value = meterInfo
 
-                        if (meterInfo.settings.heartbeatInterval != _heartBeatInterval.value)
-                            _heartBeatInterval.value = meterInfo.settings.heartbeatInterval
+                        if (meterInfo.settings?.heartbeatInterval != _heartBeatInterval.value)
+                            _heartBeatInterval.value = meterInfo.settings?.heartbeatInterval ?: DEFAULT_HEARTBEAT_INTERVAL
                     }
                 }
             }
         }
+    }
+
+    override fun updateLicensePlateAndKValue(licensePlate: String, kValue: String) {
+        CoroutineScope(ioDispatcher).launch {
+            measureBoardRepository.updateKValue(kValue.toInt())
+            delay(3000L) // seems like this delay is necessary for the measure board to process the kValue update
+            measureBoardRepository.updateLicensePlate(licensePlate)
+            resetMeterDevicesFlow()
+        }
+    }
+
+    private fun resetMeterDevicesFlow() {
+        dashManager.resetMeterDeviceProperties()
+    }
+
+    override fun performHealthCheck() {
+        dashManager.performHealthCheck()
     }
 
     override fun sendHeartBeat() {

@@ -92,7 +92,7 @@ class SplashScreenViewModel @Inject constructor(
 
     companion object {
         const val MINIMUM_TIMEOUT_DURATION = 5000L
-        private const val TIMEOUT_DURATION = 20000L
+        private const val TIMEOUT_DURATION = 30000L
         const val TOTAL_TIMEOUT_DURATION = MINIMUM_TIMEOUT_DURATION + TIMEOUT_DURATION
         const val TAG = "SplashScreenViewModel"
     }

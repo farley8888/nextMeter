@@ -15,6 +15,7 @@ import com.vismo.nxgnfirebasemodule.model.Driver
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.Heartbeat
 import com.vismo.nxgnfirebasemodule.model.McuInfo
+import com.vismo.nxgnfirebasemodule.model.MeterDeviceProperties
 import com.vismo.nxgnfirebasemodule.model.MeterFields
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
@@ -26,6 +27,7 @@ import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
 import com.vismo.nxgnfirebasemodule.util.Constant.HEARTBEAT_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METERS_COLLECTION
+import com.vismo.nxgnfirebasemodule.util.Constant.METER_DEVICES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_SDK_DOCUMENT
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
@@ -47,16 +49,22 @@ class DashManager @Inject constructor(
     private val gson: Gson,
     private val dashManagerConfig: DashManagerConfig,
     private val ioDispatcher: CoroutineDispatcher,
+    private val env: String
 ) {
+    private val meterDevicesCollection = firestore.collection(METER_DEVICES_COLLECTION)
     private val metersCollection = firestore.collection(METERS_COLLECTION)
     private var meterDocumentListener: ListenerRegistration? = null
     private var tripDocumentListener: ListenerRegistration? = null
+    private var meterDevicesDocumentListener: ListenerRegistration? = null
 
     private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)
     val meterFields: StateFlow<MeterFields?> = _meterFields
 
     private val _meterSdkConfig: MutableStateFlow<MeterSdkConfiguration?> = MutableStateFlow(null)
     val meterSdkConfig: StateFlow<MeterSdkConfiguration?> = _meterSdkConfig
+
+    private val _meterDeviceProperties: MutableStateFlow<MeterDeviceProperties?> = MutableStateFlow(null)
+    val meterDeviceProperties: StateFlow<MeterDeviceProperties?> = _meterDeviceProperties
 
     private val _mcuParamsUpdateRequired: MutableStateFlow<UpdateMCUParamsRequest?> = MutableStateFlow(null)
     val mcuParamsUpdateRequired: StateFlow<UpdateMCUParamsRequest?> = _mcuParamsUpdateRequired
@@ -74,9 +82,103 @@ class DashManager @Inject constructor(
         //TODO: needs to be called after code 682682 is entered - not like this
         isMCUParamsUpdateRequired()
         scope.launch {
-            dashManagerConfig.meterIdentifier.collectLatest {
-                meterDocumentListener()
+            launch { observeMeterLicensePlate() }
+            launch { observeMeterDeviceId() }
+        }
+    }
+
+    private suspend fun observeMeterDeviceId() {
+        var isFirstFetch = true
+        /*
+        * // Flag to check if it's the first fetch
+        *    - we don't need to update the flow on the first fetch because we only need the flow to set up garage app
+        *    - so we will wait for changes from the garage app to the document first and ignore the first fetch
+        * */
+        dashManagerConfig.deviceID.collectLatest { deviceID ->
+            if (deviceID.isEmpty()) return@collectLatest
+            meterDevicesDocumentListener?.remove() // Remove any previous listener
+
+            meterDevicesDocumentListener = getMeterDevicesDocument().addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    return@addSnapshotListener
+                }
+
+                val data = snapshot?.data
+                if (snapshot != null && data != null) {
+                    if (isFirstFetch) {
+                        isFirstFetch = false
+                        return@addSnapshotListener
+                    }
+                    val json = gson.toJson(snapshot.data)
+                    val meterDeviceProperties = gson.fromJson(json, MeterDeviceProperties::class.java)
+                    _meterDeviceProperties.value = meterDeviceProperties
+                    Log.d(TAG, "observeMeterDeviceId successfully")
+                }
             }
+        }
+    }
+
+    fun resetMeterDeviceProperties() {
+        _meterDeviceProperties.value = null
+    }
+
+    fun performHealthCheck() {
+        scope.launch {
+            val env = when(env) {
+                "dev" -> "DEV"
+                "qa" -> "QA"
+                "prod" -> "PRD"
+                else -> "INVALID"
+            }
+            val location = dashManagerConfig.meterLocation
+            val gpsType = location.value.gpsType.toString()
+            val map = mapOf(
+                "is_health_check_complete" to null,
+                "gps_type" to gpsType,
+                "location" to location.value.geoPoint,
+                "env" to env
+            )
+            getMeterDevicesDocument()
+                .set(map, SetOptions.merge())
+                .addOnSuccessListener {
+                    Log.d(TAG, "performHealthCheck successfully")
+                }
+                .addOnFailureListener {
+                    Log.e(TAG, "performHealthCheck error", it)
+                }
+        }
+    }
+
+    private suspend fun observeMeterLicensePlate() {
+        dashManagerConfig.meterIdentifier.collectLatest {
+            meterDocumentListener?.remove() // Remove the previous listener
+
+            meterDocumentListener = getMeterDocument()
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null && snapshot.exists()) {
+                        val settings = parseSettings(snapshot)
+                        val mcuInfo = parseMcuInfo(snapshot)
+                        val session = parseSession(snapshot)
+
+                        if (snapshot.contains(LOCKED_AT)) {
+                            val lockedAt = snapshot.get(LOCKED_AT)
+                            if (lockedAt == null) {
+                                // The field exists in the document and is explicitly set to null
+                                _remoteUnlockMeter.value = true
+                            }
+                        }
+
+                        _meterFields.value = MeterFields(
+                            settings = settings,
+                            session = session,
+                            mcuInfo = mcuInfo,
+                        )
+                    }
+                }
         }
     }
 
@@ -141,39 +243,6 @@ class DashManager @Inject constructor(
                     _meterSdkConfig.value = gson.fromJson(meterSdkConfigJson, MeterSdkConfiguration::class.java)
                 }
             }
-    }
-
-    private fun meterDocumentListener() {
-        scope.launch {
-            meterDocumentListener?.remove() // Remove the previous listener
-
-            meterDocumentListener = getMeterDocument()
-                .addSnapshotListener { snapshot, e ->
-                    if (e != null) {
-                        return@addSnapshotListener
-                    }
-
-                    if (snapshot != null && snapshot.exists()) {
-                        val settings = parseSettings(snapshot)
-                        val mcuInfo = parseMcuInfo(snapshot)
-                        val session = parseSession(snapshot)
-
-                        if (snapshot.contains(LOCKED_AT)) {
-                            val lockedAt = snapshot.get(LOCKED_AT)
-                            if (lockedAt == null) {
-                                // The field exists in the document and is explicitly set to null
-                                _remoteUnlockMeter.value = true
-                            }
-                        }
-
-                         _meterFields.value = MeterFields(
-                             settings = settings,
-                             session = session,
-                             mcuInfo = mcuInfo,
-                        )
-                    }
-                }
-        }
     }
 
     fun resetUnlockMeterStatusInRemote() {
@@ -345,6 +414,8 @@ class DashManager @Inject constructor(
     }
 
     private fun getMeterDocument() = metersCollection.document(dashManagerConfig.meterIdentifier.value)
+
+    private fun getMeterDevicesDocument() = meterDevicesCollection.document(dashManagerConfig.deviceID.value)
 
     // Generic conversion to convert to classes supported by DashManager from external classes
     inline fun <reified T, reified R> convertToType(externalObject: T): R {

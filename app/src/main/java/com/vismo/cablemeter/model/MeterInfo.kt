@@ -4,8 +4,8 @@ import com.google.gson.annotations.SerializedName
 
 
 data class MeterInfo(
-    @SerializedName("settings") val settings: Settings,
-    @SerializedName("mcu_info") val mcuInfo: McuInfo,
+    @SerializedName("settings") val settings: Settings?,
+    @SerializedName("mcu_info") val mcuInfo: McuInfo?,
     @SerializedName("session") val session: Session?,
 )
 
