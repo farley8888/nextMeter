@@ -11,6 +11,10 @@ import com.vismo.cablemeter.util.Constant.PUBLIC_KEY
 import com.vismo.cablemeter.util.GlobalUtils
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
@@ -25,26 +29,36 @@ class FirebaseAuthRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val meterOApi: MeterOApi
 ){
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
+    private val _isFirebaseAuthSuccess: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    val isFirebaseAuthSuccess: StateFlow<Boolean> = _isFirebaseAuthSuccess
 
     fun initToken() {
-        CoroutineScope(ioDispatcher).launch {
+        Log.d(TAG, "FirebaseRepositoryImpl: initToken")
+        scope.launch {
+            Log.d(TAG, "FirebaseRepositoryImpl: scope.launch")
             val user = auth.currentUser
             if(user != null && !user.isAnonymous) {
                 Log.d(TAG, "FirebaseRepositoryImpl: ${user.uid}")
                 refreshIdToken(
                     onSuccess = {
                         //init firestore listener
+                        _isFirebaseAuthSuccess.value = true
                         Log.w(TAG, "refreshIdToken:success")
                     },
                     onError = {
                         Log.w(TAG, "refreshIdToken:error")
-                        CoroutineScope(ioDispatcher).launch {
+                        _isFirebaseAuthSuccess.value = false
+                        scope.launch {
                             renewCustomToken()
                         }
                     })
+                Log.d(TAG, "FirebaseRepositoryImpl: existing user")
             }
             else {
                 //renew the customToken
+                Log.d(TAG, "FirebaseRepositoryImpl: anonymous")
                 renewCustomToken()
             }
         }
@@ -59,6 +73,7 @@ class FirebaseAuthRepository @Inject constructor(
             },
             onError = {
                 //nothing
+                Log.d(TAG, "renewCustomToken: error")
             }
         )
     }
@@ -66,19 +81,20 @@ class FirebaseAuthRepository @Inject constructor(
     private fun signInWithCustomToken(customToken: String) {
         auth.signInWithCustomToken(customToken).addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                // Sign in success, update UI with the signed-in user's information
-                val user = auth.currentUser
-                //refresh the Id token every one hours
+                //refresh the Id token every one hour
                 refreshIdToken(
                     onSuccess = {
-                        Log.w(TAG, "signInAnonymously:success ${task.result}")
+                        _isFirebaseAuthSuccess.value = true
+                        Log.d(TAG, "signInAnonymously:success ${task.result}")
                     },
                     onError = {
                         //nothing
+                        _isFirebaseAuthSuccess.value = false
                     })
             } else {
                 // If sign in fails, display a message to the user.
                 Log.w(TAG, "signInAnonymously:failure ${task.exception}", task.exception)
+                _isFirebaseAuthSuccess.value = false
             }
         }
     }
@@ -95,10 +111,12 @@ class FirebaseAuthRepository @Inject constructor(
     }
 
     private suspend fun renewToken(onSuccess: (String?) -> Unit, onError: (IOException) -> Unit) {
+        Log.d(TAG, "renewToken")
         val body = createSignedJwtRS256(
             GlobalUtils.loadPrivateKey(PRIVATE_KEY),
             GlobalUtils.loadPublicKey(PUBLIC_KEY)
         )
+        Log.d(TAG, "renewToken: $body")
         postApiCall(body, onSuccess, onError)
     }
 
@@ -107,11 +125,13 @@ class FirebaseAuthRepository @Inject constructor(
         onSuccess: (String?) -> Unit,
         onError: (IOException) -> Unit
     ) {
+        Log.d(TAG, "postApiCall - pre call")
         val mediaType = "text/plain".toMediaTypeOrNull()
 
         val requestBody = RequestBody.create(mediaType, body)
         val response = meterOApi.postFirebaseAuthToken(requestBody)
         val responseBody = response.body()
+        Log.d(TAG, "postApiCall - post call: ${response.code()}")
         if (response.isSuccessful && responseBody != null && responseBody.customToken != null) {
             Log.d(TAG, "Auth API - success: $responseBody")
             onSuccess(responseBody.customToken)
@@ -135,6 +155,10 @@ class FirebaseAuthRepository @Inject constructor(
                 onError(it.exception)
             }
         }
+    }
+
+    fun cancel() {
+        scope.cancel()
     }
 
     companion object {

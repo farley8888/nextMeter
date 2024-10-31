@@ -11,6 +11,7 @@ import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
+import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
@@ -47,6 +48,7 @@ class MainViewModel @Inject constructor(
     private val dashManagerConfig: DashManagerConfig,
     private val tripRepository: TripRepository,
     @ApplicationContext private val context: Context,
+    private val firebaseAuthRepository: FirebaseAuthRepository
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -272,6 +274,7 @@ class MainViewModel @Inject constructor(
         remoteMCUControlRepository.onCleared()
         peripheralControlRepository.close()
         accEnquiryJob?.cancel()
+        firebaseAuthRepository.cancel()
     }
 
     companion object {
