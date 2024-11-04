@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
                             AppBar(
                                 viewModel = mainViewModel,
                                 onBackButtonClick = {
-                                    if (!isTripInProgress) {
+                                    if (!isTripInProgress && navController?.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
                                         navController!!.popBackStack()
                                     }
                                 }
