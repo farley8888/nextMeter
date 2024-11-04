@@ -5,7 +5,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.firebase.auth.FirebaseAuth
 import com.vismo.cablemeter.module.IoDispatcher
-import com.vismo.cablemeter.network.api.MeterOApi
+import com.vismo.cablemeter.api.NetworkResult
 import com.vismo.cablemeter.util.Constant.PRIVATE_KEY
 import com.vismo.cablemeter.util.Constant.PUBLIC_KEY
 import com.vismo.cablemeter.util.GlobalUtils
@@ -17,17 +17,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.util.Date
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class FirebaseAuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val meterOApi: MeterOApi
+    private val meterOApiRepository: MeterOApiRepository,
 ){
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
@@ -128,17 +130,20 @@ class FirebaseAuthRepository @Inject constructor(
         Log.d(TAG, "postApiCall - pre call")
         val mediaType = "text/plain".toMediaTypeOrNull()
 
-        val requestBody = RequestBody.create(mediaType, body)
-        val response = meterOApi.postFirebaseAuthToken(requestBody)
-        val responseBody = response.body()
-        Log.d(TAG, "postApiCall - post call: ${response.code()}")
-        if (response.isSuccessful && responseBody != null && responseBody.customToken != null) {
-            Log.d(TAG, "Auth API - success: $responseBody")
-            onSuccess(responseBody.customToken)
-        } else {
-            Log.d(TAG, "postApiCall - failure: ${response.code()}")
-            onError(IOException("Error getting custom token"))
-
+        val requestBody = body.toRequestBody(mediaType)
+        when(val response = meterOApiRepository.postFirebaseAuthToken(requestBody)) {
+            is NetworkResult.Success -> {
+                Log.d(TAG, "postApiCall - success")
+                onSuccess(response.data.customToken)
+            }
+            is NetworkResult.Error -> {
+                Log.d(TAG, "postApiCall - error")
+                onError(IOException("Error getting custom token"))
+            }
+            is NetworkResult.Exception -> {
+                Log.d(TAG, "postApiCall - exception")
+                onError(IOException("Error getting custom token"))
+            }
         }
     }
 
@@ -157,11 +162,28 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
+    suspend fun getHeaders(): Map<String, String> {
+        return suspendCoroutine { continuation ->
+            val headers = mutableMapOf<String, String>()
+            refreshIdToken(
+                onSuccess = {
+                    headers[AUTHORIZATION_HEADER] = "$BEARER $it"
+                    continuation.resume(headers)
+                },
+                onError = {
+                    continuation.resume(headers)
+                }
+            )
+        }
+    }
+
     fun cancel() {
         scope.cancel()
     }
 
     companion object {
         private const val TAG = "FirebaseAuthRepository"
+        const val AUTHORIZATION_HEADER = "Authorization"
+        const val BEARER = "Bearer"
     }
 }

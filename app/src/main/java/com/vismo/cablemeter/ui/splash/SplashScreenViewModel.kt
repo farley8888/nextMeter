@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.module.IoDispatcher
-import com.vismo.cablemeter.network.ConnectivityManager
+import com.vismo.cablemeter.repository.ConnectivityManager
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.NetworkTimeRepository

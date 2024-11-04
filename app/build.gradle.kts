@@ -154,4 +154,6 @@ dependencies {
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
     implementation(libs.commons.net)
+    implementation(libs.samstevens.totp)
+    implementation(libs.preferences.datastore)
 }

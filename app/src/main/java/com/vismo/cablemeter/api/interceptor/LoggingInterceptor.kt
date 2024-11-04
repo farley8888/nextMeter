@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.network.interceptor
+package com.vismo.cablemeter.api.interceptor
 
 import okhttp3.Interceptor
 import okhttp3.Protocol

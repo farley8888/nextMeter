@@ -1,7 +1,11 @@
 package com.vismo.cablemeter.module
 
-import com.vismo.cablemeter.network.api.MeterOApi
-import com.vismo.cablemeter.network.interceptor.LoggingInterceptor
+import com.vismo.cablemeter.api.service.MeterOApiService
+import com.vismo.cablemeter.api.interceptor.LoggingInterceptor
+import com.vismo.cablemeter.api.service.MeterApiService
+import com.vismo.cablemeter.repository.FirebaseAuthRepository
+import com.vismo.cablemeter.repository.MeterApiRepository
+import com.vismo.cablemeter.repository.MeterOApiRepository
 import com.vismo.cablemeter.util.Constant
 import dagger.Module
 import dagger.Provides
@@ -74,8 +78,36 @@ class NetworkModule {
 
     @Singleton
     @Provides
-    fun providesMeterOApi(@ApiRetrofit2 retrofit: Retrofit): MeterOApi {
-        return retrofit.create(MeterOApi::class.java)
+    fun providesMeterApi(@ApiRetrofit1 retrofit: Retrofit): MeterApiService {
+        return retrofit.create(MeterApiService::class.java)
+    }
+
+    @Singleton
+    @Provides
+    fun providesMeterOApi(@ApiRetrofit2 retrofit: Retrofit): MeterOApiService {
+        return retrofit.create(MeterOApiService::class.java)
+    }
+
+    @Singleton
+    @Provides
+    fun provideOMeterApiRepository(
+        meterOApiService: MeterOApiService,
+    ): MeterOApiRepository {
+        return MeterOApiRepository(
+            meterOApiService = meterOApiService,
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun provideMeterApiRepository(
+        meterApiService: MeterApiService,
+        firebaseAuthRepository: FirebaseAuthRepository
+    ): MeterApiRepository {
+        return MeterApiRepository(
+            firebaseAuthRepository = firebaseAuthRepository,
+            meterApiService = meterApiService,
+        )
     }
 
 }
