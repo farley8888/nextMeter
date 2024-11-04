@@ -27,6 +27,7 @@ import com.vismo.cablemeter.ui.meter.MeterOpsViewModel
 import com.vismo.cablemeter.ui.pair.DriverPairScreen
 import com.vismo.cablemeter.ui.pair.DriverPairViewModel
 import com.vismo.cablemeter.ui.pin.SystemPinScreen
+import com.vismo.cablemeter.ui.pin.SystemPinViewModel
 import com.vismo.cablemeter.ui.settings.AdjustBrightnessOrVolumeScreen
 import com.vismo.cablemeter.ui.settings.AdjustBrightnessOrVolumeViewModel
 import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
@@ -104,7 +105,7 @@ fun NavigationGraph(
             })
         }
         composable(NavigationDestination.SystemPin.route) {
-            SystemPinScreen(navigate = {
+            SystemPinScreen(viewModel = hiltViewModel<SystemPinViewModel>(), navigate = {
                 navController.navigate(NavigationDestination.AdminBasicEdit.route)
             })
         }

@@ -77,7 +77,7 @@ class DashManager @Inject constructor(
 
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
-    init {
+    fun init() {
         meterSdkConfigurationListener()
         //TODO: needs to be called after code 682682 is entered - not like this
         isMCUParamsUpdateRequired()
@@ -150,12 +150,15 @@ class DashManager @Inject constructor(
     }
 
     private suspend fun observeMeterLicensePlate() {
+        Log.d(TAG, "observeMeterLicensePlate")
         dashManagerConfig.meterIdentifier.collectLatest {
+            Log.d(TAG, "observeMeterLicensePlate - meterIdentifier: $it")
             meterDocumentListener?.remove() // Remove the previous listener
-
+            Log.d(TAG, "meter document path ${getMeterDocument().path}")
             meterDocumentListener = getMeterDocument()
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
+                        Log.d(TAG, "observeMeterLicensePlate error", e)
                         return@addSnapshotListener
                     }
 
@@ -177,6 +180,7 @@ class DashManager @Inject constructor(
                             session = session,
                             mcuInfo = mcuInfo,
                         )
+                        Log.d(TAG, " successfully - showLoginToggle value: ${settings?.showLoginToggle}")
                     }
                 }
         }

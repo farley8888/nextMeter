@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.network
+package com.vismo.cablemeter.repository
 
 import android.content.Context
 import android.net.ConnectivityManager

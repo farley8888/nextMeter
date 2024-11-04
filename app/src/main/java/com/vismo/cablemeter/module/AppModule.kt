@@ -6,13 +6,14 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.vismo.cablemeter.dao.TripsDao
-import com.vismo.cablemeter.network.ConnectivityManager
-import com.vismo.cablemeter.network.api.MeterOApi
+import com.vismo.cablemeter.repository.ConnectivityManager
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.LocalTripsRepository
 import com.vismo.cablemeter.repository.LocalTripsRepositoryImpl
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepositoryImpl
+import com.vismo.cablemeter.repository.MeterOApiRepository
+import com.vismo.cablemeter.repository.MeterPreferenceRepository
 import com.vismo.cablemeter.repository.NetworkTimeRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepositoryImpl
@@ -88,12 +89,12 @@ object AppModule {
     fun provideFirebaseAuthRepository(
         auth: FirebaseAuth,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        meterOApi: MeterOApi,
+        meterOApiRepository: MeterOApiRepository
     ): FirebaseAuthRepository {
         return FirebaseAuthRepository(
             auth = auth,
             ioDispatcher = ioDispatcher,
-            meterOApi = meterOApi
+            meterOApiRepository = meterOApiRepository
         )
     }
 
@@ -177,4 +178,13 @@ object AppModule {
         )
     }
 
+    @Singleton
+    @Provides
+    fun providesMeterPreferenceRepository(
+        @ApplicationContext context: Context,
+    ): MeterPreferenceRepository {
+        return MeterPreferenceRepository(
+            context = context,
+        )
+    }
 }

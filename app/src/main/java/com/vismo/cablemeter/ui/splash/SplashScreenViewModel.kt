@@ -3,9 +3,8 @@ package com.vismo.cablemeter.ui.splash
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.module.IoDispatcher
-import com.vismo.cablemeter.network.ConnectivityManager
+import com.vismo.cablemeter.repository.ConnectivityManager
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.NetworkTimeRepository
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -45,6 +43,16 @@ class SplashScreenViewModel @Inject constructor(
             launch { startTimeout() }
             launch { checkNetworkConnection() }
             launch { observeMeterFields() }
+            launch { observeFirebaseAuthSuccess() }
+        }
+    }
+
+    private suspend fun observeFirebaseAuthSuccess() {
+        firebaseAuthRepository.isFirebaseAuthSuccess.collectLatest { isFirebaseAuthSuccess ->
+            if (isFirebaseAuthSuccess) {
+                dashManager.init()
+                Log.d(TAG, "Firebase auth success")
+            }
         }
     }
 

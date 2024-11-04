@@ -1,4 +1,4 @@
-package com.vismo.cablemeter.network.api
+package com.vismo.cablemeter.api.service
 
 import com.vismo.cablemeter.model.AuthToken
 import okhttp3.RequestBody
@@ -7,7 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
 
-interface MeterOApi {
+interface MeterOApiService {
     @POST("auth")
     suspend fun postFirebaseAuthToken(
         @Body body: RequestBody,
