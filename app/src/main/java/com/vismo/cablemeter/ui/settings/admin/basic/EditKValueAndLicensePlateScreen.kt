@@ -1,5 +1,8 @@
 package com.vismo.cablemeter.ui.settings.admin.basic
 
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -123,7 +126,10 @@ fun EditKValueAndLicensePlateScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Button(onClick = { performVirtualTapFeedback(view) },
+            Button(onClick = {
+                openSystemSettings(context = view.context)
+                performVirtualTapFeedback(view)
+                             },
                 colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -169,4 +175,15 @@ fun EditKValueAndLicensePlateScreen(
             }
         }
     }
+}
+
+private fun openSystemSettings(context: Context) {
+    val intent = Intent("android.intent.action.VIEW").apply {
+        component = ComponentName("com.android.settings", "com.android.settings.Settings")
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        putExtra("extra_prefs_show_button_bar", true)
+        putExtra("extra_prefs_set_next_text", "完成")
+        putExtra("extra_prefs_set_back_text", "返回")
+    }
+    context.startActivity(intent)
 }

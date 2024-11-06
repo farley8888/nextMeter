@@ -29,6 +29,7 @@ room = "2.6.1"
 commons-net = "3.8.0"
 totp = "1.7.1"
 preferences-datastore = "1.1.1"
+floating-bubble-view = "0.6.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -72,6 +73,7 @@ room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 commons-net = { group = "commons-net", name = "commons-net", version.ref = "commons-net" }
 samstevens-totp = { group = "dev.samstevens.totp", name = "totp", version.ref = "totp" }
 preferences-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "preferences-datastore" }
+floating-bubble-view = { group = "io.github.torrydo", name = "floating-bubble-view", version.ref = "floating-bubble-view" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
