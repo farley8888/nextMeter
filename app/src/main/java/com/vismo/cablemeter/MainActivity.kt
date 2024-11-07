@@ -2,6 +2,7 @@ package com.vismo.cablemeter
 
 import android.app.AlarmManager
 import android.content.Context
+import android.content.Intent
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.telephony.PhoneStateListener
@@ -26,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -36,6 +38,7 @@ import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.service.GlobalBackService
 import com.vismo.cablemeter.ui.topbar.AppBar
 import com.vismo.cablemeter.ui.NavigationGraph
 import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
@@ -101,7 +104,7 @@ class MainActivity : ComponentActivity() {
                             AppBar(
                                 viewModel = mainViewModel,
                                 onBackButtonClick = {
-                                    if (!isTripInProgress) {
+                                    if (!isTripInProgress && navController?.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
                                         navController!!.popBackStack()
                                     }
                                 }
@@ -249,6 +252,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         AmapLocationUtils.getInstance().startLocation()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val backButtonServiceIntent = Intent(this, GlobalBackService::class.java)
+        ContextCompat.startForegroundService(this, backButtonServiceIntent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val backButtonServiceIntent = Intent(this, GlobalBackService::class.java)
+        stopService(backButtonServiceIntent)
     }
 
     companion object {

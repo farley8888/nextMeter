@@ -156,4 +156,5 @@ dependencies {
     implementation(libs.commons.net)
     implementation(libs.samstevens.totp)
     implementation(libs.preferences.datastore)
+    implementation(libs.floating.bubble.view)
 }
