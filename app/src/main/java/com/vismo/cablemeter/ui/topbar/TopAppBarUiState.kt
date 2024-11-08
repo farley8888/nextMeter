@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.vismo.cablemeter.BuildConfig
 import com.vismo.cablemeter.ui.theme.nobel600
 import com.vismo.cablemeter.util.Constant.ENV_DEV
+import com.vismo.cablemeter.util.Constant.ENV_DEV_2
 import com.vismo.cablemeter.util.Constant.ENV_PROD
 import com.vismo.cablemeter.util.Constant.ENV_QA
 
@@ -19,6 +20,7 @@ data class TopAppBarUiState (
     val color: Color = nobel600,
     val envVariable: String = when(BuildConfig.FLAVOR) {
         ENV_DEV -> "D"
+        ENV_DEV_2 -> "D2"
         ENV_QA -> "Q"
         ENV_PROD -> "P"
         else -> "INVALID"

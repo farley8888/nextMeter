@@ -1,0 +1,503 @@
+{
+  "project_info": {
+    "project_number": "210975360305",
+    "project_id": "dash-dev2-edcb3",
+    "storage_bucket": "dash-dev2-edcb3.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:a154e6dc8f311085245c10",
+        "android_client_info": {
+          "package_name": "com.dash.driver.dev2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-pg5p6ins9j8hccbs4g53efi6bcua4j1l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dash.driver.dev2",
+            "certificate_hash": "5f02e8e1d5a030bbed620db60e38340b06d1c964"
+          }
+        },
+        {
+          "client_id": "210975360305-slqe5odjgotcekhrau7su8jaehfa87rs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dash.driver.dev2",
+            "certificate_hash": "61f353496f2bbd1e842bd5dff0af9f687daf5fb0"
+          }
+        },
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:ab7f797b0d0368eb245c10",
+        "android_client_info": {
+          "package_name": "com.dash.meter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:e809ccdbeabe621f245c10",
+        "android_client_info": {
+          "package_name": "com.dash.paymentapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:e771456c4e6268f3245c10",
+        "android_client_info": {
+          "package_name": "com.dash.paymentapp.dev2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:16f71150664aa640245c10",
+        "android_client_info": {
+          "package_name": "com.dash.tablet"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:97d940ff0fcc6e5a245c10",
+        "android_client_info": {
+          "package_name": "com.dash.tablet.dev2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:8879ef9b8060f64e245c10",
+        "android_client_info": {
+          "package_name": "com.dashapp.garage.dev2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:ddd3af774297ad43245c10",
+        "android_client_info": {
+          "package_name": "com.dashapp.user"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:36c563be20878ec5245c10",
+        "android_client_info": {
+          "package_name": "com.dashapp.user.dev2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-47adfhnk554fkjdr4fe6bd355lud2g6j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.dev2",
+            "certificate_hash": "5f02e8e1d5a030bbed620db60e38340b06d1c964"
+          }
+        },
+        {
+          "client_id": "210975360305-5fe66s8qsib1lcje6a0e5s8o117pe63f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.dev2",
+            "certificate_hash": "41047cb0305d0df7d5c1574fbea805c50a198cca"
+          }
+        },
+        {
+          "client_id": "210975360305-kakngo9g7o4dc85kjm1occ694o2ke843.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.dev2",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
+          "client_id": "210975360305-kvq5va9n1duqv0onjr73ra2llhhp9j2s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.dev2",
+            "certificate_hash": "719370861e1ebb348676c58d468fa682474ba1a8"
+          }
+        },
+        {
+          "client_id": "210975360305-r129j4jg9pgvu53el876ujmnguojeng7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.dev2",
+            "certificate_hash": "d0e80f4e0003b82a327f66f640ea173c4273c631"
+          }
+        },
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:840cb5e760499e5d245c10",
+        "android_client_info": {
+          "package_name": "com.vismo.cablemeter.dev2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-tqk7unp98c2npp0biampn5scivcm0rfg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vismo.cablemeter.dev2",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:3a65977c4a97fefb245c10",
+        "android_client_info": {
+          "package_name": "valuation.batong.com.valuationpro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

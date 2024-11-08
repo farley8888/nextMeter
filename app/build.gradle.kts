@@ -99,6 +99,12 @@ android {
             versionNameSuffix = "-dev"
             archivesName = "cablemeter-$${getVersionName()}(${getVersionCode()})"
         }
+        create("dev2") {
+            dimension = "env"
+            applicationIdSuffix = ".dev2"
+            versionNameSuffix = "-dev2"
+            archivesName = "cablemeter-$${getVersionName()}(${getVersionCode()})"
+        }
         create("qa") {
             dimension = "env"
             applicationIdSuffix = ".qa"

@@ -3,13 +3,9 @@ package com.vismo.cablemeter.ui.pair
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vismo.cablemeter.BuildConfig
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
-import com.vismo.cablemeter.util.Constant.ENV_DEV
-import com.vismo.cablemeter.util.Constant.ENV_PROD
-import com.vismo.cablemeter.util.Constant.ENV_QA
 import com.vismo.cablemeter.util.GlobalUtils.encrypt
 import com.vismo.nxgnfirebasemodule.util.Constant.DEFAULT_LICENSE_PLATE
 import dagger.hilt.android.lifecycle.HiltViewModel
