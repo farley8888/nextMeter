@@ -1,8 +1,10 @@
 package com.vismo.cablemeter
 
 import android.app.AlarmManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.hardware.usb.UsbManager
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.telephony.PhoneStateListener
@@ -59,6 +61,21 @@ import java.util.TimeZone
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
     private var navController: NavHostController? = null
+    private val storageReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                    mainViewModel.onUsbConnected()
+                }
+                Intent.ACTION_MEDIA_MOUNTED -> {
+                    mainViewModel.onSdCardMounted()
+                }
+                Intent.ACTION_MEDIA_UNMOUNTED -> {
+                    mainViewModel.onSdCardUnmounted()
+                }
+            }
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initObservers()
@@ -87,6 +104,14 @@ class MainActivity : ComponentActivity() {
                         coroutineScope = rememberCoroutineScope()
                     }
                     val isTripInProgress = mainViewModel.isTripInProgress.collectAsState().value
+                    val showSnackBar = mainViewModel.snackBarContent.collectAsState().value
+                    LaunchedEffect(showSnackBar) {
+                        if (showSnackBar != null) {
+                            snackbarDelegate.showSnackbar(showSnackBar.second, showSnackBar.first)
+                            mainViewModel.resetSnackBarContent()
+                        }
+                    }
+
                     Scaffold(
                         snackbarHost = {
                             SnackbarHost(

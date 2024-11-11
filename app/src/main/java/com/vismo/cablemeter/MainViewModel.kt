@@ -3,6 +3,7 @@ package com.vismo.cablemeter
 import android.content.Context
 import android.os.PowerManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
@@ -21,10 +22,12 @@ import com.vismo.cablemeter.repository.NetworkTimeRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.cablemeter.repository.TripRepository
+import com.vismo.cablemeter.ui.shared.SnackbarState
 import com.vismo.cablemeter.ui.theme.gold600
 import com.vismo.cablemeter.ui.theme.nobel600
 import com.vismo.cablemeter.ui.theme.pastelGreen600
 import com.vismo.cablemeter.ui.theme.primary700
+import com.vismo.cablemeter.util.Constant
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
@@ -42,6 +45,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -78,6 +83,9 @@ class MainViewModel @Inject constructor(
     private var accEnquiryJob: Job? = null
     private var sleepJob: Job? = null
     private val _isScreenOff = MutableStateFlow(false)
+
+    private val _snackBarContent = MutableStateFlow<Pair<String, SnackbarState>?>(null)
+    val snackBarContent: StateFlow<Pair<String, SnackbarState>?> = _snackBarContent
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
@@ -150,6 +158,12 @@ class MainViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    private fun disableADBByDefaultForProd() {
+        if (BuildConfig.FLAVOR == Constant.ENV_PROD) {
+            disableADB()
         }
     }
 
@@ -299,7 +313,7 @@ class MainViewModel @Inject constructor(
         startACCStatusInquiries()
         observeInternetStatus()
         observeDriverInfo()
-
+        disableADBByDefaultForProd()
     }
 
     private fun startACCStatusInquiries() {
@@ -358,6 +372,62 @@ class MainViewModel @Inject constructor(
         val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$TAG::LowPowerModeWakelock")
         wakeLock.acquire(TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY) // Acquire for 1 minute
         wakeLock.release()
+    }
+
+    fun onUsbConnected() {
+        _snackBarContent.value = Pair("USB設備已連接", SnackbarState.SUCCESS)
+    }
+
+    fun onSdCardMounted() {
+        readFromSDCard()
+
+    }
+
+    private fun readFromSDCard() {
+        try {
+            val sdCard = ContextCompat.getExternalFilesDirs(context, null).last().absolutePath
+            val path = sdCard.split("/Android").get(0)
+            val file = File(path, "usbadb.txt")
+            val text = file.readText()
+            onTextReceived(text)
+        } catch (e: IOException) {
+            // Handle exceptions
+            Log.e("ReadFile", "Error reading file", e)
+            _snackBarContent.value = Pair("插入的SD卡無效", SnackbarState.ERROR)
+        }
+    }
+
+    private fun onTextReceived(text: String) {
+        // Handle the text
+        val trimmedText = text.trim()
+        if (trimmedText == "772005") {
+            enableADB()
+            _snackBarContent.value = Pair("USB鎖定已解除", SnackbarState.SUCCESS)
+        } else {
+            // show error message
+            _snackBarContent.value = Pair("插入的SD卡無效", SnackbarState.ERROR)
+        }
+    }
+
+    fun onSdCardUnmounted() {
+        disableADB()
+        _snackBarContent.value = Pair("USB已被鎖定", SnackbarState.ERROR)
+    }
+
+    private fun enableADB() {
+        viewModelScope.launch {
+            ShellUtils.execShellCmd("setprop persist.service.adb.enable 1")
+        }
+    }
+
+    private fun disableADB() {
+        viewModelScope.launch {
+            ShellUtils.execShellCmd("setprop persist.service.adb.enable 0")
+        }
+    }
+
+    fun resetSnackBarContent() {
+        _snackBarContent.value = null
     }
 
     override fun onCleared() {
