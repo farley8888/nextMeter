@@ -1,0 +1,466 @@
+{
+  "project_info": {
+    "project_number": "537352640854",
+    "project_id": "dash-qa-cdfcd",
+    "storage_bucket": "dash-qa-cdfcd.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:8384eaa7ca4caba9549ef7",
+        "android_client_info": {
+          "package_name": "com.dash.driver.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-88fvje5cpjrkiggoa3if2asj83ov9qgg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dash.driver.qa",
+            "certificate_hash": "41047cb0305d0df7d5c1574fbea805c50a198cca"
+          }
+        },
+        {
+          "client_id": "537352640854-fnk2mo9e6q2g0dfv86577dtbn7mca14b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dash.driver.qa",
+            "certificate_hash": "5f02e8e1d5a030bbed620db60e38340b06d1c964"
+          }
+        },
+        {
+          "client_id": "537352640854-q221174ov1kf44skhugu28vujh69lvek.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dash.driver.qa",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:cac21b65e0ee2f42549ef7",
+        "android_client_info": {
+          "package_name": "com.dash.meter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:7989ea8d823bcb1d549ef7",
+        "android_client_info": {
+          "package_name": "com.dash.paymentapp.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-66pjfg7c0kb213mepmtcmqi6dpood6g1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dash.paymentapp.qa",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:e4d36470f34003e6549ef7",
+        "android_client_info": {
+          "package_name": "com.dash.secondrowkiosk.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:32a23be1f15d9756549ef7",
+        "android_client_info": {
+          "package_name": "com.dash.tablet.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-18io6v0n0eh54bhdh80hvls2i7s7a754.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dash.tablet.qa",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:bf68cb9a23ed92ad549ef7",
+        "android_client_info": {
+          "package_name": "com.dash.taxipos.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:5dcef25ead2fc7a4549ef7",
+        "android_client_info": {
+          "package_name": "com.dashapp.garage.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-7a946hvbhvcirlni0v29796g6451l5nr.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.garage.qa",
+            "certificate_hash": "5f02e8e1d5a030bbed620db60e38340b06d1c964"
+          }
+        },
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:e162bb1b8729c6f5549ef7",
+        "android_client_info": {
+          "package_name": "com.dashapp.user.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-2pam8d470dpfah57n02nvj4omc5ea1vv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.qa",
+            "certificate_hash": "41047cb0305d0df7d5c1574fbea805c50a198cca"
+          }
+        },
+        {
+          "client_id": "537352640854-laktbqupovsmg15ni8ta71hvt5l40bn0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.qa",
+            "certificate_hash": "719370861e1ebb348676c58d468fa682474ba1a8"
+          }
+        },
+        {
+          "client_id": "537352640854-nv2nitgglbok1igj4rerbocbn2l01hh7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.qa",
+            "certificate_hash": "d0e80f4e0003b82a327f66f640ea173c4273c631"
+          }
+        },
+        {
+          "client_id": "537352640854-uksr12ttlgjq4ljv99bv5h2ciaj7egsd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.qa",
+            "certificate_hash": "5f02e8e1d5a030bbed620db60e38340b06d1c964"
+          }
+        },
+        {
+          "client_id": "537352640854-vmkjsurhdk3pvgg2adl12oquhvvol0js.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dashapp.user.qa",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:0a9744eed066a835549ef7",
+        "android_client_info": {
+          "package_name": "com.vismo.cablemeter.qa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-5aen8bqlkadd54hivne3bm5c0mickdos.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vismo.cablemeter.qa",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:537352640854:android:dafb930096c747ec549ef7",
+        "android_client_info": {
+          "package_name": "com.vismo.nextgenmeter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDX7jaGufotla1affgENHDIGHEF_rLyuy8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "537352640854-ilqfh78fdh23v65q695ca6vqe52haati.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "537352640854-1ccmhuae9cgkbi5tiqib5egmaegpfdht.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.user.qa"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
