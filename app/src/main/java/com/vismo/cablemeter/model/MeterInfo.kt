@@ -12,6 +12,7 @@ data class MeterInfo(
 data class Session(
     @SerializedName("id") val sessionId: String,
     @SerializedName("driver") val driver: Driver,
+    @SerializedName("license_plate") val licensePlate: String
 )
 
 data class Driver(
@@ -19,7 +20,6 @@ data class Driver(
     @SerializedName("name") val driverName: String,
     @SerializedName("name_ch") val driverChineseName: String,
     @SerializedName("driver_license") val driverLicense: String,
-    @SerializedName("license_plate") val licensePlate: String,
 )
 
 data class Settings(

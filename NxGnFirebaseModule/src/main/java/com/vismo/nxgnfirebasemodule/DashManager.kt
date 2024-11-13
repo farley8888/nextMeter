@@ -448,11 +448,12 @@ class DashManager @Inject constructor(
         val sessionMap = snapshot.data?.get(SESSION) as? Map<String, *>
         val sessionId = sessionMap?.get(SESSION_ID) as? String
         val driverMap = sessionMap?.get(DRIVER) as? Map<String, *>
+        val licensePlate = sessionMap?.get("license_plate") as? String
 
         return sessionId?.let {
             driverMap?.let { driverData ->
                 val driver = parseDriver(driverData)
-                Session(sessionId = it, driver = driver)
+                Session(sessionId = it, driver = driver, licensePlate = licensePlate ?: "")
             }
         }
     }

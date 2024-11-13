@@ -8,9 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
+import com.vismo.cablemeter.model.Session
 import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
+import com.vismo.cablemeter.repository.DriverPreferenceRepository
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepository
@@ -48,7 +50,8 @@ class MainViewModel @Inject constructor(
     private val dashManagerConfig: DashManagerConfig,
     private val tripRepository: TripRepository,
     @ApplicationContext private val context: Context,
-    private val firebaseAuthRepository: FirebaseAuthRepository
+    private val firebaseAuthRepository: FirebaseAuthRepository,
+    private val driverPreferenceRepository: DriverPreferenceRepository
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -73,6 +76,18 @@ class MainViewModel @Inject constructor(
             launch { observeHeartBeatInterval() }
             launch { observeMeterAndTripInfo() }
             launch { observeTripDate() }
+            launch { observeDriverInfo() }
+        }
+    }
+
+    private suspend fun observeDriverInfo() {
+        driverPreferenceRepository.loadDriver()
+        driverPreferenceRepository.driverFlow.collectLatest { driver ->
+            toolbarUiDataUpdateMutex.withLock {
+                _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                    driverPhoneNumber = driver.driverPhoneNumber
+                )
+            }
         }
     }
 
@@ -101,21 +116,31 @@ class MainViewModel @Inject constructor(
                 toolbarUiDataUpdateMutex.withLock {
                     _topAppBarUiState.value = _topAppBarUiState.value.copy(
                         showLoginToggle = it.settings?.showLoginToggle ?: false,
-                        driverPhoneNumber = it.session?.driver?.driverPhoneNumber ?: "",
                     )
+                }
+                if (driverPreferenceRepository.getDriver().driverPhoneNumber != it.session?.driver?.driverPhoneNumber) {
+                    if (it.session?.driver?.driverPhoneNumber != null) {
+                        driverPreferenceRepository.saveDriver(it.session.driver)
+                    } else {
+                        driverPreferenceRepository.resetDriver()
+                    }
                 }
             }
 
-            val toolbarColor = when (tripPaidStatus) {
-                TripPaidStatus.NOT_PAID -> if (meterInfo?.session != null) primary700 else nobel600
-                TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
-                TripPaidStatus.PARTIALLY_PAID -> gold600
-            }
-            toolbarUiDataUpdateMutex.withLock {
-                _topAppBarUiState.value = _topAppBarUiState.value.copy(
-                    color = toolbarColor
-                )
-            }
+            manageDashPayColor(tripPaidStatus, meterInfo?.session != null)
+        }
+    }
+
+    private suspend fun manageDashPayColor(tripPaidStatus: TripPaidStatus, isSessionExists: Boolean) {
+        val toolbarColor = when (tripPaidStatus) {
+            TripPaidStatus.NOT_PAID -> if (isSessionExists) primary700 else nobel600
+            TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
+            TripPaidStatus.PARTIALLY_PAID -> gold600
+        }
+        toolbarUiDataUpdateMutex.withLock {
+            _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                color = toolbarColor
+            )
         }
     }
 

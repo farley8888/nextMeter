@@ -5,8 +5,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import com.google.gson.Gson
 import com.vismo.cablemeter.dao.TripsDao
 import com.vismo.cablemeter.repository.ConnectivityManager
+import com.vismo.cablemeter.repository.DriverPreferenceRepository
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
 import com.vismo.cablemeter.repository.LocalTripsRepository
 import com.vismo.cablemeter.repository.LocalTripsRepositoryImpl
@@ -185,6 +187,18 @@ object AppModule {
     ): MeterPreferenceRepository {
         return MeterPreferenceRepository(
             context = context,
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesDriverPreferenceRepository(
+        @ApplicationContext context: Context,
+        gson: Gson
+    ): DriverPreferenceRepository {
+        return DriverPreferenceRepository(
+            context = context,
+            gson = gson
         )
     }
 }

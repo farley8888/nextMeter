@@ -163,4 +163,5 @@ dependencies {
     implementation(libs.samstevens.totp)
     implementation(libs.preferences.datastore)
     implementation(libs.floating.bubble.view)
+    implementation(libs.proto.datastore)
 }
