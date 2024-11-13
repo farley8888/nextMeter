@@ -8,9 +8,11 @@ import androidx.datastore.dataStore
 import com.google.gson.Gson
 import com.vismo.cablemeter.model.Driver
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.io.InputStream
 import java.io.OutputStream
 import javax.inject.Inject
@@ -19,20 +21,12 @@ class DriverPreferenceRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val gson: Gson
 ) {
-    private val _driverFlow = MutableStateFlow<Driver>(defaultDriver)
-    val driverFlow: StateFlow<Driver> = _driverFlow
 
-    suspend fun loadDriver() {
-        try {
-            context.driverDataStore.data.collect { driver ->
-                _driverFlow.value = driver
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
+    fun getDriver(): Flow<Driver> {
+        return context.driverDataStore.data.map { it }
     }
 
-    suspend fun getDriver(): Driver {
+    suspend fun getDriverOnce(): Driver {
         return try {
             context.driverDataStore.data.first()
         } catch (e: IOException) {

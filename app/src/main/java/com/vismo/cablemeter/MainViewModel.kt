@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
-import com.vismo.cablemeter.model.Session
 import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
@@ -81,8 +80,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun observeDriverInfo() {
-        driverPreferenceRepository.loadDriver()
-        driverPreferenceRepository.driverFlow.collectLatest { driver ->
+        driverPreferenceRepository.getDriver().collectLatest { driver ->
             toolbarUiDataUpdateMutex.withLock {
                 _topAppBarUiState.value = _topAppBarUiState.value.copy(
                     driverPhoneNumber = driver.driverPhoneNumber
@@ -118,7 +116,7 @@ class MainViewModel @Inject constructor(
                         showLoginToggle = it.settings?.showLoginToggle ?: false,
                     )
                 }
-                if (driverPreferenceRepository.getDriver().driverPhoneNumber != it.session?.driver?.driverPhoneNumber) {
+                if (driverPreferenceRepository.getDriverOnce().driverPhoneNumber != it.session?.driver?.driverPhoneNumber) {
                     if (it.session?.driver?.driverPhoneNumber != null) {
                         driverPreferenceRepository.saveDriver(it.session.driver)
                     } else {

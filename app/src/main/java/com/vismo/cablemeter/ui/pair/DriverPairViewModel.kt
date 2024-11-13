@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.datastore.MCUParamsDataStore
 import com.vismo.cablemeter.module.IoDispatcher
+import com.vismo.cablemeter.repository.DriverPreferenceRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.cablemeter.util.GlobalUtils.encrypt
 import com.vismo.nxgnfirebasemodule.util.Constant.DEFAULT_LICENSE_PLATE
@@ -25,7 +26,8 @@ import javax.inject.Inject
 @HiltViewModel
 class DriverPairViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val remoteMeterControlRepository: RemoteMeterControlRepository
+    private val remoteMeterControlRepository: RemoteMeterControlRepository,
+    private val driverPreferenceRepository: DriverPreferenceRepository
 ) : ViewModel() {
 
     private val _driverPairScreenUiData = MutableStateFlow(DriverPairUiData())
@@ -73,18 +75,16 @@ class DriverPairViewModel @Inject constructor(
     }
 
     private suspend fun observeMeterInfo() {
-        remoteMeterControlRepository.meterInfo.collectLatest { meterInfo ->
-            meterInfo?.let {
-                uiUpdateMutex.withLock {
-                    if (it.session != null) {
-                        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
-                            driverPhoneNumber = it.session.driver.driverPhoneNumber
-                        )
-                    } else {
-                        _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
-                            driverPhoneNumber = ""
-                        )
-                    }
+        driverPreferenceRepository.getDriver().collectLatest { driver ->
+            uiUpdateMutex.withLock {
+                if (driver.driverPhoneNumber.isNotEmpty()) {
+                    _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                        driverPhoneNumber = driver.driverPhoneNumber
+                    )
+                } else {
+                    _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                        driverPhoneNumber = ""
+                    )
                 }
             }
         }
