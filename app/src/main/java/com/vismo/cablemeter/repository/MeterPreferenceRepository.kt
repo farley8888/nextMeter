@@ -29,10 +29,24 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveShowLoginToggle(showLoginToggle: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[KEY_SHOW_LOGIN_TOGGLE] = showLoginToggle.toString()
+        }
+    }
+
+    suspend fun getShowLoginToggle(): Flow<Boolean> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_SHOW_LOGIN_TOGGLE]?.toBoolean() ?: false
+            }
+    }
+
 
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
         private val KEY_TOTP_SECRET = stringPreferencesKey("totp_secret")
+        private val KEY_SHOW_LOGIN_TOGGLE = stringPreferencesKey("show_login_toggle")
     }
 
 }

@@ -11,8 +11,13 @@ import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.cablemeter.module.IoDispatcher
+import com.vismo.cablemeter.repository.DriverPreferenceRepository
 import com.vismo.cablemeter.repository.FirebaseAuthRepository
+import com.vismo.cablemeter.repository.FirebaseAuthRepository.Companion.AUTHORIZATION_HEADER
+import com.vismo.cablemeter.repository.InternetConnectivityObserver
 import com.vismo.cablemeter.repository.MeasureBoardRepository
+import com.vismo.cablemeter.repository.MeterPreferenceRepository
+import com.vismo.cablemeter.repository.NetworkTimeRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.cablemeter.repository.TripRepository
@@ -20,6 +25,7 @@ import com.vismo.cablemeter.ui.theme.gold600
 import com.vismo.cablemeter.ui.theme.nobel600
 import com.vismo.cablemeter.ui.theme.pastelGreen600
 import com.vismo.cablemeter.ui.theme.primary700
+import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
@@ -31,6 +37,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -48,7 +55,12 @@ class MainViewModel @Inject constructor(
     private val dashManagerConfig: DashManagerConfig,
     private val tripRepository: TripRepository,
     @ApplicationContext private val context: Context,
-    private val firebaseAuthRepository: FirebaseAuthRepository
+    private val firebaseAuthRepository: FirebaseAuthRepository,
+    private val driverPreferenceRepository: DriverPreferenceRepository,
+    private val dashManager: DashManager,
+    private val internetConnectivityObserver: InternetConnectivityObserver,
+    private val networkTimeRepository: NetworkTimeRepository,
+    private val meterPreferenceRepository: MeterPreferenceRepository
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -73,6 +85,71 @@ class MainViewModel @Inject constructor(
             launch { observeHeartBeatInterval() }
             launch { observeMeterAndTripInfo() }
             launch { observeTripDate() }
+            launch { observeFirebaseAuthSuccess() }
+            launch { observeShowLoginToggle() }
+        }
+    }
+
+    private suspend fun observeShowLoginToggle() {
+        meterPreferenceRepository.getShowLoginToggle().collectLatest { showLoginToggle ->
+            _showLoginToggle.value = showLoginToggle
+        }
+    }
+
+    private fun observeInternetStatus() {
+        viewModelScope.launch {
+            Log.d(TAG, "Internet status observer started")
+            internetConnectivityObserver.internetStatus.collectLatest { status ->
+                Log.d(TAG, "Internet status: $status")
+                when (status) {
+                    InternetConnectivityObserver.Status.InternetAvailable -> {
+                        tryInternetTasks()
+                        Log.d(TAG, "Internet available")
+                    }
+
+                    InternetConnectivityObserver.Status.InternetUnavailable -> {
+                        Log.d(TAG, "Internet unavailable")
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun tryInternetTasks() {
+        Log.d(TAG, "Trying internet tasks")
+        val headers = firebaseAuthRepository.getHeaders()
+        if (!headers.containsKey(AUTHORIZATION_HEADER)) {
+            firebaseAuthRepository.initToken()
+            networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
+                measureBoardRepository.updateMeasureBoardTime(networkTime)
+                Log.d(TAG, "Network time: $networkTime")
+            }
+            Log.d(TAG, "FirebaseAuth initToken called")
+        } else if (!DashManager.Companion.isInitialized) {
+            dashManager.init()
+            Log.d(TAG, "FirebaseAuth headers already present - calling dashManager.init()")
+        }
+    }
+
+    private suspend fun observeFirebaseAuthSuccess() {
+        firebaseAuthRepository.isFirebaseAuthSuccess.collectLatest { isFirebaseAuthSuccess ->
+            if (isFirebaseAuthSuccess) {
+                dashManager.init()
+                Log.d(TAG, "Firebase auth success - calling dashManager.init()")
+            }
+        }
+    }
+
+    private fun observeDriverInfo() {
+        viewModelScope.launch {
+            driverPreferenceRepository.getDriver().collectLatest { driver ->
+                Log.d(TAG, "Driver: ${driver.driverPhoneNumber}")
+                toolbarUiDataUpdateMutex.withLock {
+                    _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                        driverPhoneNumber = driver.driverPhoneNumber
+                    )
+                }
+            }
         }
     }
 
@@ -96,26 +173,38 @@ class MainViewModel @Inject constructor(
             Pair(meterInfo, tripPaidStatus)
         }.collectLatest { (meterInfo, tripPaidStatus) ->
             meterInfo?.let {
-                _showLoginToggle.value = it.settings?.showLoginToggle
+                if (it.settings?.showLoginToggle != null && meterPreferenceRepository.getShowLoginToggle().first() != it.settings.showLoginToggle) {
+                    meterPreferenceRepository.saveShowLoginToggle(it.settings.showLoginToggle)
+                }
 
                 toolbarUiDataUpdateMutex.withLock {
                     _topAppBarUiState.value = _topAppBarUiState.value.copy(
                         showLoginToggle = it.settings?.showLoginToggle ?: false,
-                        driverPhoneNumber = it.session?.driver?.driverPhoneNumber ?: "",
                     )
+                }
+                if (driverPreferenceRepository.getDriverOnce().driverPhoneNumber != it.session?.driver?.driverPhoneNumber) {
+                    if (it.session?.driver?.driverPhoneNumber != null) {
+                        driverPreferenceRepository.saveDriver(it.session.driver)
+                    } else {
+                        driverPreferenceRepository.resetDriver()
+                    }
                 }
             }
 
-            val toolbarColor = when (tripPaidStatus) {
-                TripPaidStatus.NOT_PAID -> if (meterInfo?.session != null) primary700 else nobel600
-                TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
-                TripPaidStatus.PARTIALLY_PAID -> gold600
-            }
-            toolbarUiDataUpdateMutex.withLock {
-                _topAppBarUiState.value = _topAppBarUiState.value.copy(
-                    color = toolbarColor
-                )
-            }
+            manageDashPayColor(tripPaidStatus, meterInfo?.session != null)
+        }
+    }
+
+    private suspend fun manageDashPayColor(tripPaidStatus: TripPaidStatus, isSessionExists: Boolean) {
+        val toolbarColor = when (tripPaidStatus) {
+            TripPaidStatus.NOT_PAID -> if (isSessionExists) primary700 else nobel600
+            TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
+            TripPaidStatus.PARTIALLY_PAID -> gold600
+        }
+        toolbarUiDataUpdateMutex.withLock {
+            _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                color = toolbarColor
+            )
         }
     }
 
@@ -208,6 +297,9 @@ class MainViewModel @Inject constructor(
         }
         observeFlows()
         startACCStatusInquiries()
+        observeInternetStatus()
+        observeDriverInfo()
+
     }
 
     private fun startACCStatusInquiries() {

@@ -56,7 +56,7 @@ import com.vismo.cablemeter.ui.theme.nobel400
 import com.vismo.cablemeter.ui.theme.nobel50
 import com.vismo.cablemeter.ui.theme.nobel900
 import com.vismo.cablemeter.ui.theme.primary600
-import com.vismo.cablemeter.ui.theme.secondary800
+import com.vismo.cablemeter.ui.theme.primary800
 import com.vismo.cablemeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
@@ -244,7 +244,7 @@ fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
             contentAlignment = Alignment.Center
         ) {
             if (showQRCode && qrcodeString.isNotEmpty()) {
-                DashAndGoldQrCodeView(data = qrcodeString, size = 280)
+                DashAndGoldQrCodeView(data = qrcodeString, size = 250)
             } else {
                 QRCodePlaceholder()
             }
@@ -253,16 +253,16 @@ fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
 }
 
 @Composable
-fun DashAndGoldQrCodeView(primaryColor: Color = secondary800, data: String, size: Int = 200) {
+fun DashAndGoldQrCodeView(primaryColor: Color = primary800, data: String, size: Int = 200) {
     val gold = gold350
     QrCodeView(
         data = data,
         modifier = Modifier.size(size.dp),
-        colors = QrCodeColors(
-            background = primaryColor,
-            foreground = gold
-        ),
-        dotShape = DotShape.Circle
+//        colors = QrCodeColors(
+//            background = primaryColor,
+//            foreground = gold
+//        ),
+//        dotShape = DotShape.Square
     ) {
         Box(
             contentAlignment = Alignment.Center,
