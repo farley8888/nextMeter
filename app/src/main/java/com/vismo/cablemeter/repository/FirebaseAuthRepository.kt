@@ -160,6 +160,10 @@ class FirebaseAuthRepository @Inject constructor(
                 onError(it.exception)
             }
         }
+        if (auth.currentUser == null) {
+            Log.d(TAG, "signInAnonymously: currentUser: null")
+            onError(null)
+        }
     }
 
     suspend fun getHeaders(): Map<String, String> {
@@ -169,9 +173,11 @@ class FirebaseAuthRepository @Inject constructor(
                 onSuccess = {
                     headers[AUTHORIZATION_HEADER] = "$BEARER $it"
                     continuation.resume(headers)
+                    Log.d(TAG, "getHeaders:success")
                 },
                 onError = {
                     continuation.resume(headers)
+                    Log.d(TAG, "getHeaders:error")
                 }
             )
         }

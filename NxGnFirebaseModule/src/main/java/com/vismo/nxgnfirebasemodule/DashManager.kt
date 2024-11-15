@@ -85,6 +85,7 @@ class DashManager @Inject constructor(
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
         }
+        isInitialized = true
     }
 
     private suspend fun observeMeterDeviceId() {
@@ -484,5 +485,6 @@ class DashManager @Inject constructor(
         private const val DRIVER_NAME_CH = "name_ch"
         private const val DRIVER_LICENSE = "driver_license"
         private const val LOCKED_AT = "locked_at"
+        var isInitialized = false
     }
 }
