@@ -3,7 +3,7 @@ package com.vismo.cablemeter.ui.pair
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.DriverPreferenceRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
@@ -91,7 +91,7 @@ class DriverPairViewModel @Inject constructor(
     }
 
     private suspend fun observeDeviceIdDate() {
-        MCUParamsDataStore.deviceIdData.collectLatest { deviceIdData ->
+        DeviceDataStore.deviceIdData.collectLatest { deviceIdData ->
             deviceIdData?.let {
                 uiUpdateMutex.withLock {
                     _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(

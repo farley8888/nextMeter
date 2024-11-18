@@ -3,7 +3,7 @@ package com.vismo.cablemeter.ui.settings.admin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,13 +22,13 @@ class EditAdminPropertiesViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ): ViewModel() {
 
-    val mcuPriceParams = MCUParamsDataStore.mcuPriceParams.stateIn(
+    val mcuPriceParams = DeviceDataStore.mcuPriceParams.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
         initialValue = null
     )
 
-    val deviceIdData = MCUParamsDataStore.deviceIdData.stateIn(
+    val deviceIdData = DeviceDataStore.deviceIdData.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(),
         initialValue = null

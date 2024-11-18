@@ -1,11 +1,10 @@
 package com.vismo.cablemeter.repository
 
 import com.google.firebase.Timestamp
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.model.MeterInfo
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.nxgnfirebasemodule.DashManager
-import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import kotlinx.coroutines.CoroutineDispatcher
@@ -35,7 +34,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     override fun observeFlows() {
         CoroutineScope(ioDispatcher).launch {
             launch {
-                MCUParamsDataStore.mcuPriceParams.collectLatest { mcuParams ->
+                DeviceDataStore.mcuPriceParams.collectLatest { mcuParams ->
                     mcuParams?.let {
                         val mcuInfo: McuInfo = dashManager.convertToType(it)
                         dashManager.setMCUInfoOnFirestore(mcuInfo)

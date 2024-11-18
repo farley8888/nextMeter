@@ -3,6 +3,8 @@ package com.vismo.cablemeter
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.hardware.usb.UsbManager
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.telephony.PhoneStateListener
@@ -37,8 +39,9 @@ import androidx.navigation.compose.rememberNavController
 import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.service.GlobalBackService
+import com.vismo.cablemeter.service.StorageBroadcastReceiver
 import com.vismo.cablemeter.ui.topbar.AppBar
 import com.vismo.cablemeter.ui.NavigationGraph
 import com.vismo.cablemeter.ui.shared.GlobalSnackbarDelegate
@@ -59,12 +62,27 @@ import java.util.TimeZone
 class MainActivity : ComponentActivity() {
     private val mainViewModel: MainViewModel by viewModels()
     private var navController: NavHostController? = null
+    private var storageReceiver : StorageBroadcastReceiver? = null
+
+    private fun registerStorageReceiver() {
+        storageReceiver = StorageBroadcastReceiver()
+        val filter = IntentFilter().apply {
+            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            addAction(Intent.ACTION_MEDIA_MOUNTED)
+            addAction(Intent.ACTION_MEDIA_UNMOUNTED)
+            addDataScheme("file");
+        }
+
+        registerReceiver(storageReceiver, filter)
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initObservers()
         startAMapLocation()
         listenToSignalStrength()
         setWifiStatus()
+        registerStorageReceiver()
         setContent {
             CableMeterTheme {
                 // A surface container using the 'background' color from the theme
@@ -87,6 +105,14 @@ class MainActivity : ComponentActivity() {
                         coroutineScope = rememberCoroutineScope()
                     }
                     val isTripInProgress = mainViewModel.isTripInProgress.collectAsState().value
+                    val showSnackBar = mainViewModel.snackBarContent.collectAsState().value
+                    LaunchedEffect(showSnackBar) {
+                        if (showSnackBar != null) {
+                            snackbarDelegate.showSnackbar(showSnackBar.second, showSnackBar.first)
+                            mainViewModel.resetSnackBarContent()
+                        }
+                    }
+
                     Scaffold(
                         snackbarHost = {
                             SnackbarHost(
@@ -135,7 +161,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    MCUParamsDataStore.mcuTime.collectLatest {
+                    DeviceDataStore.mcuTime.collectLatest {
                         it?.let { time ->
                             setDeviceTime(time)
                         }
@@ -264,6 +290,13 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         val backButtonServiceIntent = Intent(this, GlobalBackService::class.java)
         stopService(backButtonServiceIntent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        storageReceiver?.let {
+            unregisterReceiver(it)
+        }
     }
 
     companion object {

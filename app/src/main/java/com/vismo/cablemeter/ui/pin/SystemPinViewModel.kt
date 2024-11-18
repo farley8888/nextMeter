@@ -3,7 +3,7 @@ package com.vismo.cablemeter.ui.pin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.cablemeter.api.NetworkResult
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.MeterApiRepository
 import com.vismo.cablemeter.repository.MeterPreferenceRepository
@@ -42,7 +42,7 @@ class SystemPinViewModel @Inject constructor(
     fun refreshTOTPData() {
         viewModelScope.launch(ioDispatcher) {
             _totpStatus.value = "Refreshing TOTP data..."
-            val licensePlate = MCUParamsDataStore.deviceIdData.first()?.licensePlate ?: ""
+            val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
             when (val result = meterApiRepository.getTOTPData(licensePlate)) {
                 is NetworkResult.Success -> {
                     // Handle success
