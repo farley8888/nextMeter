@@ -22,6 +22,10 @@ data class TripData (
     @SerializedName("license_plate")
     val licensePlate: String = "",
 
+    @ColumnInfo(name = "device_id")
+    @SerializedName("device_id")
+    val deviceId: String = "",
+
     @ColumnInfo(name = "start_time")
     @SerializedName("trip_start")
     val startTime: Timestamp,
@@ -65,10 +69,18 @@ data class TripData (
 
     val overSpeedDurationInSeconds: Int = 0,
     val requiresUpdateOnDatabase: Boolean = false,
+    val abnormalPulseCounter: Int? = null,
+    val overSpeedCounter: Int? = null,
+    val mcuStatus: Int? = null,
 )
 
 enum class TripStatus {
     HIRED,
     STOP, // - this means the meter is PAUSED - TODO: rename later so that POS is compatible with PAUSED status
     ENDED
+}
+
+fun TripData.shouldLockMeter(): Boolean {
+    val currentMCUStatus = OngoingMeasureBoardStatus.fromInt(mcuStatus ?: -1)
+    return (currentMCUStatus is OngoingMeasureBoardStatusOverspeed || currentMCUStatus is OngoingMeasureBoardStatusFault) && overSpeedDurationInSeconds > 0
 }

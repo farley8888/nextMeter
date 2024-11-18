@@ -126,6 +126,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val measureBoardStatus = result.substring(17, 17 + 1)
         val isStopped = (measureBoardStatus.toInt() == 1)
         val tripStatus = if (isStopped) TripStatus.STOP else TripStatus.HIRED
+        val abnormalPulseCounter = result.substring(78, 78 + 2)
+        val overspeedCounter = result.substring(80, 80 + 2)
+        val abnormalPulseCounterDecimal =
+            MeasureBoardUtils.hexToDecimal(abnormalPulseCounter)
+        val overspeedCounterDecimal = MeasureBoardUtils.hexToDecimal(overspeedCounter)
         val lockedDuration = result.substring(18, 18 + 4)
         val lockedDurationDecimal = MeasureBoardUtils.hexToDecimal(lockedDuration)
         val distance = result.substring(22, 22 + 6).multiplyBy10AndConvertToDouble()
@@ -138,13 +143,12 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val licensePlateHex = result.substring(126, 126 + 16)
         val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
-        MCUParamsDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
         MCUParamsDataStore.setMCUTime(currentTime)
 
 
-        val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
+        val currentOngoingLocalTrip = localTripsRepository.getLatestOnGoingTrip()
 
-        currentOngoingTripInDB?.let {
+        currentOngoingLocalTrip?.let {
             val requiresUpdate = it.fare != fare || it.tripStatus != tripStatus || it.extra != extras || lockedDurationDecimal > 0
 
             val currentOngoingTrip = TripData(
@@ -159,11 +163,18 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 waitDurationInSeconds = getTimeInSeconds(duration),
                 overSpeedDurationInSeconds = if (it.overSpeedDurationInSeconds > lockedDurationDecimal) (it.overSpeedDurationInSeconds + lockedDurationDecimal) else lockedDurationDecimal, // if the meter turns off and on, we need to save the previous over speed duration and add the new one
                 requiresUpdateOnDatabase = requiresUpdate,
-                licensePlate = licensePlate,
+                licensePlate = it.licensePlate,
+                deviceId = it.deviceId,
+                overSpeedCounter = overspeedCounterDecimal,
+                abnormalPulseCounter = abnormalPulseCounterDecimal,
+                mcuStatus = measureBoardStatus.toInt(),
             )
             TripDataStore.updateTripDataValue(currentOngoingTrip)
+
+            // use local trip to update these data because there are times when ongoing heartbeat might be incorrect (in BYD cases)
+            dashManagerConfig.setDeviceIdData(deviceId = it.deviceId, licensePlate =  it.licensePlate)
+            MCUParamsDataStore.setDeviceIdData(DeviceIdData(it.deviceId, it.licensePlate))
         }
-        dashManagerConfig.setDeviceIdData(deviceId = measureBoardDeviceId, licensePlate =  licensePlate)
         Log.d(TAG, "ONGOING_HEARTBEAT: $result")
     }
 
