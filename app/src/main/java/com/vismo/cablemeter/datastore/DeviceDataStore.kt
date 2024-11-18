@@ -2,12 +2,13 @@ package com.vismo.cablemeter.datastore
 
 import com.vismo.cablemeter.model.DeviceIdData
 import com.vismo.cablemeter.model.MCUFareParams
+import com.vismo.cablemeter.service.StorageReceiverStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-object MCUParamsDataStore {
+object DeviceDataStore {
     private val _mcuFareParams = MutableStateFlow<MCUFareParams?>(null)
     val mcuPriceParams: StateFlow<MCUFareParams?> = _mcuFareParams
 
@@ -16,6 +17,9 @@ object MCUParamsDataStore {
 
     private val _mcuTime = MutableStateFlow<String?>(null)
     val mcuTime: StateFlow<String?> = _mcuTime
+
+    private val _storageReceiverStatus = MutableStateFlow<StorageReceiverStatus>(StorageReceiverStatus.Unknown)
+    val storageReceiverStatus: StateFlow<StorageReceiverStatus> = _storageReceiverStatus
 
     private val mutex = Mutex() // Mutex for synchronization
 
@@ -35,5 +39,9 @@ object MCUParamsDataStore {
         mutex.withLock {
             this._mcuTime.value = mcuTime
         }
+    }
+
+    fun setStorageReceiverStatus(status: StorageReceiverStatus) {
+        this._storageReceiverStatus.value = status
     }
 }

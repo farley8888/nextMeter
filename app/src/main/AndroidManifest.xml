@@ -41,6 +41,12 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="foo"/>  <!-- optional -->
         </service>
         <service android:name="com.amap.api.location.APSService" />
+        <receiver android:name="com.vismo.cablemeter.service.StorageBroadcastReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+                <action android:name="android.hardware.usb.action.USB_DEVICE_DETACHED" />
+            </intent-filter>
+        </receiver>
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="8129389f836db269a3d813773d9af8d3" />

@@ -8,7 +8,7 @@ import com.ilin.atelec.BusModel
 import com.ilin.atelec.IAtCmd
 import com.ilin.util.Config
 import com.ilin.util.ShellUtils
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.model.DeviceIdData
 import com.vismo.cablemeter.model.MCUFareParams
@@ -110,8 +110,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val licensePlateHex = result.substring(110, 110 + 16)
         val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
-        MCUParamsDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
-        MCUParamsDataStore.setMCUTime(result.substring(40, 40 + 12))
+        DeviceDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
+        DeviceDataStore.setMCUTime(result.substring(40, 40 + 12))
 
         TripDataStore.tripData.value?.tripStatus?.let { tripStatus ->
             if (tripStatus == TripStatus.ENDED) {
@@ -143,7 +143,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val licensePlateHex = result.substring(126, 126 + 16)
         val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
-        MCUParamsDataStore.setMCUTime(currentTime)
+        DeviceDataStore.setMCUTime(currentTime)
 
 
         val currentOngoingLocalTrip = localTripsRepository.getLatestOnGoingTrip()
@@ -173,7 +173,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
             // use local trip to update these data because there are times when ongoing heartbeat might be incorrect (in BYD cases)
             dashManagerConfig.setDeviceIdData(deviceId = it.deviceId, licensePlate =  it.licensePlate)
-            MCUParamsDataStore.setDeviceIdData(DeviceIdData(it.deviceId, it.licensePlate))
+            DeviceDataStore.setDeviceIdData(DeviceIdData(it.deviceId, it.licensePlate))
         }
         Log.d(TAG, "ONGOING_HEARTBEAT: $result")
     }
@@ -259,7 +259,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             changedPriceAt = stepPriceChangedAt,
             changedStepPrice = changedStepPrice,
         )
-        MCUParamsDataStore.setMCUFareData(mcuData)
+        DeviceDataStore.setMCUFareData(mcuData)
     }
 
     override fun enquireParameters() {

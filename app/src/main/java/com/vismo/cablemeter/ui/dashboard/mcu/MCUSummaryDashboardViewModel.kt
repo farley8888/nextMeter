@@ -3,7 +3,7 @@ package com.vismo.cablemeter.ui.dashboard.mcu
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.MeasureBoardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,7 +31,7 @@ class MCUSummaryDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 launch {
-                    MCUParamsDataStore.mcuPriceParams.collectLatest {
+                    DeviceDataStore.mcuPriceParams.collectLatest {
                         it?.let {
                             _mcuSummaryUiState.value = _mcuSummaryUiState.value.copy(
                                 fareParams = it
@@ -40,7 +40,7 @@ class MCUSummaryDashboardViewModel @Inject constructor(
                     }
                 }
                 launch {
-                    MCUParamsDataStore.deviceIdData.collectLatest {
+                    DeviceDataStore.deviceIdData.collectLatest {
                         it?.let {
                             _mcuSummaryUiState.value = _mcuSummaryUiState.value.copy(
                                 deviceIdData = it,

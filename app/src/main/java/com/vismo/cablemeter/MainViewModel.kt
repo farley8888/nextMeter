@@ -7,7 +7,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,6 +22,7 @@ import com.vismo.cablemeter.repository.NetworkTimeRepository
 import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.repository.RemoteMeterControlRepository
 import com.vismo.cablemeter.repository.TripRepository
+import com.vismo.cablemeter.service.StorageReceiverStatus
 import com.vismo.cablemeter.ui.shared.SnackbarState
 import com.vismo.cablemeter.ui.theme.gold600
 import com.vismo.cablemeter.ui.theme.nobel600
@@ -95,6 +96,23 @@ class MainViewModel @Inject constructor(
             launch { observeTripDate() }
             launch { observeFirebaseAuthSuccess() }
             launch { observeShowLoginToggle() }
+            launch { observeStorageReceiverStatus() }
+        }
+    }
+
+    private fun observeStorageReceiverStatus() {
+        viewModelScope.launch {
+            DeviceDataStore.storageReceiverStatus.collectLatest { status ->
+                when(status) {
+                    StorageReceiverStatus.Mounted -> onSdCardMounted()
+                    StorageReceiverStatus.Unmounted -> onSdCardUnmounted()
+                    StorageReceiverStatus.Attached -> onUsbConnected()
+                    StorageReceiverStatus.Detached -> onUsbDisconnected()
+                    else -> {}
+                }
+                // Reset the status
+                DeviceDataStore.setStorageReceiverStatus(StorageReceiverStatus.Unknown)
+            }
         }
     }
 
@@ -234,7 +252,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun observeMCUTIme() {
-        MCUParamsDataStore.mcuTime.collectLatest {
+        DeviceDataStore.mcuTime.collectLatest {
             it?.let { dateTime ->
                 try {
                     val formatter = SimpleDateFormat(MCU_DATE_FORMAT, Locale.ENGLISH)
@@ -374,11 +392,15 @@ class MainViewModel @Inject constructor(
         wakeLock.release()
     }
 
-    fun onUsbConnected() {
+    private fun onUsbConnected() {
         _snackBarContent.value = Pair("USB設備已連接", SnackbarState.SUCCESS)
     }
 
-    fun onSdCardMounted() {
+    private fun onUsbDisconnected() {
+        _snackBarContent.value = Pair("USB設備已斷開", SnackbarState.DEFAULT)
+    }
+
+    private fun onSdCardMounted() {
         readFromSDCard()
 
     }
@@ -409,9 +431,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onSdCardUnmounted() {
+    private fun onSdCardUnmounted() {
         disableADB()
-        _snackBarContent.value = Pair("USB已被鎖定", SnackbarState.ERROR)
+        _snackBarContent.value = Pair("SD卡已卸載", SnackbarState.DEFAULT)
     }
 
     private fun enableADB() {
