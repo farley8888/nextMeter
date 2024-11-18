@@ -392,7 +392,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onUsbConnected() {
-        _snackBarContent.value = Pair("USB設備已連接", SnackbarState.SUCCESS)
+        _snackBarContent.value = Pair("USB設備已連接", SnackbarState.DEFAULT)
     }
 
     private fun onUsbDisconnected() {
