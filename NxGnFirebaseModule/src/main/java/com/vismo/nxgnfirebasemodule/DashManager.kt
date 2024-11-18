@@ -26,6 +26,7 @@ import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
 import com.vismo.nxgnfirebasemodule.util.Constant.HEARTBEAT_COLLECTION
+import com.vismo.nxgnfirebasemodule.util.Constant.LOGGING_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METERS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_DEVICES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_SDK_DOCUMENT
@@ -365,6 +366,23 @@ class DashManager @Inject constructor(
                 }
                 .addOnFailureListener {
                     Log.e(TAG, "updateTripOnFirestore error", it)
+                }
+        }
+    }
+
+    fun writeToLoggingCollection(log: Map<String, Any?>) {
+        val map =  log.toFirestoreFormat()
+        scope.launch {
+            val loggingCollection = getMeterDocument()
+                .collection(LOGGING_COLLECTION)
+
+            loggingCollection
+                .add(map)
+                .addOnSuccessListener {
+                    Log.d(TAG, "writeToLoggingsCollection successfully")
+                }
+                .addOnFailureListener {
+                    Log.e(TAG, "writeToLoggingsCollection error", it)
                 }
         }
     }
