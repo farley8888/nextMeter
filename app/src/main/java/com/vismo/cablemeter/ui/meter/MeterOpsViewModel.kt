@@ -6,6 +6,7 @@ import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.repository.TripRepository
 import com.vismo.cablemeter.model.TripData
 import com.vismo.cablemeter.model.TripStatus
+import com.vismo.cablemeter.model.shouldLockMeter
 import com.vismo.cablemeter.module.IoDispatcher
 import com.vismo.cablemeter.repository.PeripheralControlRepository
 import com.vismo.cablemeter.ui.theme.gold600
@@ -79,7 +80,7 @@ class MeterOpsViewModel @Inject constructor(
                             updateUIStateForHire()
                             return@collectLatest
                         }
-                        else if (trip.overSpeedDurationInSeconds > 0) {
+                        else if (trip.shouldLockMeter()) {
                             handleOverSpeed(trip, isAbnormalPulseTriggered)
                             return@collectLatest
                         }
@@ -170,7 +171,7 @@ class MeterOpsViewModel @Inject constructor(
                 duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
                 totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
                 languagePref = _uiState.value.languagePref,
-                remainingOverSpeedTimeInSeconds = if(trip.overSpeedDurationInSeconds > 0) MeterOpsUtil.getFormattedDurationFromSeconds((OVERSPEED_LOCKUP_COUNTER - trip.overSpeedDurationInSeconds).toLong()) else null
+                remainingOverSpeedTimeInSeconds = if(trip.shouldLockMeter() && trip.overSpeedDurationInSeconds > 0) MeterOpsUtil.getFormattedDurationFromSeconds((OVERSPEED_LOCKUP_COUNTER - trip.overSpeedDurationInSeconds).toLong()) else null
             )
         }
     }

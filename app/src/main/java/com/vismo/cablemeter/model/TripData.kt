@@ -79,3 +79,8 @@ enum class TripStatus {
     STOP, // - this means the meter is PAUSED - TODO: rename later so that POS is compatible with PAUSED status
     ENDED
 }
+
+fun TripData.shouldLockMeter(): Boolean {
+    val currentMCUStatus = OngoingMeasureBoardStatus.fromInt(mcuStatus ?: -1)
+    return (currentMCUStatus is OngoingMeasureBoardStatusOverspeed || currentMCUStatus is OngoingMeasureBoardStatusFault) && overSpeedDurationInSeconds > 0
+}
