@@ -110,7 +110,6 @@ class MainViewModel @Inject constructor(
                     StorageReceiverStatus.Detached -> onUsbDisconnected()
                     else -> {}
                 }
-                // Reset the status
                 DeviceDataStore.setStorageReceiverStatus(StorageReceiverStatus.Unknown)
             }
         }
@@ -432,7 +431,10 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onSdCardUnmounted() {
-        disableADB()
+        if(BuildConfig.FLAVOR == Constant.ENV_PROD) {
+            disableADB()
+        }
+
         _snackBarContent.value = Pair("SD卡已卸載", SnackbarState.DEFAULT)
     }
 

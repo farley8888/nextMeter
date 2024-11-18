@@ -2,7 +2,7 @@ package com.vismo.cablemeter.repository
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
-import com.vismo.cablemeter.datastore.MCUParamsDataStore
+import com.vismo.cablemeter.datastore.DeviceDataStore
 import com.vismo.cablemeter.datastore.TripDataStore
 import com.vismo.cablemeter.model.OngoingMeasureBoardStatus
 import com.vismo.cablemeter.model.TripData
@@ -111,8 +111,8 @@ class TripRepositoryImpl @Inject constructor(
 
     override suspend fun startTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
-        val licensePlate = MCUParamsDataStore.deviceIdData.first()?.licensePlate ?: ""
-        val deviceId = MCUParamsDataStore.deviceIdData.first()?.deviceId ?: ""
+        val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
+        val deviceId = DeviceDataStore.deviceIdData.first()?.deviceId ?: ""
         val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED, licensePlate = licensePlate, deviceId = deviceId)
         TripDataStore.setTripData(tripData)
         localTripsRepository.addTrip(tripData)
