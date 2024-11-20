@@ -24,7 +24,7 @@ fun getVersionCode() : Int {
 }
 
 android {
-    namespace = "com.vismo.cablemeter"
+    namespace = "com.vismo.nextgenmeter"
     compileSdk = 34
 
     signingConfigs {
@@ -37,7 +37,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.vismo.cablemeter"
+        applicationId = "com.vismo.nextgenmeter"
         minSdk = 24
         targetSdk = 34
         versionCode = getVersionCode()
@@ -95,19 +95,19 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            applicationIdSuffix = ".dev"
+//            applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             archivesName = "cablemeter-$${getVersionName()}(${getVersionCode()})"
         }
         create("dev2") {
             dimension = "env"
-            applicationIdSuffix = ".dev2"
+//            applicationIdSuffix = ".dev2"
             versionNameSuffix = "-dev2"
             archivesName = "cablemeter-$${getVersionName()}(${getVersionCode()})"
         }
         create("qa") {
             dimension = "env"
-            applicationIdSuffix = ".qa"
+//            applicationIdSuffix = ".qa"
             versionNameSuffix = "-qa"
             archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
         }

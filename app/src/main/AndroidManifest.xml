@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:sharedUserId="android.uid.system"
     android:sharedUserMaxSdkVersion="32"
-    package="com.vismo.cablemeter">
+    package="com.vismo.nextgenmeter">
 
     <uses-permission android:name="android.permission.SET_TIME"
         tools:ignore="ProtectedPermissions" />
@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
-        android:name=".MainApplication"
+        android:name="com.vismo.nextgenmeter.MainApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -24,7 +24,7 @@
         android:theme="@style/Theme.CableMeter"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name="com.vismo.nextgenmeter.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.CableMeter">
@@ -36,12 +36,12 @@
             </intent-filter>
         </activity>
         <service
-            android:name="com.vismo.cablemeter.service.GlobalBackService"
+            android:name="com.vismo.nextgenmeter.service.GlobalBackService"
             android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="foo"/>  <!-- optional -->
         </service>
         <service android:name="com.amap.api.location.APSService" />
-        <receiver android:name="com.vismo.cablemeter.service.StorageBroadcastReceiver" android:exported="true">
+        <receiver android:name="com.vismo.nextgenmeter.service.StorageBroadcastReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
                 <action android:name="android.hardware.usb.action.USB_DEVICE_DETACHED" />

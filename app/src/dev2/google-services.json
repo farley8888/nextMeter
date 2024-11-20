@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "210975360305-91m327c36m0gqon5lldtmmftg1pvpbvj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dash.driver.dev2",
+            "certificate_hash": "719370861e1ebb348676c58d468fa682474ba1a8"
+          }
+        },
+        {
           "client_id": "210975360305-pg5p6ins9j8hccbs4g53efi6bcua4j1l.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -257,9 +265,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:210975360305:android:8879ef9b8060f64e245c10",
+        "mobilesdk_app_id": "1:210975360305:android:a4d88978d530dc87245c10",
         "android_client_info": {
-          "package_name": "com.dashapp.garage.dev2"
+          "package_name": "com.dash.taxipos.dev2"
         }
       },
       "oauth_client": [
@@ -296,9 +304,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:210975360305:android:ddd3af774297ad43245c10",
+        "mobilesdk_app_id": "1:210975360305:android:8879ef9b8060f64e245c10",
         "android_client_info": {
-          "package_name": "com.dashapp.user"
+          "package_name": "com.dashapp.garage.dev2"
         }
       },
       "oauth_client": [
@@ -425,6 +433,53 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.vismo.cablemeter.dev2",
+            "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
+          }
+        },
+        {
+          "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB43oTdd6quRJIqpc_-wm5vkTMeG2u2n9k"
+        },
+        {
+          "current_key": "AIzaSyDI_UHXeCVz8H4fLBOd_W_iMcV-aRNubmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "210975360305-rcvv1a8vmh3l1fdc3gir6j09g18itar6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "210975360305-cl2r6ach2at6978tqs940parlei967dm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.dash.driver.dev2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:210975360305:android:54cf62329000ea12245c10",
+        "android_client_info": {
+          "package_name": "com.vismo.nextgenmeter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "210975360305-96jg82j4af90d5g01kuvs31b2knd6tpv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vismo.nextgenmeter",
             "certificate_hash": "2fd7ddccc6c52b7b7b7a8fdd9a10db1a02590865"
           }
         },
