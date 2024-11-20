@@ -22,7 +22,9 @@ import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import com.vismo.nxgnfirebasemodule.model.OperatingArea
 import com.vismo.nxgnfirebasemodule.model.Session
 import com.vismo.nxgnfirebasemodule.model.Settings
+import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
+import com.vismo.nxgnfirebasemodule.util.Constant.COMPLETED_ON
 import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
 import com.vismo.nxgnfirebasemodule.util.Constant.HEARTBEAT_COLLECTION
@@ -31,6 +33,7 @@ import com.vismo.nxgnfirebasemodule.util.Constant.METERS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_DEVICES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_SDK_DOCUMENT
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
+import com.vismo.nxgnfirebasemodule.util.Constant.UPDATES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
 import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
@@ -76,6 +79,9 @@ class DashManager @Inject constructor(
     private val _remoteUnlockMeter: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val remoteUnlockMeter: StateFlow<Boolean> = _remoteUnlockMeter
 
+    private val _mostRelevantUpdate: MutableStateFlow<Update?> = MutableStateFlow(null)
+    val mostRelevantUpdate: StateFlow<Update?> = _mostRelevantUpdate
+
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     fun init() {
@@ -85,6 +91,7 @@ class DashManager @Inject constructor(
         scope.launch {
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
+            launch { checkForMostRelevantUpdate() }
         }
         isInitialized = true
     }
@@ -386,6 +393,34 @@ class DashManager @Inject constructor(
                 }
         }
     }
+
+    private fun checkForMostRelevantUpdate() {
+        val updateCollection = getMeterDocument()
+            .collection(UPDATES_COLLECTION)
+
+        updateCollection
+            .whereEqualTo(COMPLETED_ON, null)
+            .orderBy(CREATED_ON, Query.Direction.DESCENDING)
+            .limit(1)
+            .get(Source.SERVER)
+            .addOnSuccessListener { snapshot ->
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val latestDocument = snapshot.documents[0]
+                    var json = gson.toJson(latestDocument.data)
+                    // Manually add the document ID to the JSON string
+                    json =
+                        json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
+
+                    _mostRelevantUpdate.value = gson.fromJson(json, Update::class.java)
+                    Log.d(TAG, "checkForUpdates $json")
+                }
+                Log.d(TAG, "checkForUpdates addOnSuccessListener")
+            }
+            .addOnFailureListener {
+                Log.e(TAG, "checkForUpdates error", it)
+            }
+    }
+
 
     fun sendHeartbeat() {
         scope.launch {

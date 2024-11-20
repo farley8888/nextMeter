@@ -32,18 +32,17 @@ class TripRepositoryImpl @Inject constructor(
     private val dashManager: DashManager,
     private val localTripsRepository: LocalTripsRepository
 ) : TripRepository {
-    private val repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
-
     private val _currentTripPaidStatus: MutableStateFlow<TripPaidStatus> = MutableStateFlow(TripPaidStatus.NOT_PAID)
     override val currentTripPaidStatus = _currentTripPaidStatus
 
     override val remoteUnlockMeter = dashManager.remoteUnlockMeter
     private val _currentAbnormalPulseCounter = MutableStateFlow<Int?>(null)
     private val _currentOverSpeedCounter = MutableStateFlow<Int?>(null)
-
+    private var repositoryScope: CoroutineScope? = null
 
     override fun initObservers() {
-        repositoryScope.launch {
+        repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+        repositoryScope?.launch {
             launch {
                 TripDataStore.tripData.collect { trip ->
                     trip?.let {
@@ -152,7 +151,7 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     override fun close() {
-        repositoryScope.cancel()
+        repositoryScope?.cancel()
     }
 
     override fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int) {

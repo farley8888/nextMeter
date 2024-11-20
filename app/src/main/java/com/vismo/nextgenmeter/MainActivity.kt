@@ -280,16 +280,18 @@ class MainActivity : ComponentActivity() {
         AmapLocationUtils.getInstance().startLocation()
     }
 
-    override fun onPause() {
-        super.onPause()
+    override fun onStop() {
+        super.onStop()
         val backButtonServiceIntent = Intent(this, GlobalBackService::class.java)
         ContextCompat.startForegroundService(this, backButtonServiceIntent)
+        Log.d(TAG, "onStop")
     }
 
     override fun onResume() {
         super.onResume()
         val backButtonServiceIntent = Intent(this, GlobalBackService::class.java)
         stopService(backButtonServiceIntent)
+        Log.d(TAG, "onResume")
     }
 
     override fun onDestroy() {

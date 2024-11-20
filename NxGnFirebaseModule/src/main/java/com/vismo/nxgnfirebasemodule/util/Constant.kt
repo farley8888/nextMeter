@@ -6,6 +6,7 @@ object Constant {
     const val METER_DEVICES_COLLECTION = "meter_devices"
     const val CONFIGURATIONS_COLLECTION = "configurations"
     const val LOGGING_COLLECTION = "loggings"
+    const val UPDATES_COLLECTION = "updates"
     const val DEFAULT_LICENSE_PLATE = "DASH-DEFAULT"
     const val TRIPS_COLLECTION = "trips"
     const val SECONDS = "seconds"
@@ -14,6 +15,7 @@ object Constant {
     const val METER_SDK_DOCUMENT = "meter-sdk"
     const val UPDATE_MCU_PARAMS = "update_mcu_params"
     const val CREATED_ON = "created_on"
+    const val COMPLETED_ON = "completed_on"
 }
 
 object LogConstant {
