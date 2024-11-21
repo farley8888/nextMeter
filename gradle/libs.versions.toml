@@ -31,6 +31,7 @@ totp = "1.7.1"
 preferences-datastore = "1.1.1"
 floating-bubble-view = "0.6.5"
 proto-datastore = "1.1.1"
+lifecycleProcess = "2.8.7"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -76,6 +77,7 @@ samstevens-totp = { group = "dev.samstevens.totp", name = "totp", version.ref = 
 preferences-datastore = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "preferences-datastore" }
 floating-bubble-view = { group = "io.github.torrydo", name = "floating-bubble-view", version.ref = "floating-bubble-view" }
 proto-datastore = { group = "androidx.datastore", name = "datastore", version.ref = "proto-datastore" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
