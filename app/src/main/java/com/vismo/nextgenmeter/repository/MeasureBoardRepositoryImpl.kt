@@ -126,11 +126,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val measureBoardStatus = result.substring(17, 17 + 1)
         val isStopped = (measureBoardStatus.toInt() == 1)
         val tripStatus = if (isStopped) TripStatus.STOP else TripStatus.HIRED
-        val abnormalPulseCounter = result.substring(78, 78 + 2)
-        val overspeedCounter = result.substring(80, 80 + 2)
-        val abnormalPulseCounterDecimal =
-            MeasureBoardUtils.hexToDecimal(abnormalPulseCounter)
-        val overspeedCounterDecimal = MeasureBoardUtils.hexToDecimal(overspeedCounter)
         val lockedDuration = result.substring(18, 18 + 4)
         val lockedDurationDecimal = MeasureBoardUtils.hexToDecimal(lockedDuration)
         val distance = result.substring(22, 22 + 6).multiplyBy10AndConvertToDouble()
@@ -139,9 +134,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val fare = result.substring(44, 44 + 6).divideBy100AndConvertToDouble()
         val totalFare = result.substring(50, 50 + 6).divideBy100AndConvertToDouble()
         val currentTime = result.substring(56, 56 + 12)
-        val measureBoardDeviceId = result.substring(68, 68 + 10)
-        val licensePlateHex = result.substring(126, 126 + 16)
-        val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
+        val abnormalPulseCounter = result.substring(68, 68 + 2)
+        val overspeedCounter = result.substring(70, 70 + 2)
+        val abnormalPulseCounterDecimal =
+            MeasureBoardUtils.hexToDecimal(abnormalPulseCounter)
+        val overspeedCounterDecimal = MeasureBoardUtils.hexToDecimal(overspeedCounter)
 
         DeviceDataStore.setMCUTime(currentTime)
 
