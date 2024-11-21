@@ -119,6 +119,7 @@ object AppModule {
     fun provideMeasureBoardRepository(
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        @MainDispatcher mainDispatcher: CoroutineDispatcher,
         dashManagerConfig: DashManagerConfig,
         localTripsRepository: LocalTripsRepository,
         meterPreferenceRepository: MeterPreferenceRepository
@@ -126,6 +127,7 @@ object AppModule {
         return MeasureBoardRepositoryImpl(
             context = context,
             ioDispatcher = ioDispatcher,
+            mainDispatcher = mainDispatcher,
             dashManagerConfig = dashManagerConfig,
             localTripsRepository = localTripsRepository,
             meterPreferenceRepository = meterPreferenceRepository

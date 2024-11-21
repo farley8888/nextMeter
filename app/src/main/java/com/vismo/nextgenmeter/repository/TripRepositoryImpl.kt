@@ -82,6 +82,17 @@ class TripRepositoryImpl @Inject constructor(
             }
 
             launch {
+                TripDataStore.fallbackTripDataToStartNewTrip.collectLatest {
+                    it?.let {
+                        dashManager.createTripAndSetDocumentListenerOnFirestore(it.tripId)
+                        localTripsRepository.addTrip(it)
+                        TripDataStore.setTripData(it)
+                        TripDataStore.clearFallbackTripDataToStartNewTrip()
+                    }
+                }
+            }
+
+            launch {
                 dashManager.tripInFirestore.collectLatest { tripInFirestore ->
                     tripInFirestore?.let {
                         val pricingResult = tripInFirestore.getPricingResult(tripInFirestore.isDashPayment())

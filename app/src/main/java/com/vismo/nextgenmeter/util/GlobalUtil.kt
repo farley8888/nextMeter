@@ -44,11 +44,22 @@ object GlobalUtils {
     }
 
     fun String.divideBy100AndConvertToDouble(): Double {
-        return BigDecimal(this).divide(BigDecimal("100")).toDouble()
+        return this.toDoubleOrZero() / 100
     }
 
     fun String.multiplyBy10AndConvertToDouble(): Double {
-        return BigDecimal(this).multiply(BigDecimal("10")).toDouble()
+        return this.toDoubleOrZero() * 10
+    }
+
+    fun String.toDoubleOrZero(): Double = this.toDoubleOrNull() ?: 0.0
+    fun String.toIntOrZero(): Int = this.toIntOrNull() ?: 0
+
+    fun String.extractSubstring(start: Int, length: Int): String {
+        return if (start + length <= this.length) {
+            this.substring(start, start + length)
+        } else {
+            ""
+        }
     }
 
     @Throws(Exception::class)

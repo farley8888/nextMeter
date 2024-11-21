@@ -13,6 +13,9 @@ object TripDataStore {
     private val _isAbnormalPulseTriggered = MutableStateFlow(false)
     val isAbnormalPulseTriggered: StateFlow<Boolean> = _isAbnormalPulseTriggered
 
+    private val _fallbackTripDataToStartNewTrip = MutableStateFlow<TripData?>(null)
+    val fallbackTripDataToStartNewTrip: StateFlow<TripData?> = _fallbackTripDataToStartNewTrip
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setTripData(tripData: TripData) {
@@ -36,6 +39,20 @@ object TripDataStore {
     suspend fun setAbnormalPulseTriggered(isAbnormalPulseTriggered: Boolean) {
         mutex.withLock {
             this._isAbnormalPulseTriggered.value = isAbnormalPulseTriggered
+        }
+    }
+
+    suspend fun setFallbackTripDataToStartNewTrip(fallbackTripData: TripData) {
+        mutex.withLock {
+            if (_tripData.value == null) { // only if there is no ongoing trip
+                this._fallbackTripDataToStartNewTrip.value = fallbackTripData
+            }
+        }
+    }
+
+    suspend fun clearFallbackTripDataToStartNewTrip() {
+        mutex.withLock {
+            this._fallbackTripDataToStartNewTrip.value = null
         }
     }
 }
