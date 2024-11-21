@@ -104,19 +104,31 @@ object AppModule {
         )
     }
 
+    @Singleton
+    @Provides
+    fun providesMeterPreferenceRepository(
+        @ApplicationContext context: Context,
+    ): MeterPreferenceRepository {
+        return MeterPreferenceRepository(
+            context = context,
+        )
+    }
+
     @Provides
     @Singleton
     fun provideMeasureBoardRepository(
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManagerConfig: DashManagerConfig,
-        localTripsRepository: LocalTripsRepository
+        localTripsRepository: LocalTripsRepository,
+        meterPreferenceRepository: MeterPreferenceRepository
     ): MeasureBoardRepository {
         return MeasureBoardRepositoryImpl(
             context = context,
             ioDispatcher = ioDispatcher,
             dashManagerConfig = dashManagerConfig,
-            localTripsRepository = localTripsRepository
+            localTripsRepository = localTripsRepository,
+            meterPreferenceRepository = meterPreferenceRepository
         )
     }
 
@@ -169,16 +181,6 @@ object AppModule {
     ): NetworkTimeRepository {
         return NetworkTimeRepository(
             ioDispatcher = ioDispatcher,
-        )
-    }
-
-    @Singleton
-    @Provides
-    fun providesMeterPreferenceRepository(
-        @ApplicationContext context: Context,
-    ): MeterPreferenceRepository {
-        return MeterPreferenceRepository(
-            context = context,
         )
     }
 

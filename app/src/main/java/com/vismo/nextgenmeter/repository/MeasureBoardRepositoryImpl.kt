@@ -35,6 +35,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.logging.Logger
 import javax.inject.Inject
@@ -45,6 +46,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val dashManagerConfig: DashManagerConfig,
     private val localTripsRepository: LocalTripsRepository,
+    private val meterPreferenceRepository: MeterPreferenceRepository,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
@@ -119,10 +121,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             }
         }
         dashManagerConfig.setDeviceIdData(deviceId = measureBoardDeviceId, licensePlate =  licensePlate)
+        meterPreferenceRepository.saveDeviceId(measureBoardDeviceId)
+        meterPreferenceRepository.saveLicensePlate(licensePlate)
         Log.d(TAG, "IDLE_HEARTBEAT: $result")
     }
 
     private suspend  fun handleOngoingHeartbearResult(result: String) {
+        Log.d(TAG, "ONGOING_HEARTBEAT: $result")
         val measureBoardStatus = result.substring(17, 17 + 1)
         val isStopped = (measureBoardStatus.toInt() == 1)
         val tripStatus = if (isStopped) TripStatus.STOP else TripStatus.HIRED
@@ -172,7 +177,14 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             dashManagerConfig.setDeviceIdData(deviceId = it.deviceId, licensePlate =  it.licensePlate)
             DeviceDataStore.setDeviceIdData(DeviceIdData(it.deviceId, it.licensePlate))
         }
-        Log.d(TAG, "ONGOING_HEARTBEAT: $result")
+        if (currentOngoingLocalTrip == null) {
+            val savedDeviceId = meterPreferenceRepository.getDeviceId().firstOrNull() ?: ""
+            val savedLicensePlate = meterPreferenceRepository.getLicensePlate().firstOrNull() ?: ""
+            dashManagerConfig.setDeviceIdData(deviceId = savedDeviceId, licensePlate =  savedLicensePlate)
+            DeviceDataStore.setDeviceIdData(DeviceIdData(savedDeviceId, savedLicensePlate))
+            Log.d(TAG, "handleOngoingHeartbearResult: currentOngoingLocalTrip is null")
+        }
+
     }
 
     private suspend fun handleTripEndSummaryResult(result: String) {
