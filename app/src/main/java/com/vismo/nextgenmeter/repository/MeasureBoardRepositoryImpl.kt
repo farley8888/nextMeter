@@ -2,6 +2,7 @@ package com.vismo.nextgenmeter.repository
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import android_serialport_api.Command
 import com.google.firebase.Timestamp
 import com.ilin.atelec.BusModel
@@ -13,11 +14,15 @@ import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
 import com.vismo.nextgenmeter.model.MCUMessage
+import com.vismo.nextgenmeter.model.OngoingMCUHeartbeatData
 import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.module.IoDispatcher
+import com.vismo.nextgenmeter.module.MainDispatcher
 import com.vismo.nextgenmeter.util.GlobalUtils.divideBy100AndConvertToDouble
+import com.vismo.nextgenmeter.util.GlobalUtils.extractSubstring
 import com.vismo.nextgenmeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
+import com.vismo.nextgenmeter.util.GlobalUtils.toIntOrZero
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.ABNORMAL_PULSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
@@ -37,6 +42,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.logging.Logger
 import javax.inject.Inject
 
@@ -44,6 +50,7 @@ import javax.inject.Inject
 class MeasureBoardRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     private val dashManagerConfig: DashManagerConfig,
     private val localTripsRepository: LocalTripsRepository,
     private val meterPreferenceRepository: MeterPreferenceRepository,
@@ -128,63 +135,102 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private suspend  fun handleOngoingHeartbearResult(result: String) {
         Log.d(TAG, "ONGOING_HEARTBEAT: $result")
-        val measureBoardStatus = result.substring(17, 17 + 1)
-        val isStopped = (measureBoardStatus.toInt() == 1)
-        val tripStatus = if (isStopped) TripStatus.STOP else TripStatus.HIRED
-        val lockedDuration = result.substring(18, 18 + 4)
-        val lockedDurationDecimal = MeasureBoardUtils.hexToDecimal(lockedDuration)
-        val distance = result.substring(22, 22 + 6).multiplyBy10AndConvertToDouble()
-        val duration = result.substring(28, 28 + 6)
-        val extras = result.substring(38, 38 + 6).divideBy100AndConvertToDouble()
-        val fare = result.substring(44, 44 + 6).divideBy100AndConvertToDouble()
-        val totalFare = result.substring(50, 50 + 6).divideBy100AndConvertToDouble()
-        val currentTime = result.substring(56, 56 + 12)
-        val abnormalPulseCounter = result.substring(68, 68 + 2)
-        val overspeedCounter = result.substring(70, 70 + 2)
-        val abnormalPulseCounterDecimal =
-            MeasureBoardUtils.hexToDecimal(abnormalPulseCounter)
-        val overspeedCounterDecimal = MeasureBoardUtils.hexToDecimal(overspeedCounter)
+        // Parse the heartbeat result into a data class for better organization
+        val heartbeatData = parseHeartbeatResult(result)
 
-        DeviceDataStore.setMCUTime(currentTime)
+        // Update the MCU time
+        DeviceDataStore.setMCUTime(heartbeatData.currentTime)
 
-
+        // Retrieve the current ongoing local trip
         val currentOngoingLocalTrip = localTripsRepository.getLatestOnGoingTrip()
 
-        currentOngoingLocalTrip?.let {
-            val requiresUpdate = it.fare != fare || it.tripStatus != tripStatus || it.extra != extras || lockedDurationDecimal > 0
+        // Retrieve saved device ID and license plate
+        val savedDeviceId = meterPreferenceRepository.getDeviceId().firstOrNull() ?: ""
+        val savedLicensePlate = meterPreferenceRepository.getLicensePlate().firstOrNull() ?: ""
 
-            val currentOngoingTrip = TripData(
-                tripId = it.tripId,
-                startTime = it.startTime,
-                tripStatus = tripStatus,
-                pauseTime = if (tripStatus == TripStatus.STOP) Timestamp.now() else null,
-                fare = fare,
-                extra = extras,
-                totalFare = totalFare,
-                distanceInMeter = distance,
-                waitDurationInSeconds = getTimeInSeconds(duration),
-                overSpeedDurationInSeconds = if (it.overSpeedDurationInSeconds > lockedDurationDecimal) (it.overSpeedDurationInSeconds + lockedDurationDecimal) else lockedDurationDecimal, // if the meter turns off and on, we need to save the previous over speed duration and add the new one
-                requiresUpdateOnDatabase = requiresUpdate,
-                licensePlate = it.licensePlate,
-                deviceId = it.deviceId,
-                overSpeedCounter = overspeedCounterDecimal,
-                abnormalPulseCounter = abnormalPulseCounterDecimal,
-                mcuStatus = measureBoardStatus.toInt(),
-            )
-            TripDataStore.updateTripDataValue(currentOngoingTrip)
+        // Use the device ID and license plate from the current trip or saved preferences
+        val deviceId = currentOngoingLocalTrip?.deviceId ?: savedDeviceId
+        val licensePlate = currentOngoingLocalTrip?.licensePlate ?: savedLicensePlate
 
-            // use local trip to update these data because there are times when ongoing heartbeat might be incorrect (in BYD cases)
-            dashManagerConfig.setDeviceIdData(deviceId = it.deviceId, licensePlate =  it.licensePlate)
-            DeviceDataStore.setDeviceIdData(DeviceIdData(it.deviceId, it.licensePlate))
-        }
+        // Update device ID data
+        dashManagerConfig.setDeviceIdData(deviceId = deviceId, licensePlate = licensePlate)
+        DeviceDataStore.setDeviceIdData(DeviceIdData(deviceId, licensePlate))
+
         if (currentOngoingLocalTrip == null) {
-            val savedDeviceId = meterPreferenceRepository.getDeviceId().firstOrNull() ?: ""
-            val savedLicensePlate = meterPreferenceRepository.getLicensePlate().firstOrNull() ?: ""
-            dashManagerConfig.setDeviceIdData(deviceId = savedDeviceId, licensePlate =  savedLicensePlate)
-            DeviceDataStore.setDeviceIdData(DeviceIdData(savedDeviceId, savedLicensePlate))
-            Log.d(TAG, "handleOngoingHeartbearResult: currentOngoingLocalTrip is null")
+            // edge case: happens on some devices when device is reset while trip is ongoing
+            withContext(mainDispatcher) {
+                Toast.makeText(context, "Ongoing local trip not found. Creating a new trip.", Toast.LENGTH_SHORT).show()
+            }
+
+            val newTrip = TripData(
+                tripId = MeasureBoardUtils.generateTripId(),
+                startTime = Timestamp.now(),
+                tripStatus = heartbeatData.tripStatus,
+                pauseTime = if (heartbeatData.tripStatus == TripStatus.STOP) Timestamp.now() else null,
+                fare = heartbeatData.fare,
+                extra = heartbeatData.extras,
+                totalFare = heartbeatData.totalFare,
+                distanceInMeter = heartbeatData.distance,
+                waitDurationInSeconds = getTimeInSeconds(heartbeatData.duration),
+                overSpeedDurationInSeconds = heartbeatData.lockedDurationDecimal,
+                requiresUpdateOnDatabase = true,
+                licensePlate = licensePlate,
+                deviceId = deviceId,
+                overSpeedCounter = heartbeatData.overspeedCounterDecimal,
+                abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
+                mcuStatus = heartbeatData.mcuStatus
+            )
+
+            TripDataStore.setFallbackTripDataToStartNewTrip(newTrip)
+            Log.d(TAG, "handleOngoingHeartbeatResult: currentOngoingLocalTrip is null")
+        }
+        else {
+            val requiresUpdate = currentOngoingLocalTrip.fare != heartbeatData.fare ||
+                    currentOngoingLocalTrip.tripStatus != heartbeatData.tripStatus ||
+                    currentOngoingLocalTrip.extra != heartbeatData.extras ||
+                    heartbeatData.lockedDurationDecimal > 0
+
+            val overSpeedDurationInSeconds = if (currentOngoingLocalTrip.overSpeedDurationInSeconds > heartbeatData.lockedDurationDecimal) {
+                currentOngoingLocalTrip.overSpeedDurationInSeconds + heartbeatData.lockedDurationDecimal
+            } else {
+                heartbeatData.lockedDurationDecimal
+            }
+
+            val updatedTrip = currentOngoingLocalTrip.copy(
+                tripStatus = heartbeatData.tripStatus,
+                pauseTime = if (heartbeatData.tripStatus == TripStatus.STOP) Timestamp.now() else null,
+                fare = heartbeatData.fare,
+                extra = heartbeatData.extras,
+                totalFare = heartbeatData.totalFare,
+                distanceInMeter = heartbeatData.distance,
+                waitDurationInSeconds = getTimeInSeconds(heartbeatData.duration),
+                overSpeedDurationInSeconds = overSpeedDurationInSeconds,
+                requiresUpdateOnDatabase = requiresUpdate,
+                overSpeedCounter = heartbeatData.overspeedCounterDecimal,
+                abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
+                mcuStatus = heartbeatData.mcuStatus
+            )
+
+            TripDataStore.updateTripDataValue(updatedTrip)
         }
 
+    }
+
+    private fun parseHeartbeatResult(result: String): OngoingMCUHeartbeatData {
+        val heartbeatData = OngoingMCUHeartbeatData(
+            measureBoardStatus = result.extractSubstring(17, 1).toIntOrZero(),
+            lockedDurationHex = result.extractSubstring(18, 4),
+            distanceHex = result.extractSubstring(22, 6),
+            duration = result.extractSubstring(28, 6),
+            extrasHex = result.extractSubstring(38, 6),
+            fareHex = result.extractSubstring(44, 6),
+            totalFareHex = result.extractSubstring(50, 6),
+            currentTime = result.extractSubstring(56, 12),
+            abnormalPulseCounterHex = result.extractSubstring(68, 2),
+            overspeedCounterHex = result.extractSubstring(70, 2)
+        )
+
+        return heartbeatData.processHexValues()
     }
 
     private suspend fun handleTripEndSummaryResult(result: String) {
