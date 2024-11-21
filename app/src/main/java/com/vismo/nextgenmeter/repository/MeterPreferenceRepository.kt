@@ -42,11 +42,39 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveLicensePlate(licensePlate: String) {
+        context.dataStore.edit { settings ->
+            settings[KEY_LICENSE_PLATE] = licensePlate
+        }
+    }
+
+    suspend fun getLicensePlate(): Flow<String?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_LICENSE_PLATE]
+            }
+    }
+
+    suspend fun saveDeviceId(deviceId: String) {
+        context.dataStore.edit { settings ->
+            settings[KEY_DEVICE_ID] = deviceId
+        }
+    }
+
+    suspend fun getDeviceId(): Flow<String?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_DEVICE_ID]
+            }
+    }
+
 
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
         private val KEY_TOTP_SECRET = stringPreferencesKey("totp_secret")
         private val KEY_SHOW_LOGIN_TOGGLE = stringPreferencesKey("show_login_toggle")
+        private val KEY_LICENSE_PLATE = stringPreferencesKey("license_plate")
+        private val KEY_DEVICE_ID = stringPreferencesKey("device_id")
     }
 
 }
