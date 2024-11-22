@@ -9,7 +9,10 @@ import com.vismo.nextgenmeter.api.NetworkResult
 import com.vismo.nextgenmeter.util.Constant.PRIVATE_KEY
 import com.vismo.nextgenmeter.util.Constant.PUBLIC_KEY
 import com.vismo.nextgenmeter.util.GlobalUtils
+import com.vismo.nxgnfirebasemodule.DashManager
+import com.vismo.nxgnfirebasemodule.DashManager.Companion
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -31,7 +34,11 @@ class FirebaseAuthRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val meterOApiRepository: MeterOApiRepository,
 ){
-    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e(TAG, "Coroutine exception", throwable)
+    }
+
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
 
     private val _isFirebaseAuthSuccess: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val isFirebaseAuthSuccess: StateFlow<Boolean> = _isFirebaseAuthSuccess
