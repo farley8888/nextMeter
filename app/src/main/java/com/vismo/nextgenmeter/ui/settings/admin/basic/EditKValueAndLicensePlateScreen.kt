@@ -30,7 +30,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.ui.settings.admin.EditAdminPropertiesViewModel
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
@@ -42,7 +41,6 @@ import com.vismo.nextgenmeter.ui.theme.nobel900
 import com.vismo.nextgenmeter.ui.theme.pastelGreen700
 import com.vismo.nextgenmeter.ui.theme.primary800
 import com.vismo.nextgenmeter.ui.theme.red
-import com.vismo.nextgenmeter.ui.theme.valencia700
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable

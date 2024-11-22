@@ -11,6 +11,7 @@ import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.ui.theme.gold600
 import com.vismo.nextgenmeter.ui.theme.pastelGreen600
+import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.ui.theme.valencia900
 import com.vismo.nextgenmeter.util.LocaleHelper
 import com.vismo.nextgenmeter.util.TtsUtil
@@ -154,7 +155,7 @@ class MeterOpsViewModel @Inject constructor(
                 duration = "",
                 totalFare = "",
                 languagePref = _uiState.value.languagePref,
-                totalColor = valencia900,
+                totalColor = red,
                 remainingOverSpeedTimeInSeconds = null
             )
         }
