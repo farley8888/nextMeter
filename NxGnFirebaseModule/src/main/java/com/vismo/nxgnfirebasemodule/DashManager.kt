@@ -38,6 +38,7 @@ import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
 import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -82,7 +83,11 @@ class DashManager @Inject constructor(
     private val _mostRelevantUpdate: MutableStateFlow<Update?> = MutableStateFlow(null)
     val mostRelevantUpdate: StateFlow<Update?> = _mostRelevantUpdate
 
-    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e(TAG, "Coroutine exception", throwable)
+    }
+
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
 
     fun init() {
         meterSdkConfigurationListener()
@@ -244,18 +249,21 @@ class DashManager @Inject constructor(
     }
 
     private fun meterSdkConfigurationListener() {
-        firestore.collection(CONFIGURATIONS_COLLECTION)
-            .document(METER_SDK_DOCUMENT)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    return@addSnapshotListener
-                }
+        scope.launch {
+            firestore.collection(CONFIGURATIONS_COLLECTION)
+                .document(METER_SDK_DOCUMENT)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        return@addSnapshotListener
+                    }
 
-                if (snapshot != null && snapshot.exists()) {
-                    val meterSdkConfigJson = gson.toJson(snapshot.data)
-                    _meterSdkConfig.value = gson.fromJson(meterSdkConfigJson, MeterSdkConfiguration::class.java)
+                    if (snapshot != null && snapshot.exists()) {
+                        val meterSdkConfigJson = gson.toJson(snapshot.data)
+                        _meterSdkConfig.value =
+                            gson.fromJson(meterSdkConfigJson, MeterSdkConfiguration::class.java)
+                    }
                 }
-            }
+        }
     }
 
     fun resetUnlockMeterStatusInRemote() {

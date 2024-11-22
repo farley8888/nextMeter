@@ -153,7 +153,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
                     Modifier
                 }
             )
-            .weight(.1f)
+            .weight(1f)
     ) {
         Row(
             modifier = Modifier
