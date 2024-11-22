@@ -29,6 +29,7 @@ import com.vismo.nextgenmeter.ui.theme.nobel600
 import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.theme.primary700
 import com.vismo.nextgenmeter.util.Constant
+import com.vismo.nextgenmeter.util.GlobalUtils.maskLast
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
@@ -171,7 +172,7 @@ class MainViewModel @Inject constructor(
                 Log.d(TAG, "Driver: ${driver.driverPhoneNumber}")
                 toolbarUiDataUpdateMutex.withLock {
                     _topAppBarUiState.value = _topAppBarUiState.value.copy(
-                        driverPhoneNumber = driver.driverPhoneNumber
+                        driverPhoneNumber = driver.driverPhoneNumber.maskLast(4)
                     )
                 }
             }

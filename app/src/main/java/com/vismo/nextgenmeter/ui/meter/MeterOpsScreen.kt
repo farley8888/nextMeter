@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.TaxiAlert
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,7 +47,9 @@ import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.ui.shared.GenericActionDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.theme.Black
+import com.vismo.nextgenmeter.ui.theme.Purple40
 import com.vismo.nextgenmeter.ui.theme.Typography
+import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.ui.theme.valencia100
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import com.vismo.nextgenmeter.util.GlobalUtils.toDoubleOrZero
@@ -140,10 +143,9 @@ fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, meterLockState: MeterLockAc
 @Composable
 fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
     val isTotalMoreThanZero = uiState.totalFare.toDoubleOrZero() > 0
-    val borderWith = if (isTotalMoreThanZero) 1.dp else 0.dp
     Column(
         modifier = Modifier
-            .size(height = 200.dp, width = 150.dp) // Set a constant height and width
+            .size(height = 220.dp, width = 180.dp) // Set a constant height and width
             .then(
                 if (isTotalMoreThanZero) {
                     Modifier.border(1.dp, Color.White)
@@ -151,7 +153,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
                     Modifier
                 }
             )
-            .weight(1f)
+            .weight(.1f)
     ) {
         Row(
             modifier = Modifier
@@ -169,7 +171,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(2f),
+                    .weight(2.5f),
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.End
             ) {
@@ -177,10 +179,13 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
                 val fareDouble = fare.toDoubleOrNull()
                 if (fareDouble != null && fareDouble > 0) {
                     Text(
-                        text = fare.substring(0, uiState.fare.length - 1),
+                        text = fare.substring(0, fare.length - 1), // remove 1 zero
                         color = uiState.totalColor,
-                        style = Typography.displayMedium,
-                        textAlign = TextAlign.End
+                        style = Typography.displayMedium.copy(
+                            fontSize = 62.sp
+                        ),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.align(Alignment.CenterVertically)
                     )
                 }
                 Text(
@@ -198,7 +203,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(2f),
+                    .weight(2.5f),
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.End
             ) {
@@ -210,8 +215,11 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
                     Text(
                         text = extras,
                         color = uiState.totalColor,
-                        style = Typography.displayMedium,
-                        textAlign = TextAlign.End
+                        style = Typography.displayMedium.copy(
+                            fontSize = 62.sp
+                        ),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.align(Alignment.CenterVertically)
                     )
                 }
                 Text(
@@ -233,9 +241,9 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
 fun RowScope.TotalBox(uiState: MeterOpsUiData) {
     Column(
         modifier = Modifier
-            .weight(2f)
+            .weight(2.4f)
             .padding(8.dp)
-            .height(height = 200.dp) // Set a constant height
+            .height(height = 250.dp) // Set a constant height
     ) {
         Row(
             modifier = Modifier
@@ -261,7 +269,9 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
                 Text(
                     text = totalFare,
                     color = uiState.totalColor,
-                    style = Typography.displayLarge,
+                    style = Typography.displayLarge.copy(
+                        fontSize = 140.sp
+                    ),
                     textAlign = TextAlign.End
                 )
             }
@@ -303,6 +313,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     text = uiState.remainingOverSpeedTimeInSeconds ?: uiState.duration, color = Color.Gray, style = Typography.displaySmall, textAlign = TextAlign.End)
             }
         }
+        val buttonContainerColor = if(uiState.status is Paused) red else Purple40
         Button(
             onClick = {
                 if(meterLockState !is MeterLockAction.Lock) {
@@ -313,6 +324,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 .weight(1.3f)
                 .padding(2.dp),
             shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = buttonContainerColor)
         ) {
             Row(
                 modifier = Modifier

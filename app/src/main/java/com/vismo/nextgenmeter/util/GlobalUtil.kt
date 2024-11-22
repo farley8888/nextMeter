@@ -62,6 +62,18 @@ object GlobalUtils {
         }
     }
 
+    fun String.maskLast(n: Int, maskChar: Char = 'x'): String {
+        if (n <= 0) return this // If n is zero or negative, return the original string
+        if (n >= this.length) {
+            // If n is greater than or equal to the string length, mask the entire string
+            return maskChar.toString().repeat(this.length)
+        }
+        // Mask the last n characters
+        val visiblePart = this.substring(0, this.length - n)
+        val maskedPart = maskChar.toString().repeat(n)
+        return visiblePart + maskedPart
+    }
+
     @Throws(Exception::class)
     fun encrypt(content: String): String? {
         val cipher = Cipher.getInstance("AES/CFB/NoPadding")
