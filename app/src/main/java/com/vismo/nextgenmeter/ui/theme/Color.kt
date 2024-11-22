@@ -80,6 +80,7 @@ val valencia600 = Color(0xFFCC3C36)
 val valencia700 = Color(0xFFBA3330)
 val valencia800 = Color(0xFFAD2E2A)
 val valencia900 = Color(0xFF9F231E)
+val red = Color(0xFFFF0000)
 
 // Pastel Green
 val pastelGreen50 = Color(0xFFEEFFF0)

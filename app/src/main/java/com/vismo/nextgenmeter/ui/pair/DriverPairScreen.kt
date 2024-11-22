@@ -33,18 +33,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.lightspark.composeqr.QrCodeView
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
+import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.blueLink
 import com.vismo.nextgenmeter.ui.theme.gold350
 import com.vismo.nextgenmeter.ui.theme.mineShaft50
@@ -125,13 +123,13 @@ fun HealthCheckDialogContent(title: String, message: String, qrLink: String) {
         Text(
             text = title,
             color = nobel100,
-            fontSize = 24.sp,
+            style = Typography.headlineSmall,
             textAlign = TextAlign.Center
         )
         Text(
             text = "$message\n請用車房APP掃描二維碼",
             color = nobel100,
-            fontSize = 18.sp,
+            style = Typography.bodyLarge,
             textAlign = TextAlign.Center
         )
         DashAndGoldQrCodeView(data = qrLink)
@@ -172,11 +170,11 @@ fun StartSession(
             ){
                 Text(
                     text = driverPhoneNumber,
-                    fontSize = 24.sp,
+                    style = Typography.titleLarge
                 )
                 Text(
                     text = "已登入",
-                    fontSize = 18.sp,
+                    style = Typography.bodyLarge
                 )
             }
 
@@ -199,7 +197,7 @@ fun StartSession(
         ) {
             Text(
                 text = "訪客模式",
-                fontSize = 18.sp,
+                style = Typography.bodyLarge
             )
         }
     }
@@ -271,12 +269,10 @@ fun DashAndGoldQrCodeView(primaryColor: Color = primary800, data: String, size: 
         ) {
             BasicText(
                 text = "D",
-                style = TextStyle.Default.copy(
+                style = Typography.bodyLarge.copy(
                     color = gold,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.ExtraBold,
                     fontStyle = FontStyle.Italic,
-                    fontFamily = FontFamily.Serif
+                    fontWeight = FontWeight.Bold
                 )
             )
         }
@@ -295,19 +291,18 @@ fun QRCodePlaceholder() {
         Text(
             text = "按此產生登入二維碼",
             color = mineShaft50,
-            fontSize = 18.sp,
             modifier = Modifier
                 .fillMaxWidth()
                 .background(blueLink)
                 .padding(8.dp),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            style = Typography.bodyLarge
         )
 
         Text(
             color = mineShaft900,
             text = "登入",
-            fontSize = 72.sp,
-            fontWeight = FontWeight.Bold,
+            style = Typography.displayLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
@@ -316,7 +311,7 @@ fun QRCodePlaceholder() {
         Text(
             text = "60秒內可掃描登入",
             color = mineShaft50,
-            fontSize = 18.sp,
+            style = Typography.bodyLarge,
             modifier = Modifier
                 .fillMaxWidth()
                 .background(blueLink)

@@ -1,7 +1,7 @@
 package com.vismo.nextgenmeter.ui.meter
 
 import androidx.compose.ui.graphics.Color
-import com.vismo.nextgenmeter.ui.theme.valencia900
+import com.vismo.nextgenmeter.ui.theme.red
 
 data class MeterOpsUiData(
     val status: TripStateInMeterOpsUI,
@@ -11,7 +11,7 @@ data class MeterOpsUiData(
     val distanceInKM: String,
     val duration: String,
     val languagePref: TtsLanguagePref = TtsLanguagePref.OFF,
-    val totalColor: Color = valencia900,
+    val totalColor: Color = red,
     val remainingOverSpeedTimeInSeconds: String? = null,
 )
 

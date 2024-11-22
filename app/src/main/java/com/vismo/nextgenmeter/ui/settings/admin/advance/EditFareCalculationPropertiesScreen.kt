@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.ui.settings.admin.EditAdminPropertiesViewModel
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
+import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.gold350
 import com.vismo.nextgenmeter.ui.theme.mineShaft900
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
@@ -127,7 +128,7 @@ fun EditFareCalculationPropertiesScreen(
         ) {
             Text(
                 text = "Update",
-                fontSize = 20.sp,
+                style = Typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )

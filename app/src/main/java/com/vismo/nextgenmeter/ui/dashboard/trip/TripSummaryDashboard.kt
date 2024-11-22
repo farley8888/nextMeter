@@ -170,7 +170,7 @@ fun RowScope.DataColumn(
         Spacer(modifier = Modifier.height(8.dp))
 
         data.forEach { item ->
-            Text(text = item, style = MaterialTheme.typography.titleLarge)
+            Text(text = item, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
