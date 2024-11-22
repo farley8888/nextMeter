@@ -34,12 +34,14 @@ import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.ui.settings.admin.EditAdminPropertiesViewModel
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
+import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.gold350
 import com.vismo.nextgenmeter.ui.theme.mineShaft100
 import com.vismo.nextgenmeter.ui.theme.nobel600
 import com.vismo.nextgenmeter.ui.theme.nobel900
 import com.vismo.nextgenmeter.ui.theme.pastelGreen700
 import com.vismo.nextgenmeter.ui.theme.primary800
+import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.ui.theme.valencia700
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 
@@ -113,7 +115,7 @@ fun EditKValueAndLicensePlateScreen(
             ) {
                 Text(
                     text = "Update",
-                    fontSize = 20.sp,
+                    style = Typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
@@ -135,7 +137,7 @@ fun EditKValueAndLicensePlateScreen(
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text(text = "App Settings")
+                Text(text = "App Settings", style = Typography.titleMedium)
             }
             Button(onClick = {
                 performVirtualTapFeedback(view)
@@ -145,19 +147,19 @@ fun EditKValueAndLicensePlateScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)) {
-                Text(text = "Advance Settings")
+                Text(text = "Advance Settings", style = Typography.titleMedium)
             }
             Divider(modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(vertical = 2.dp),
                 color = nobel600,
                 thickness = 2.dp
             )
             Text(text = "Current ADB Status")
             Text(text = adbStatus.value?.name ?: "",
-                color = if (adbStatus.value == EditAdminPropertiesViewModel.ADBStatus.ENABLED) pastelGreen700 else valencia700,
+                color = if (adbStatus.value == EditAdminPropertiesViewModel.ADBStatus.ENABLED) pastelGreen700 else red,
                 fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
+                style = Typography.headlineMedium,
             )
             Button(onClick = {
                 performVirtualTapFeedback(view)
@@ -171,7 +173,7 @@ fun EditKValueAndLicensePlateScreen(
                     .fillMaxWidth()
                     .height(48.dp)
             ) {
-                Text(text = "Toggle ADB")
+                Text(text = "Toggle ADB", style = Typography.titleMedium)
             }
         }
     }

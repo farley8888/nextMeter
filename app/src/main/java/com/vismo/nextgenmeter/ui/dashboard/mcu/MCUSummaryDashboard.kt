@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.gold350
 import com.vismo.nextgenmeter.ui.theme.mineShaft100
 import com.vismo.nextgenmeter.ui.theme.mineShaft600
@@ -75,7 +76,7 @@ fun MCUSummaryDashboard(
             ) {
                 Text(
                     text = "指令输入",
-                    fontSize = 20.sp,
+                    style = Typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )

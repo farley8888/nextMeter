@@ -46,8 +46,10 @@ import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.ui.shared.GenericActionDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.theme.Black
+import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.valencia100
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
+import com.vismo.nextgenmeter.util.GlobalUtils.toDoubleOrZero
 
 
 @Composable
@@ -137,10 +139,18 @@ fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, meterLockState: MeterLockAc
 
 @Composable
 fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
+    val isTotalMoreThanZero = uiState.totalFare.toDoubleOrZero() > 0
+    val borderWith = if (isTotalMoreThanZero) 1.dp else 0.dp
     Column(
         modifier = Modifier
             .size(height = 200.dp, width = 150.dp) // Set a constant height and width
-            .border(1.dp, Color.White) // Adding a border
+            .then(
+                if (isTotalMoreThanZero) {
+                    Modifier.border(1.dp, Color.White)
+                } else {
+                    Modifier
+                }
+            )
             .weight(1f)
     ) {
         Row(
@@ -155,66 +165,66 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             Text(text = "H.K.$", color = Color.White)
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Row (
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(2f),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.End
-        ){
-            val fare = uiState.fare
-            val fareDouble = fare.toDoubleOrNull()
-            if (fareDouble != null && fareDouble > 0) {
-                Text(
-                    text = fare.substring(0, uiState.fare.length - 1),
-                    color = uiState.totalColor,
-                    fontSize = 60.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.End
-                )
-            }
-            Text(
-                text = "FARE",
-                color = Color.Yellow,
-                fontWeight = FontWeight.Bold,
+        if (isTotalMoreThanZero) {
+            Row(
                 modifier = Modifier
-                    .rotate(270f) // Orienting the text vertically
-                    .offset(x = 6.dp) // Move the text down
-                    .offset(y = 5.dp) // Move the text right
-                    .align(Alignment.CenterVertically)
-            )
+                    .fillMaxWidth()
+                    .weight(2f),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.End
+            ) {
+                val fare = uiState.fare
+                val fareDouble = fare.toDoubleOrNull()
+                if (fareDouble != null && fareDouble > 0) {
+                    Text(
+                        text = fare.substring(0, uiState.fare.length - 1),
+                        color = uiState.totalColor,
+                        style = Typography.displayMedium,
+                        textAlign = TextAlign.End
+                    )
+                }
+                Text(
+                    text = "FARE",
+                    color = Color.Yellow,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .rotate(270f) // Orienting the text vertically
+                        .offset(x = 6.dp) // Move the text down
+                        .offset(y = 5.dp) // Move the text right
+                        .align(Alignment.CenterVertically)
+                )
 
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(2f),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.End
-        ) {
-            val fare = uiState.fare
-            val fareDouble = fare.toDoubleOrNull()
-            val extras = uiState.extras
-            val extrasDouble = extras.toDoubleOrNull()
-            if (extrasDouble != null && fareDouble != null && fareDouble > 0) {
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(2f),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.End
+            ) {
+                val fare = uiState.fare
+                val fareDouble = fare.toDoubleOrNull()
+                val extras = uiState.extras
+                val extrasDouble = extras.toDoubleOrNull()
+                if (extrasDouble != null && fareDouble != null && fareDouble > 0) {
+                    Text(
+                        text = extras,
+                        color = uiState.totalColor,
+                        style = Typography.displayMedium,
+                        textAlign = TextAlign.End
+                    )
+                }
                 Text(
-                    text = extras,
-                    color = uiState.totalColor,
-                    fontSize = 60.sp,
+                    text = "EXTRA",
+                    color = Color.Yellow,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.End
+                    modifier = Modifier
+                        .rotate(270f) // Orienting the text vertically
+                        .offset(x = 6.dp) // Move the text down
+                        .offset(y = 5.dp) // Move the text right
+                        .align(Alignment.CenterVertically)
                 )
             }
-            Text(
-                text = "EXTRA",
-                color = Color.Yellow,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .rotate(270f) // Orienting the text vertically
-                    .offset(x = 6.dp) // Move the text down
-                    .offset(y = 5.dp) // Move the text right
-                    .align(Alignment.CenterVertically)
-            )
         }
     }
 }
@@ -246,19 +256,12 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             horizontalArrangement = Arrangement.End
         ){
             val totalFare = if(uiState.remainingOverSpeedTimeInSeconds != null) "c${uiState.totalFare}" else uiState.totalFare
-            val size = totalFare.length
-            val fontSize = when {
-                size < 6 -> 150.sp
-                size < 7 -> 120.sp
-                else -> 100.sp
-            }
             val totalFareDouble = uiState.totalFare.toDoubleOrNull()
             if (totalFareDouble != null && totalFareDouble > 0) { // So that we don't show 0 as the total fare
                 Text(
                     text = totalFare,
                     color = uiState.totalColor,
-                    fontSize = fontSize,
-                    fontWeight = FontWeight.Bold,
+                    style = Typography.displayLarge,
                     textAlign = TextAlign.End
                 )
             }
@@ -280,9 +283,9 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text(text = "DIST. (KM)", color = Color.Gray, textAlign = TextAlign.Start)
+                Text(text = "DIST. (KM)", color = Color.Gray, textAlign = TextAlign.Start, style = Typography.labelLarge)
                 Spacer(modifier = Modifier.width(2.dp))
-                Text(text = if(uiState.remainingOverSpeedTimeInSeconds != null) "c0.0" else uiState.distanceInKM, color = Color.Gray, fontSize = 36.sp, textAlign = TextAlign.End)
+                Text(text = if(uiState.remainingOverSpeedTimeInSeconds != null) "c0.0" else uiState.distanceInKM, color = Color.Gray, style = Typography.displaySmall, textAlign = TextAlign.End)
             }
         }
         Column(
@@ -294,10 +297,10 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Text(text = "TIME", color = Color.Gray, textAlign = TextAlign.Start)
+                Text(text = "TIME", color = Color.Gray, textAlign = TextAlign.Start, style = Typography.labelLarge)
                 Spacer(modifier = Modifier.width(2.dp))
                 Text(
-                    text = uiState.remainingOverSpeedTimeInSeconds ?: uiState.duration, color = Color.Gray, fontSize = 36.sp, textAlign = TextAlign.End)
+                    text = uiState.remainingOverSpeedTimeInSeconds ?: uiState.duration, color = Color.Gray, style = Typography.displaySmall, textAlign = TextAlign.End)
             }
         }
         Button(
@@ -321,7 +324,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 Text(
                     text = uiState.languagePref.toString(),
                     color = Color.White,
-                    fontSize = 20.sp,
+                    style = Typography.bodyMedium,
                     textAlign = TextAlign.Start,
                     modifier = Modifier.wrapContentWidth(Alignment.Start)
                 )
@@ -331,7 +334,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 Text(
                     text = "${uiState.status.toStringCN()} ${uiState.status.toStringEN()}",
                     color = Color.White,
-                    fontSize = 24.sp,
+                    style = Typography.headlineSmall,
                     textAlign = TextAlign.End,
                     modifier = Modifier.wrapContentWidth(Alignment.End)
                 )
