@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.sql.Time
 import java.util.logging.Logger
 import javax.inject.Inject
 
@@ -198,7 +199,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
             val updatedTrip = currentOngoingLocalTrip.copy(
                 tripStatus = heartbeatData.tripStatus,
-                pauseTime = if (heartbeatData.tripStatus == TripStatus.STOP) Timestamp.now() else null,
+                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = currentOngoingLocalTrip.pauseTime),
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
                 totalFare = heartbeatData.totalFare,
@@ -212,8 +213,24 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             )
 
             TripDataStore.updateTripDataValue(updatedTrip)
+
+            if(currentOngoingLocalTrip.fare != heartbeatData.fare && currentOngoingLocalTrip.fare != 0.0) {
+                emitBeepSound(5, 0, 1)
+            }
         }
 
+    }
+
+    private fun getPauseTime(tripStatus: TripStatus, currentPauseTime: Timestamp?): Timestamp? {
+        return if (tripStatus == TripStatus.STOP) {
+            if(currentPauseTime == null) {
+                Timestamp.now()
+            } else {
+                currentPauseTime
+            }
+        } else {
+            null
+        }
     }
 
     private fun parseHeartbeatResult(result: String): OngoingMCUHeartbeatData {
