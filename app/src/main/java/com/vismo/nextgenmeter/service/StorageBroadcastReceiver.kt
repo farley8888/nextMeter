@@ -26,6 +26,7 @@ class StorageBroadcastReceiver: BroadcastReceiver() {
 
     companion object {
         private const val TAG = "StorageBroadcastReceiver"
+        const val STATIC_GOD_CODE = "772005"
     }
 }
 
@@ -33,4 +34,9 @@ sealed class StorageReceiverStatus {
     data object Mounted: StorageReceiverStatus()
     data object Unmounted: StorageReceiverStatus()
     data object Unknown: StorageReceiverStatus()
+}
+
+sealed class DeviceGodCodeUnlockState {
+    data object Unlocked: DeviceGodCodeUnlockState()
+    data object Locked: DeviceGodCodeUnlockState()
 }

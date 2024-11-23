@@ -22,6 +22,8 @@ import com.vismo.nextgenmeter.repository.NetworkTimeRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.repository.TripRepository
+import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
+import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
@@ -447,9 +449,10 @@ class MainViewModel @Inject constructor(
     private fun onTextReceived(text: String) {
         // Handle the text
         val trimmedText = text.trim()
-        if (trimmedText == "772005") {
+        if (trimmedText == StorageBroadcastReceiver.STATIC_GOD_CODE) {
             enableADB()
             _snackBarContent.value = Pair("USB鎖定已解除", SnackbarState.SUCCESS)
+            DeviceDataStore.setDeviceGodCodeUnlockState(DeviceGodCodeUnlockState.Unlocked)
         } else {
             // show error message
             _snackBarContent.value = Pair("插入的SD卡無效", SnackbarState.ERROR)
@@ -462,6 +465,7 @@ class MainViewModel @Inject constructor(
         }
 
         _snackBarContent.value = Pair("SD卡已卸載", SnackbarState.DEFAULT)
+        DeviceDataStore.setDeviceGodCodeUnlockState(DeviceGodCodeUnlockState.Locked)
     }
 
     private fun enableADB() {
