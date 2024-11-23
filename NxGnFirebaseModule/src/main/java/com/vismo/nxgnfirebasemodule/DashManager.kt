@@ -464,7 +464,8 @@ class DashManager @Inject constructor(
                 gpsType = meterLocation.gpsType.toString(),
                 deviceTime = Timestamp.now(),
                 bearing = bearing,
-                speed = speed
+                speed = speed,
+                serverTime = Timestamp.now() // Server time is actually set by the .toFirestoreFormat extension
             )
             val json = gson.toJson(heartbeat)
             val map =
