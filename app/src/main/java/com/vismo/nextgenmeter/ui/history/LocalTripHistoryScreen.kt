@@ -49,7 +49,7 @@ fun LocalTripHistoryScreen(viewModel: LocalTripHistoryViewModel) {
             .focusRequester(focusRequester)
             .focusable()
             .onKeyEvent {
-                if (it.type == KeyDown) {
+                if (it.type == KeyDown && it.nativeKeyEvent.scanCode == 255 && !it.nativeKeyEvent.isLongPress) {
                     selectedTripId?.let { id ->
                         viewModel.printReceipt(trips.find { trip -> trip.tripId == id }!!)
                         true
