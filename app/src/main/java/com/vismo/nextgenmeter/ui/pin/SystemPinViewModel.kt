@@ -7,6 +7,7 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.MeterApiRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
+import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.util.CryptoManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.samstevens.totp.code.DefaultCodeGenerator
@@ -94,7 +95,8 @@ class SystemPinViewModel @Inject constructor(
         viewModelScope.launch {
             _totpStatus.value = "Verifying TOTP code..."
             val secret = getSecretAndDecrypt() ?: ""
-            val isVerifiedByTOTP = verifier.isValidCode(secret, code) || code == "191005"
+            val isVerifiedByTOTP = verifier.isValidCode(secret, code) || (code == PIN_WITH_GOD_CODE &&
+                    DeviceDataStore.deviceGodCodeUnlockState.first() is DeviceGodCodeUnlockState.Unlocked)
             _navigationToNextScreen.value = isVerifiedByTOTP
             if (isVerifiedByTOTP) {
                 _totpStatus.value = "TOTP code verified"
@@ -107,5 +109,9 @@ class SystemPinViewModel @Inject constructor(
     fun resetNavigation() {
         _navigationToNextScreen.value = false
         _totpStatus.value = ""
+    }
+
+    companion object {
+        private const val PIN_WITH_GOD_CODE = "191005"
     }
 }

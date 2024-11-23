@@ -2,6 +2,7 @@ package com.vismo.nextgenmeter.datastore
 
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
+import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,9 @@ object DeviceDataStore {
 
     private val _usbReceiverStatus = MutableStateFlow<USBReceiverStatus>(USBReceiverStatus.Unknown)
     val usbReceiverStatus: StateFlow<USBReceiverStatus> = _usbReceiverStatus
+
+    private val _deviceGodCodeUnlockState = MutableStateFlow<DeviceGodCodeUnlockState>(DeviceGodCodeUnlockState.Locked)
+    val deviceGodCodeUnlockState: StateFlow<DeviceGodCodeUnlockState> = _deviceGodCodeUnlockState
 
     private val mutex = Mutex() // Mutex for synchronization
 
@@ -51,5 +55,9 @@ object DeviceDataStore {
 
     fun setUSBReceiverStatus(status: USBReceiverStatus) {
         this._usbReceiverStatus.value = status
+    }
+
+    fun setDeviceGodCodeUnlockState(state: DeviceGodCodeUnlockState) {
+        this._deviceGodCodeUnlockState.value = state
     }
 }
