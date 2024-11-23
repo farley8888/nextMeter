@@ -75,6 +75,9 @@ class MainViewModel @Inject constructor(
     private val _showLoginToggle = MutableStateFlow<Boolean?>(null)
     val showLoginToggle: StateFlow<Boolean?> = _showLoginToggle
 
+    private val _showConnectionIconsToggle = MutableStateFlow<Boolean?>(null)
+    val showConnectionIconsToggle: StateFlow<Boolean?> = _showConnectionIconsToggle
+
     private val dateFormat = SimpleDateFormat(TOOLBAR_UI_DATE_FORMAT, Locale.TRADITIONAL_CHINESE)
 
     private val toolbarUiDataUpdateMutex = Mutex()
@@ -97,6 +100,7 @@ class MainViewModel @Inject constructor(
             launch { observeTripDate() }
             launch { observeFirebaseAuthSuccess() }
             launch { observeShowLoginToggle() }
+            launch { observeShowConnectionIconsToggle() }
             launch { observeStorageReceiverStatus() }
         }
     }
@@ -119,6 +123,12 @@ class MainViewModel @Inject constructor(
     private suspend fun observeShowLoginToggle() {
         meterPreferenceRepository.getShowLoginToggle().collectLatest { showLoginToggle ->
             _showLoginToggle.value = showLoginToggle
+        }
+    }
+
+    private suspend fun observeShowConnectionIconsToggle() {
+        meterPreferenceRepository.getShowConnectionIconsToggle().collectLatest { showConnectionIconsToggle ->
+            _showConnectionIconsToggle.value = showConnectionIconsToggle
         }
     }
 
@@ -209,9 +219,14 @@ class MainViewModel @Inject constructor(
                     meterPreferenceRepository.saveShowLoginToggle(it.settings.showLoginToggle)
                 }
 
+                if (it.settings?.showConnectionIconsToggle != null && meterPreferenceRepository.getShowConnectionIconsToggle().first() != it.settings.showConnectionIconsToggle) {
+                    meterPreferenceRepository.saveShowConnectionIconsToggle(it.settings.showConnectionIconsToggle)
+                }
+
                 toolbarUiDataUpdateMutex.withLock {
                     _topAppBarUiState.value = _topAppBarUiState.value.copy(
                         showLoginToggle = it.settings?.showLoginToggle ?: false,
+                        showConnectionIconsToggle = it.settings?.showConnectionIconsToggle ?: false
                     )
                 }
                 if (driverPreferenceRepository.getDriverOnce().driverPhoneNumber != it.session?.driver?.driverPhoneNumber) {

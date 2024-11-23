@@ -42,6 +42,19 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveShowConnectionIconsToggle(showLoginToggle: Boolean) {
+        context.dataStore.edit { settings ->
+            settings[KEY_SHOW_CONNECTION_ICONS_TOGGLE] = showLoginToggle.toString()
+        }
+    }
+
+    suspend fun getShowConnectionIconsToggle(): Flow<Boolean> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_SHOW_CONNECTION_ICONS_TOGGLE]?.toBoolean() ?: false
+            }
+    }
+
     suspend fun saveLicensePlate(licensePlate: String) {
         context.dataStore.edit { settings ->
             settings[KEY_LICENSE_PLATE] = licensePlate
@@ -73,6 +86,7 @@ class MeterPreferenceRepository(
         private const val SETTING_PREFS_NAME = "settings"
         private val KEY_TOTP_SECRET = stringPreferencesKey("totp_secret")
         private val KEY_SHOW_LOGIN_TOGGLE = stringPreferencesKey("show_login_toggle")
+        private val KEY_SHOW_CONNECTION_ICONS_TOGGLE = stringPreferencesKey("show_connection_icons_toggle")
         private val KEY_LICENSE_PLATE = stringPreferencesKey("license_plate")
         private val KEY_DEVICE_ID = stringPreferencesKey("device_id")
     }

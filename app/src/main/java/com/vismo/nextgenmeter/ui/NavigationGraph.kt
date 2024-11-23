@@ -10,8 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.vismo.nextgenmeter.MainActivity
 import com.vismo.nextgenmeter.MainActivity.Companion.NavigationDestination
 import com.vismo.nextgenmeter.ui.settings.admin.EditAdminPropertiesViewModel
 import com.vismo.nextgenmeter.ui.settings.admin.advance.EditFareCalculationPropertiesScreen
@@ -54,7 +57,11 @@ fun NavigationGraph(
             fadeOut(tween(700))
         }
     ) {
-        composable(NavigationDestination.Splash.route) {
+        composable(route = NavigationDestination.Splash.route, arguments = listOf(navArgument(MainActivity.SPLASH_ARG) {
+            defaultValue = false
+            type = NavType.BoolType
+        })) {
+            val alwaysNavigateToPair = it.arguments?.getBoolean(MainActivity.SPLASH_ARG) ?: false
             val viewModel = hiltViewModel<SplashScreenViewModel>()
             SplashScreen(viewModel, navigateToPair = {
                 navController.navigate(NavigationDestination.Pair.route) {
@@ -68,7 +75,9 @@ fun NavigationGraph(
                     restoreState = true
                     launchSingleTop = true
                 }
-            },)
+            },
+                alwaysNavigateToPair = alwaysNavigateToPair
+                )
         }
         composable(NavigationDestination.MeterOps.route) {
             val viewModel = hiltViewModel<MeterOpsViewModel>()
@@ -81,7 +90,11 @@ fun NavigationGraph(
             val viewModel = hiltViewModel<DriverPairViewModel>()
             DriverPairScreen(viewModel, snackbarDelegate,
                 navigateToMeterOps = {
-                navController.navigate(NavigationDestination.MeterOps.route)
+                navController.navigate(NavigationDestination.MeterOps.route) {
+                    popUpTo(NavigationDestination.Pair.route) { inclusive = true }
+                    restoreState = true
+                    launchSingleTop = true
+                }
             })
         }
         composable(NavigationDestination.TripHistory.route) {

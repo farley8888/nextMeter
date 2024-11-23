@@ -25,16 +25,26 @@ class SplashScreenViewModel @Inject constructor(
     private val _showLoginToggle = MutableStateFlow(false)
     val showLoginToggle: StateFlow<Boolean> = _showLoginToggle
 
+    private val _showConnectionIconsToggle = MutableStateFlow<Boolean>(false)
+    val showConnectionIconsToggle: StateFlow<Boolean> = _showConnectionIconsToggle
+
     init {
         viewModelScope.launch(ioDispatcher) {
             launch { startTimeout() }
-            launch { observeMeterFields() }
+            launch { observeShowLoginToggle() }
+            launch { observeShowConnectionIconsToggle() }
         }
     }
 
-    private suspend fun observeMeterFields() {
+    private suspend fun observeShowLoginToggle() {
         meterPreferenceRepository.getShowLoginToggle().collectLatest { showLoginToggle ->
             _showLoginToggle.value = showLoginToggle
+        }
+    }
+
+    private suspend fun observeShowConnectionIconsToggle() {
+        meterPreferenceRepository.getShowConnectionIconsToggle().collectLatest { showConnectionIconsToggle ->
+            _showConnectionIconsToggle.value = showConnectionIconsToggle
         }
     }
 
