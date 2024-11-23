@@ -198,10 +198,8 @@ class MainViewModel @Inject constructor(
     private suspend fun observeTripDate() {
         TripDataStore.tripData.collectLatest {
             if (it != null && it.endTime == null) {
-                updateBackButtonVisibility(false)
                 _isTripInProgress.value = true
             } else {
-                updateBackButtonVisibility(true)
                 _isTripInProgress.value = false
             }
         }
