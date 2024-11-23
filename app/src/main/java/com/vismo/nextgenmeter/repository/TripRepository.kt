@@ -19,6 +19,8 @@ interface TripRepository {
 
     fun addExtras(extrasAmount: Int)
 
+    fun subtractExtras(extrasAmount: Int)
+
     fun initObservers()
 
     fun close()

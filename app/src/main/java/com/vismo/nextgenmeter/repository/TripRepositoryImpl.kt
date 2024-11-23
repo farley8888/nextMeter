@@ -161,6 +161,15 @@ class TripRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun subtractExtras(extrasAmount: Int) {
+        TripDataStore.tripData.value?.let {
+            val extrasTotal = (it.extra - extrasAmount).toInt()
+            val finalTotal = if (extrasTotal < 0) 0 else extrasTotal
+            // we want the beep sound to be played when the extras total is 0
+            measureBoardRepository.writeAddExtrasCommand(finalTotal)
+        }
+    }
+
     override fun close() {
         repositoryScope?.cancel()
     }
