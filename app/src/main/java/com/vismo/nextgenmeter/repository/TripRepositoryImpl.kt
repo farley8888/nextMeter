@@ -135,7 +135,9 @@ class TripRepositoryImpl @Inject constructor(
 
     override suspend fun startAndPauseTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
-        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.STOP)
+        val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
+        val deviceId = DeviceDataStore.deviceIdData.first()?.deviceId ?: ""
+        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.STOP, licensePlate = licensePlate, deviceId = deviceId)
         TripDataStore.setTripData(tripData)
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
