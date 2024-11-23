@@ -77,7 +77,8 @@ fun DriverPairScreen(
             HealthCheckDialogContent(
                 title = healthCheckTitle,
                 message = healthCheckMessage.format(uiState.deviceSerialNumber),
-                qrLink = "suntec.app/${uiState.deviceSerialNumber}"
+                qrLink = "suntec.app/${uiState.deviceSerialNumber}",
+                dismiss = { showDialog.value = false }
             )
         }
     )
@@ -111,7 +112,7 @@ fun DriverPairScreen(
 }
 
 @Composable
-fun HealthCheckDialogContent(title: String, message: String, qrLink: String) {
+fun HealthCheckDialogContent(title: String, message: String, qrLink: String, dismiss: () -> Unit = {}) {
     Column(
         modifier = Modifier
             .padding(16.dp)
@@ -133,6 +134,22 @@ fun HealthCheckDialogContent(title: String, message: String, qrLink: String) {
             textAlign = TextAlign.Center
         )
         DashAndGoldQrCodeView(data = qrLink)
+        Button(
+            onClick = dismiss,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = primary600,
+                contentColor = nobel50
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(16.dp)
+        ) {
+            Text(
+                text = "確認",
+                style = Typography.bodySmall
+            )
+        }
     }
 }
 
@@ -254,11 +271,6 @@ fun DashAndGoldQrCodeView(primaryColor: Color = primary800, data: String, size: 
     QrCodeView(
         data = data,
         modifier = Modifier.size(size.dp),
-//        colors = QrCodeColors(
-//            background = primaryColor,
-//            foreground = gold
-//        ),
-//        dotShape = DotShape.Square
     ) {
         Box(
             contentAlignment = Alignment.Center,
