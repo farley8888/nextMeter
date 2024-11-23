@@ -21,16 +21,17 @@ object DashUtil {
         return this.mapValues { (key, value) ->
             if (value is Map<*, *>) {
                 val mapValue = value as Map<String, Number>
-                if (mapValue.containsKey(SECONDS) && mapValue.containsKey(NANOSECONDS)) {
+                if (key == SERVER_TIME) {
+                    FieldValue.serverTimestamp()
+                }
+                else if (mapValue.containsKey(SECONDS) && mapValue.containsKey(NANOSECONDS)) {
                     Timestamp(mapValue[SECONDS]!!.toLong(), mapValue[NANOSECONDS]!!.toInt())
                 } else if(mapValue.containsKey(LATITUDE) && mapValue.containsKey(LONGITUDE)) {
                     GeoPoint(mapValue[LATITUDE]!!.toDouble(), mapValue[LONGITUDE]!!.toDouble())
                 } else {
                     value
                 }
-            } else if (key == SERVER_TIME) {
-                FieldValue.serverTimestamp()
-            }  else {
+            } else {
                 value
             }
         }
