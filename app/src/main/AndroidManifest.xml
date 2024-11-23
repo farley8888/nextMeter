@@ -50,6 +50,13 @@
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="8129389f836db269a3d813773d9af8d3" />
+        <service
+            android:name="com.ilin.service.GPSService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="act.init.gps" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>
