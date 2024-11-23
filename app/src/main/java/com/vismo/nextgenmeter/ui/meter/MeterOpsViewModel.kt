@@ -335,7 +335,7 @@ class MeterOpsViewModel @Inject constructor(
     }
 
     companion object {
-        private const val OVERSPEED_LOCKUP_COUNTER = 60*3 // seconds
+        private const val OVERSPEED_LOCKUP_COUNTER = 40 // seconds
         private const val OVERSPEED_BEEP_COUNTER = 30 //seconds
     }
 
