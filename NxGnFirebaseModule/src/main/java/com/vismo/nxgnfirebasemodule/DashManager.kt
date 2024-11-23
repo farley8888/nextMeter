@@ -141,7 +141,7 @@ class DashManager @Inject constructor(
             val env = when(env) {
                 "dev" -> "DEV"
                 "qa" -> "QA"
-                "prod" -> "PRD"
+                "prd" -> "PRD"
                 else -> "INVALID"
             }
             val location = dashManagerConfig.meterLocation
