@@ -209,27 +209,66 @@ class MeterOpsViewModel @Inject constructor(
         repeatCount: Int,
         isLongPress: Boolean
     ) {
+        if (isLongPress || repeatCount > 1) {
+            // handle long press
+            handleLongPress(code, repeatCount)
+
+        } else {
+            // handle single press
+            handleSinglePress(code)
+        }
+    }
+
+    private fun handleLongPress(code: Int, repeatCount: Int) {
+        when (code) {
+            252 -> {
+                // TODO: put flag down
+            }
+
+            253 -> {
+                if (repeatCount.mod(10) == 0) {
+                    // subtract extras - $10
+                    subtractExtras(10)
+                }
+            }
+
+            254 -> {
+                if (repeatCount.mod(10) == 0) {
+                    // subtract extras - $1
+                    subtractExtras(1)
+                }
+
+            }
+        }
+    }
+
+    private fun handleSinglePress(code: Int) {
         when (code) {
             248 -> {
                 // ready for hire
                 endTripAndReadyForHire()
             }
+
             249 -> {
                 // start/resume trip
                 startOrResumeTrip()
             }
+
             250 -> {
                 // pause/start-and-pause trip
                 pauseTrip()
             }
+
             253 -> {
                 // add extras - $10
                 addExtras(10)
             }
+
             254 -> {
                 // add extras - $1
                 addExtras(1)
             }
+
             255 -> {
                 // print receipt
                 printReceipt()
@@ -250,6 +289,12 @@ class MeterOpsViewModel @Inject constructor(
     private fun addExtras(extrasAmount: Int) {
         viewModelScope.launch(ioDispatcher) {
             tripRepository.addExtras(extrasAmount)
+        }
+    }
+
+    private fun subtractExtras(extrasAmount: Int) {
+        viewModelScope.launch(ioDispatcher) {
+            tripRepository.subtractExtras(extrasAmount)
         }
     }
 
