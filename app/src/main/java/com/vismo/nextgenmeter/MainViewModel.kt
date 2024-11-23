@@ -23,6 +23,7 @@ import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
+import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
 import com.vismo.nextgenmeter.ui.theme.gold600
 import com.vismo.nextgenmeter.ui.theme.nobel600
@@ -107,15 +108,26 @@ class MainViewModel @Inject constructor(
 
     private fun observeStorageReceiverStatus() {
         viewModelScope.launch {
-            DeviceDataStore.storageReceiverStatus.collectLatest { status ->
-                when(status) {
-                    StorageReceiverStatus.Mounted -> onSdCardMounted()
-                    StorageReceiverStatus.Unmounted -> onSdCardUnmounted()
-                    StorageReceiverStatus.Attached -> onUsbConnected()
-                    StorageReceiverStatus.Detached -> onUsbDisconnected()
-                    else -> {}
+            launch {
+                DeviceDataStore.storageReceiverStatus.collectLatest { status ->
+                    Log.d(TAG, "StorageReceiverStatus: $status")
+                    when(status) {
+                        StorageReceiverStatus.Mounted -> onSdCardMounted()
+                        StorageReceiverStatus.Unmounted -> onSdCardUnmounted()
+                        else -> {}
+                    }
                 }
-                DeviceDataStore.setStorageReceiverStatus(StorageReceiverStatus.Unknown)
+            }
+
+            launch {
+                DeviceDataStore.usbReceiverStatus.collectLatest { status ->
+                    Log.d(TAG, "USBReceiverStatus: $status")
+                    when (status) {
+                        USBReceiverStatus.Attached -> onUsbConnected()
+                        USBReceiverStatus.Detached -> onUsbDisconnected()
+                        else -> {}
+                    }
+                }
             }
         }
     }
@@ -406,7 +418,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onUsbConnected() {
-        _snackBarContent.value = Pair("USB設備已連接", SnackbarState.DEFAULT)
+        _snackBarContent.value = Pair("USB設備已連接", SnackbarState.SUCCESS)
     }
 
     private fun onUsbDisconnected() {

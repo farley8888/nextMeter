@@ -40,7 +40,10 @@ import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nextgenmeter.repository.UsbEventReceiver
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
+import com.vismo.nextgenmeter.service.USBReceiverStatus
+import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
 import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.ui.NavigationGraph
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
@@ -61,22 +64,32 @@ import java.util.Locale
 import java.util.TimeZone
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), UsbEventReceiver {
     private val mainViewModel: MainViewModel by viewModels()
     private var navController: NavHostController? = null
     private var storageReceiver : StorageBroadcastReceiver? = null
+    private var usbBroadcastReceiver: UsbBroadcastReceiver? = null
 
     private fun registerStorageReceiver() {
         storageReceiver = StorageBroadcastReceiver()
         val filter = IntentFilter().apply {
-            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
-            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
             addAction(Intent.ACTION_MEDIA_MOUNTED)
             addAction(Intent.ACTION_MEDIA_UNMOUNTED)
             addDataScheme("file");
         }
 
         registerReceiver(storageReceiver, filter)
+    }
+
+    private fun registerUsbReceiver() {
+        usbBroadcastReceiver = UsbBroadcastReceiver.newInstance(this)
+        val filter = IntentFilter().apply {
+            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+            addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            addAction(UsbBroadcastReceiver.USB_STATE_ACTION)
+        }
+
+        registerReceiver(usbBroadcastReceiver, filter)
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,6 +98,7 @@ class MainActivity : ComponentActivity() {
         listenToSignalStrength()
         setWifiStatus()
         registerStorageReceiver()
+        registerUsbReceiver()
         setContent {
             CableMeterTheme {
                 // A surface container using the 'background' color from the theme
@@ -357,5 +371,14 @@ class MainActivity : ComponentActivity() {
             data object AdminAdvancedEdit : NavigationDestination("adminAdvancedEdit")
             data object AdjustBrightnessOrVolume : NavigationDestination("adjustBrightnessOrVolume")
         }
+    }
+
+    override fun onUsbDeviceChanged(isConnected: Boolean) {
+        val status = if (isConnected) {
+            USBReceiverStatus.Attached
+        } else {
+            USBReceiverStatus.Detached
+        }
+        DeviceDataStore.setUSBReceiverStatus(status)
     }
 }

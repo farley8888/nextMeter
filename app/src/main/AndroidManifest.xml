@@ -43,8 +43,9 @@
         <service android:name="com.amap.api.location.APSService" />
         <receiver android:name="com.vismo.nextgenmeter.service.StorageBroadcastReceiver" android:exported="true">
             <intent-filter>
-                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-                <action android:name="android.hardware.usb.action.USB_DEVICE_DETACHED" />
+                <action android:name="android.intent.action.MEDIA_MOUNTED" />
+                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
+                <data android:scheme="file" />
             </intent-filter>
         </receiver>
         <meta-data
