@@ -111,7 +111,7 @@ android {
             versionNameSuffix = "-qa"
             archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
         }
-        create("prod") {
+        create("prd") {
             dimension = "env"
             archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
         }

@@ -6,27 +6,27 @@ object Constant {
     const val ENV_DEV = "dev"
     const val ENV_DEV_2 = "dev2"
     const val ENV_QA = "qa"
-    const val ENV_PROD = "prod"
+    const val ENV_PRD = "prd"
 
     private const val BASE_APP_URL_DEV = "https://oapi.dev.dash-hk.com/"
     private const val BASE_APP_2_URL_DEV = "https://oapi.dev2.dash-hk.com/"
     private const val BASE_APP_URL_QA =  "https://oapi.qa.dash-hk.com/"
-    private const val BASE_APP_URL_PROD = "https://oapi.dash-hk.com/"
+    private const val BASE_APP_URL_PRD = "https://oapi.dash-hk.com/"
     val BASE_OAPI_URL = when (BuildConfig.FLAVOR) {
             ENV_DEV_2 -> BASE_APP_2_URL_DEV
             ENV_QA -> BASE_APP_URL_QA
-            ENV_PROD-> BASE_APP_URL_PROD
+            ENV_PRD-> BASE_APP_URL_PRD
             else -> BASE_APP_URL_DEV
     }
 
     private const val BASE_API_URL_DEV = "https://api.dev.dash-hk.com/"
     private const val BASE_API_URL_DEV_2 = "https://api.dev2.dash-hk.com/"
     private const val BASE_API_URL_QA = "https://api.qa.dash-hk.com/"
-    private const val BASE_API_URL_PROD = "https://api.dash-hk.com/"
+    private const val BASE_API_URL_PRD = "https://api.dash-hk.com/"
     val BASE_API_URL = when (BuildConfig.FLAVOR) {
             ENV_DEV_2 -> BASE_API_URL_DEV_2
             ENV_QA -> BASE_API_URL_QA
-            ENV_PROD -> BASE_API_URL_PROD
+            ENV_PRD -> BASE_API_URL_PRD
             else ->  BASE_API_URL_DEV
     }
 

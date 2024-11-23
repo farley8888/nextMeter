@@ -5,7 +5,7 @@ import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.ui.theme.nobel600
 import com.vismo.nextgenmeter.util.Constant.ENV_DEV
 import com.vismo.nextgenmeter.util.Constant.ENV_DEV_2
-import com.vismo.nextgenmeter.util.Constant.ENV_PROD
+import com.vismo.nextgenmeter.util.Constant.ENV_PRD
 import com.vismo.nextgenmeter.util.Constant.ENV_QA
 
 data class TopAppBarUiState (
@@ -22,7 +22,7 @@ data class TopAppBarUiState (
         ENV_DEV -> "D"
         ENV_DEV_2 -> "D2"
         ENV_QA -> "Q"
-        ENV_PROD -> "P"
+        ENV_PRD -> "P"
         else -> "INVALID"
     },
     val showLoginToggle:Boolean = false,

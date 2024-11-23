@@ -180,7 +180,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun disableADBByDefaultForProd() {
-        if (BuildConfig.FLAVOR == Constant.ENV_PROD) {
+        if (BuildConfig.FLAVOR == Constant.ENV_PRD) {
             disableADB()
         }
     }
@@ -432,7 +432,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun onSdCardUnmounted() {
-        if(BuildConfig.FLAVOR == Constant.ENV_PROD) {
+        if(BuildConfig.FLAVOR == Constant.ENV_PRD) {
             disableADB()
         }
 
