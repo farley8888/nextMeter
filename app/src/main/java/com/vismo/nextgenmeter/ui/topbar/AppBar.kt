@@ -205,8 +205,8 @@ fun AppBar(
                     onPress = {
                         try {
                             delay(2000)
-                            onLogoLongPress() // Call the function after 2 seconds
                             performVirtualTapFeedback(view)
+                            onLogoLongPress() // Call the function after 2 seconds
                         } catch (e: CancellationException) {
                             // Handle if the touch is released before 2 seconds
                         }
