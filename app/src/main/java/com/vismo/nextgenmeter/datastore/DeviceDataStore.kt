@@ -3,6 +3,7 @@ package com.vismo.nextgenmeter.datastore
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
+import com.vismo.nextgenmeter.service.USBReceiverStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -20,6 +21,9 @@ object DeviceDataStore {
 
     private val _storageReceiverStatus = MutableStateFlow<StorageReceiverStatus>(StorageReceiverStatus.Unknown)
     val storageReceiverStatus: StateFlow<StorageReceiverStatus> = _storageReceiverStatus
+
+    private val _usbReceiverStatus = MutableStateFlow<USBReceiverStatus>(USBReceiverStatus.Unknown)
+    val usbReceiverStatus: StateFlow<USBReceiverStatus> = _usbReceiverStatus
 
     private val mutex = Mutex() // Mutex for synchronization
 
@@ -43,5 +47,9 @@ object DeviceDataStore {
 
     fun setStorageReceiverStatus(status: StorageReceiverStatus) {
         this._storageReceiverStatus.value = status
+    }
+
+    fun setUSBReceiverStatus(status: USBReceiverStatus) {
+        this._usbReceiverStatus.value = status
     }
 }
