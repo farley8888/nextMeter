@@ -145,11 +145,17 @@ fun MCUSummaryDashboard(
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            DetailRow("安桌固性", uiState.androidROMVersion)
+            DetailRow("安桌固件", uiState.androidROMVersion)
             DetailRow("安桌ID", uiState.androidId)
             DetailRow("計量ID", uiState.deviceIdData.deviceId)
-            DetailRow("計量固性", uiState.fareParams.firmwareVersion)
-            DetailRow("APP版本", uiState.appVersion)
+            // Remove for TD
+            // DetailRow("計量固件", uiState.fareParams.firmwareVersion)
+
+            // Hardcode for TD version
+            //
+            // DetailRow("APP版本", uiState.appVersion)
+            DetailRow("APP版本", "5.0.0.990")
+
             DetailRow("車費版本", uiState.fareParams.parametersVersion)
             DetailRow("K值", uiState.fareParams.kValue)
         }
