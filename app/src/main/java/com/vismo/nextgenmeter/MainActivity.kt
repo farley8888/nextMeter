@@ -30,10 +30,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -44,11 +40,9 @@ import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
-import com.vismo.nextgenmeter.service.GlobalBackService
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.ui.NavigationGraph
-import com.vismo.nextgenmeter.ui.meter.MeterLockAction
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.theme.CableMeterTheme
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
@@ -236,7 +230,9 @@ class MainActivity : ComponentActivity() {
 
     private fun navigateToMeterOpsScreen() {
         navController?.navigate(NavigationDestination.MeterOps.route) {
-            popUpTo(NavigationDestination.Splash.route) { inclusive = true }
+            navController?.graph?.id?.let { it1 -> popUpTo(it1) {
+                inclusive = true
+            } } // Clear the backstack
             restoreState = true
             launchSingleTop = true
         }
