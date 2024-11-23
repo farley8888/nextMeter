@@ -88,7 +88,7 @@ fun AppBar(
                 Text(
                     text = uiState.dateTime,
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(start = 4.dp, end = 16.dp).wrapContentSize(align = Alignment.Center)
+                    modifier = Modifier.padding(start = 20.dp, end = 16.dp).wrapContentSize(align = Alignment.Center)
                 )
                 Box(
                     contentAlignment = Alignment.Center,

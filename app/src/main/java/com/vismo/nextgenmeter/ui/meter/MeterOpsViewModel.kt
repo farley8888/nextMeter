@@ -173,7 +173,7 @@ class MeterOpsViewModel @Inject constructor(
                 duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
                 totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
                 languagePref = _uiState.value.languagePref,
-                remainingOverSpeedTimeInSeconds = if(trip.shouldLockMeter() && trip.overSpeedDurationInSeconds > 0) MeterOpsUtil.getFormattedDurationFromSeconds((OVERSPEED_LOCKUP_COUNTER - trip.overSpeedDurationInSeconds).toLong()) else null
+                remainingOverSpeedTimeInSeconds = if(trip.shouldLockMeter() && trip.overSpeedDurationInSeconds > 0) MeterOpsUtil.getFormattedDurationFromSeconds((OVERSPEED_LOCKUP_COUNTER - trip.overSpeedDurationInSeconds).toLong()) else null,
             )
         }
     }
