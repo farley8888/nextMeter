@@ -11,7 +11,6 @@ import android.view.View
 import com.google.firebase.Timestamp
 import com.vismo.nextgenmeter.util.Constant.SLAT_KEY
 import com.vismo.nextgenmeter.util.Constant.VECTOR_KEY
-import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

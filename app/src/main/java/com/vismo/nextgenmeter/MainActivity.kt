@@ -11,6 +11,7 @@ import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyManager
 import android.util.Log
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -29,6 +30,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -44,8 +48,10 @@ import com.vismo.nextgenmeter.service.GlobalBackService
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.ui.NavigationGraph
+import com.vismo.nextgenmeter.ui.meter.MeterLockAction
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.theme.CableMeterTheme
+import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
@@ -159,6 +165,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (event != null && event.action == KeyEvent.ACTION_DOWN) {
+            val scanCode = event.scanCode
+            val repeatCount = event.repeatCount
+            val isLongPress = event.isLongPress
+
+            if (scanCode == 248 && repeatCount == 0 && !isLongPress && !isCurrentScreenMeterOps()) {
+                navigateToMeterOpsScreen() // navigate to the MeterOps screen from any other screen
+                performVirtualTapFeedback(window.decorView)
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     private fun isPairScreenInBackStack(): Boolean {
         return try {
             navController?.getBackStackEntry(NavigationDestination.Pair.route)
@@ -210,6 +231,14 @@ class MainActivity : ComponentActivity() {
             } } // Clear the backstack
             restoreState = true
             launchSingleTop = true // Prevent multiple instances
+        }
+    }
+
+    private fun navigateToMeterOpsScreen() {
+        navController?.navigate(NavigationDestination.MeterOps.route) {
+            popUpTo(NavigationDestination.Splash.route) { inclusive = true }
+            restoreState = true
+            launchSingleTop = true
         }
     }
 
