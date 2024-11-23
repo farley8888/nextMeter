@@ -65,13 +65,17 @@ fun NavigationGraph(
             val viewModel = hiltViewModel<SplashScreenViewModel>()
             SplashScreen(viewModel, navigateToPair = {
                 navController.navigate(NavigationDestination.Pair.route) {
-                    popUpTo(NavigationDestination.Splash.route) { inclusive = true }
+                    navController.graph.id.let { it1 -> popUpTo(it1) {
+                        inclusive = true
+                    } } // Clear the backstack
                     restoreState = true
                     launchSingleTop = true
                 }
             }, navigateToMeterOps = {
                 navController.navigate(NavigationDestination.MeterOps.route) {
-                    popUpTo(NavigationDestination.Splash.route) { inclusive = true }
+                    navController.graph.id.let { it1 -> popUpTo(it1) {
+                        inclusive = true
+                    } } // Clear the backstack
                     restoreState = true
                     launchSingleTop = true
                 }
