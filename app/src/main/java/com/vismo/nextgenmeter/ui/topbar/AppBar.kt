@@ -3,6 +3,7 @@ package com.vismo.nextgenmeter.ui.topbar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -31,22 +32,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.MainViewModel
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
+import kotlinx.coroutines.delay
+import kotlin.coroutines.cancellation.CancellationException
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppBar(
     viewModel: MainViewModel,
-    onBackButtonClick: () -> Unit
+    onBackButtonClick: () -> Unit,
+    onLogoLongPress : () -> Unit
 ) {
     val uiState = viewModel.topAppBarUiState.collectAsState().value
     val view = LocalView.current
@@ -125,7 +131,7 @@ fun AppBar(
                             .padding(end = 16.dp)
                     )
                 }
-                if (uiState.isLocationIconVisible && uiState.showLoginToggle) {
+                if (uiState.isLocationIconVisible && uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
                     Icon(
                         imageVector = Icons.Outlined.LocationOn,
                         contentDescription = "Location",
@@ -133,7 +139,7 @@ fun AppBar(
                             .padding(end = 4.dp)
                     )
                 }
-                if (uiState.isWifiIconVisible && uiState.showLoginToggle) {
+                if (uiState.isWifiIconVisible && uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
                     Icon(
                         imageVector = Icons.Outlined.Wifi,
                         contentDescription = "Wifi",
@@ -141,7 +147,7 @@ fun AppBar(
                             .padding(end = 4.dp)
                     )
                 }
-                if (uiState.showLoginToggle) {
+                if (uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
                     when (uiState.signalStrength) {
                         1 -> {
                             Icon(
@@ -193,7 +199,20 @@ fun AppBar(
         Text(
             text = uiState.title,
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        try {
+                            delay(2000)
+                            onLogoLongPress() // Call the function after 2 seconds
+                            performVirtualTapFeedback(view)
+                        } catch (e: CancellationException) {
+                            // Handle if the touch is released before 2 seconds
+                        }
+                    }
+                )
+            }
         )
     }
 }

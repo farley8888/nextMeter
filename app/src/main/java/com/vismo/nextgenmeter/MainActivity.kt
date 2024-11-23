@@ -52,6 +52,8 @@ import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.util.DashUtil
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -133,6 +135,15 @@ class MainActivity : ComponentActivity() {
                                     if (!isTripInProgress && navController?.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
                                         navController!!.popBackStack()
                                     }
+                                },
+                                onLogoLongPress = {
+                                    lifecycleScope.launch {
+                                        repeatOnLifecycle(Lifecycle.State.STARTED) {
+                                            if (mainViewModel.showLoginToggle.first() == true && isCurrentScreenMeterOps()) {
+                                                navigateToSplashScreen(alwaysNavigateToPair = true)
+                                            }
+                                        }
+                                    }
                                 }
                             )
                         }
@@ -157,6 +168,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun isCurrentScreenMeterOps(): Boolean {
+        return try {
+            navController?.currentDestination?.route == NavigationDestination.MeterOps.route
+        } catch (_: IllegalArgumentException) {
+            false
+        }
+    }
+
     private fun initObservers() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -168,20 +187,29 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 launch {
-                    mainViewModel.showLoginToggle.collectLatest {
-                        if ((it == true && !isPairScreenInBackStack()) || (it == false && isPairScreenInBackStack())) {
+                    combine(
+                        mainViewModel.showLoginToggle,
+                        mainViewModel.showConnectionIconsToggle
+                    ) { showLoginToggle, showConnectionIconsToggle ->
+                        Pair(showLoginToggle, showConnectionIconsToggle)
+                    }.collectLatest {
+                        if ((it.first == true && it.second == true && !isPairScreenInBackStack()) || (it.first == false && isPairScreenInBackStack())) {
                             // clean up the back stack and navigate to splash screen
-                            navController?.navigate(NavigationDestination.Splash.route) {
-                                navController?.graph?.id?.let { it1 -> popUpTo(it1) {
-                                    inclusive = true
-                                } } // Clear the backstack
-                                restoreState = true
-                                launchSingleTop = true // Prevent multiple instances
-                            }
+                           navigateToSplashScreen()
                         }
                     }
                 }
             }
+        }
+    }
+
+    private fun navigateToSplashScreen(alwaysNavigateToPair: Boolean = false) {
+        navController?.navigate(NavigationDestination.Splash.route.replace("{$SPLASH_ARG}", "$alwaysNavigateToPair")) {
+            navController?.graph?.id?.let { it1 -> popUpTo(it1) {
+                inclusive = true
+            } } // Clear the backstack
+            restoreState = true
+            launchSingleTop = true // Prevent multiple instances
         }
     }
 
@@ -289,11 +317,11 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-
+        const val SPLASH_ARG = "alwaysNavigateToPair"
         sealed class NavigationDestination(
             val route: String,
         ) {
-            data object Splash : NavigationDestination("splash")
+            data object Splash : NavigationDestination("splash/?alwaysNavigateToPair={$SPLASH_ARG}")
             data object MeterOps : NavigationDestination("meterOps")
             data object Pair : NavigationDestination("pair")
             data object TripHistory : NavigationDestination("tripHistory")

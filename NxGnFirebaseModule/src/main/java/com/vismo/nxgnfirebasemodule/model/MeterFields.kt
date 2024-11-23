@@ -28,10 +28,11 @@ data class Settings(
     @SerializedName("heartbeat_interval") val heartbeatInterval: Int,
     @SerializedName("meter_software_version") val meterSoftwareVersion: String,
     @SerializedName("sdk_version") val sdkVersion: String,
-    @SerializedName("show_login_toggle") val showLoginToggle: Boolean,
+    @SerializedName("show_login_toggle") val showLoginToggle: Boolean = false,
     @SerializedName("sim_iccid") val simIccid: String,
     @SerializedName("vehicle") val vehicle: Vehicle,
     @SerializedName("operating_area") val operatingArea: OperatingArea,
+    @SerializedName("show_connection_icons_toggle") val showConnectionIconsToggle: Boolean = false,
 )
 
 data class McuInfo(

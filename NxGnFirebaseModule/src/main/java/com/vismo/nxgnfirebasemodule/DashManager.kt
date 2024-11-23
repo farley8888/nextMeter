@@ -96,7 +96,7 @@ class DashManager @Inject constructor(
         scope.launch {
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
-            launch { checkForMostRelevantUpdate() }
+//            launch { checkForMostRelevantUpdate() } // Not needed for now
         }
         isInitialized = true
     }
@@ -194,7 +194,7 @@ class DashManager @Inject constructor(
                             session = session,
                             mcuInfo = mcuInfo,
                         )
-                        Log.d(TAG, " successfully - showLoginToggle value: ${settings?.showLoginToggle}")
+                        Log.d(TAG, " successfully - showLoginToggle value: ${settings?.showLoginToggle} - showConnectionIconsToggle val ${settings?.showConnectionIconsToggle}")
                     }
                 }
         }

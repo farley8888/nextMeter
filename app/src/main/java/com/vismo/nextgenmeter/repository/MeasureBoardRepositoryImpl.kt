@@ -124,9 +124,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         DeviceDataStore.setMCUTime(result.substring(40, 40 + 12))
 
         TripDataStore.tripData.value?.tripStatus?.let { tripStatus ->
-            if (tripStatus == TripStatus.ENDED) {
-                TripDataStore.clearTripData()
-            }
+            TripDataStore.clearTripData()
         }
         dashManagerConfig.setDeviceIdData(deviceId = measureBoardDeviceId, licensePlate =  licensePlate)
         meterPreferenceRepository.saveDeviceId(measureBoardDeviceId)
