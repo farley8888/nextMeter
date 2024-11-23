@@ -26,7 +26,7 @@ import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
 import com.vismo.nextgenmeter.ui.theme.gold600
-import com.vismo.nextgenmeter.ui.theme.nobel600
+import com.vismo.nextgenmeter.ui.theme.nobel800
 import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.theme.primary700
 import com.vismo.nextgenmeter.util.Constant
@@ -254,7 +254,7 @@ class MainViewModel @Inject constructor(
 
     private suspend fun manageDashPayColor(tripPaidStatus: TripPaidStatus, isSessionExists: Boolean) {
         val toolbarColor = when (tripPaidStatus) {
-            TripPaidStatus.NOT_PAID -> if (isSessionExists) primary700 else nobel600
+            TripPaidStatus.NOT_PAID -> if (isSessionExists) primary700 else nobel800
             TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
             TripPaidStatus.PARTIALLY_PAID -> gold600
         }

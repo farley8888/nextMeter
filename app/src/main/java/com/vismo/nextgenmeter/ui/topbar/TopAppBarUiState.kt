@@ -2,7 +2,7 @@ package com.vismo.nextgenmeter.ui.topbar
 
 import androidx.compose.ui.graphics.Color
 import com.vismo.nextgenmeter.BuildConfig
-import com.vismo.nextgenmeter.ui.theme.nobel600
+import com.vismo.nextgenmeter.ui.theme.nobel800
 import com.vismo.nextgenmeter.util.Constant.ENV_DEV
 import com.vismo.nextgenmeter.util.Constant.ENV_DEV_2
 import com.vismo.nextgenmeter.util.Constant.ENV_PRD
@@ -17,7 +17,7 @@ data class TopAppBarUiState (
     val isWifiIconVisible: Boolean = false,
     val driverPhoneNumber: String = "",
     val isInternetIconVisible: Boolean = false,
-    val color: Color = nobel600,
+    val color: Color = nobel800,
     val envVariable: String = when(BuildConfig.FLAVOR) {
         ENV_DEV -> "D"
         ENV_DEV_2 -> "D2"
