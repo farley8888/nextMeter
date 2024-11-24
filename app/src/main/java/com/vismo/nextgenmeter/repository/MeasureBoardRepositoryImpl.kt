@@ -19,6 +19,7 @@ import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.module.MainDispatcher
+import com.vismo.nextgenmeter.repository.FirebaseAuthRepository.Companion
 import com.vismo.nextgenmeter.util.GlobalUtils.divideBy100AndConvertToDouble
 import com.vismo.nextgenmeter.util.GlobalUtils.extractSubstring
 import com.vismo.nextgenmeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
@@ -34,6 +35,7 @@ import com.vismo.nextgenmeter.util.MeasureBoardUtils.getTimeInSeconds
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -58,7 +60,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private var mBusModel: BusModel? = null
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
-    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e(TAG, "Scope exception", throwable)
+    }
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
 
     override val meterIdentifierInRemote: StateFlow<String> = dashManagerConfig.meterIdentifier
 
