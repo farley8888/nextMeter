@@ -360,14 +360,14 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
                         color = uiState.totalColor,
                         style = Typography.displayLarge.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 150.sp,
-                            letterSpacing = TextUnit(-7.5F, TextUnitType.Sp), //squeeze the text together
-                            lineHeight = 150.sp
+                            fontSize = 148.sp,
+                            letterSpacing = TextUnit(-6.5F, TextUnitType.Sp), //squeeze the text together
+                            lineHeight = 148.sp
                         ),
                         overflow = TextOverflow.Visible,
                         textAlign = TextAlign.End,
                         modifier = Modifier
-                            .offset(y = (-12).dp)
+                            .offset(y = (-16).dp)
                     )
                 }
             }
@@ -464,7 +464,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 Text(
                     text = uiState.languagePref.toString(),
                     color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 34.sp,
                     lineHeight = 34.sp,
                     textAlign = TextAlign.Start,
@@ -480,7 +480,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     Text(
                         text = uiState.status.toStringCN(),
                         color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         fontSize = 27.sp,
                         lineHeight = 27.sp,
                         textAlign = TextAlign.Center,
@@ -489,7 +489,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     Text(
                         text = uiState.status.toStringEN(),
                         color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         fontSize = 27.sp,
                         lineHeight = 27.sp,
                         textAlign = TextAlign.Center,
