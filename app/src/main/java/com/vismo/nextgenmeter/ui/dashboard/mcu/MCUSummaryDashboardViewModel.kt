@@ -4,13 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nextgenmeter.datastore.DeviceDataStore.mcuPriceParams
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.MeasureBoardRepository
+import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -20,7 +23,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MCUSummaryDashboardViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val measureBoardRepository: MeasureBoardRepository
+    private val measureBoardRepository: MeasureBoardRepository,
+    private val meterPreferenceRepository: MeterPreferenceRepository
 ) : ViewModel() {
 
     private val _mcuSummaryUiState = MutableStateFlow(MCUSummaryUiData())
@@ -40,6 +44,10 @@ class MCUSummaryDashboardViewModel @Inject constructor(
                             _mcuSummaryUiState.value = _mcuSummaryUiState.value.copy(
                                 fareParams = it
                             )
+                            val savedMcuStartPrice = meterPreferenceRepository.getMcuStartPrice().first()
+                            if (mcuPriceParams.value?.startingPrice != null && savedMcuStartPrice != mcuPriceParams.value?.startingPrice) {
+                                meterPreferenceRepository.saveMcuStartPrice(it.startingPrice)
+                            }
                         }
                     }
                 }
