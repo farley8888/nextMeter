@@ -26,11 +26,14 @@ fun GlobalPinWidget(onOtpEntered: (String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly
     ) {
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         GlobalPinTextField(
             pin = pin,
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         val view = LocalView.current
         GlobalNumberKeypad(
