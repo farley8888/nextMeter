@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.OnlinePrediction
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.SignalCellularAlt1Bar
@@ -137,9 +139,9 @@ fun AppBar(
                             .padding(end = 16.dp)
                     )
                 }
-                if (uiState.isLocationIconVisible && uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
+                if (uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
                     Icon(
-                        imageVector = Icons.Outlined.LocationOn,
+                        imageVector = Icons.Outlined.Explore,
                         contentDescription = "Location",
                         modifier = Modifier.wrapContentSize(align = Alignment.Center)
                             .padding(end = 4.dp)
@@ -154,43 +156,20 @@ fun AppBar(
                     )
                 }
                 if (uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
-                    when (uiState.signalStrength) {
-                        1 -> {
-                            Icon(
-                                imageVector = Icons.Outlined.SignalCellularAlt1Bar,
-                                contentDescription = "Low Signal",
-                                modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                                    .padding(end = 4.dp)
-                            )
-                        }
-
-                        2 -> {
-                            Icon(
-                                imageVector = Icons.Outlined.SignalCellularAlt2Bar,
-                                contentDescription = "Low Signal",
-                                modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                                    .padding(end = 4.dp)
-                            )
-                        }
-
-                        3, 4 -> {
-                            Icon(
-                                imageVector = Icons.Outlined.SignalCellularAlt,
-                                contentDescription = "High Signal",
-                                modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                                    .padding(end = 4.dp)
-                            )
-                        }
-
-                        else -> {
-                            Icon(
-                                imageVector = Icons.Outlined.SignalCellularNodata,
-                                contentDescription = "No Signal",
-                                modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                                    .padding(end = 4.dp)
-                            )
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Outlined.SignalCellularAlt,
+                        contentDescription = "No Signal",
+                        modifier = Modifier.wrapContentSize(align = Alignment.Center)
+                            .padding(end = 4.dp)
+                    )
+                }
+                if (uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
+                    Icon(
+                        imageVector = Icons.Outlined.OnlinePrediction,
+                        contentDescription = "No Signal",
+                        modifier = Modifier.wrapContentSize(align = Alignment.Center)
+                            .padding(end = 4.dp)
+                    )
                 }
             }
         },
