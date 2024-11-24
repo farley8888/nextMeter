@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -61,6 +62,7 @@ fun MeterOpsScreen(
     navigateToDashBoard: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
+    val localFocusManager = LocalFocusManager.current
     val uiState = viewModel.uiState.collectAsState().value
     val view = LocalView.current
     val meterLockState = viewModel.meterLockState.collectAsState().value
@@ -92,6 +94,7 @@ fun MeterOpsScreen(
             }
             .clickable {
                 if (uiState.status == ForHire) {
+                    localFocusManager.clearFocus(force = true) // Clear focus before navigating so that no key events are triggered
                     navigateToDashBoard()
                     performVirtualTapFeedback(view)
                 }
