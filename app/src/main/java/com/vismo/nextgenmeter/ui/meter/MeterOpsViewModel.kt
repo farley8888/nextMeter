@@ -17,7 +17,6 @@ import com.vismo.nextgenmeter.ui.shared.SnackbarState
 import com.vismo.nextgenmeter.ui.theme.gold600
 import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.theme.red
-import com.vismo.nextgenmeter.ui.theme.valencia900
 import com.vismo.nextgenmeter.util.LocaleHelper
 import com.vismo.nextgenmeter.util.TtsUtil
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
@@ -105,7 +104,7 @@ class MeterOpsViewModel @Inject constructor(
                         uiUpdateMutex.withLock {
                             _uiState.value = _uiState.value.copy(
                                 totalColor = when (it) {
-                                    TripPaidStatus.NOT_PAID -> valencia900
+                                    TripPaidStatus.NOT_PAID -> red
                                     TripPaidStatus.COMPLETELY_PAID -> pastelGreen600
                                     TripPaidStatus.PARTIALLY_PAID -> gold600
                                 }
