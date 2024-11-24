@@ -8,7 +8,11 @@ import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.model.shouldLockMeter
 import com.vismo.nextgenmeter.module.IoDispatcher
+import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
+import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_EN
+import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_ZH_CN
+import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_ZH_HK
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
 import com.vismo.nextgenmeter.ui.theme.gold600
 import com.vismo.nextgenmeter.ui.theme.pastelGreen600
@@ -36,7 +40,8 @@ class MeterOpsViewModel @Inject constructor(
     private val tripRepository: TripRepository,
     private val peripheralControlRepository: PeripheralControlRepository,
     private val localeHelper: LocaleHelper,
-    private val ttsUtil: TtsUtil
+    private val ttsUtil: TtsUtil,
+    private val meterPreferenceRepository: MeterPreferenceRepository
 ) : ViewModel() {
     private val _ongoingTrip = MutableStateFlow<TripData?>(null)
     private val _uiState = MutableStateFlow<MeterOpsUiData>(
@@ -134,11 +139,12 @@ class MeterOpsViewModel @Inject constructor(
                 }
                 launch {
                     // set current state of language preference
-                    val currentLocale = localeHelper.getLocale().language
+                    val currentLocale = meterPreferenceRepository.getSelectedLocale().first() ?: ""
+                    localeHelper.setLocale(if(currentLocale.isNotEmpty()) currentLocale else KEY_EN)
                     val languagePref = when (currentLocale) {
-                        "en" -> TtsLanguagePref.EN
-                        "zh" -> TtsLanguagePref.ZH_CN
-                        "zh-rHK" -> TtsLanguagePref.ZH_HK
+                        KEY_EN -> TtsLanguagePref.EN
+                        KEY_ZH_CN -> TtsLanguagePref.ZH_CN
+                        KEY_ZH_HK -> TtsLanguagePref.ZH_HK
                         else -> TtsLanguagePref.OFF
                     }
                     uiUpdateMutex.withLock {
@@ -228,15 +234,16 @@ class MeterOpsViewModel @Inject constructor(
                     TtsLanguagePref.OFF -> TtsLanguagePref.EN
                 }
                 when (newLanguagePref) {
-                    TtsLanguagePref.EN -> localeHelper.setLocale("en")
-                    TtsLanguagePref.ZH_CN -> localeHelper.setLocale("zh")
-                    TtsLanguagePref.ZH_HK -> localeHelper.setLocale("zh-rHK")
+                    TtsLanguagePref.EN -> localeHelper.setLocale(KEY_EN)
+                    TtsLanguagePref.ZH_CN -> localeHelper.setLocale(KEY_ZH_CN)
+                    TtsLanguagePref.ZH_HK -> localeHelper.setLocale(KEY_ZH_HK)
                     TtsLanguagePref.OFF -> localeHelper.setLocale("en") // default to English
                 }
                 uiUpdateMutex.withLock {
                     _uiState.value = _uiState.value.copy(languagePref = newLanguagePref)
                 }
                 ttsUtil.setLanguagePref(newLanguagePref)
+                meterPreferenceRepository.saveSelectedLocale(newLanguagePref.toLanguageCode())
             }
         }
     }
