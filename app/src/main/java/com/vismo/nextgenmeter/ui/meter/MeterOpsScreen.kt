@@ -8,13 +8,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -38,10 +38,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.ExperimentalUnitApi
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.ui.meter.MeterOpsViewModel.Companion.TOTAL_LOCK_BEEP_COUNTER
@@ -49,9 +58,13 @@ import com.vismo.nextgenmeter.ui.shared.BlinkingVisibility
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.NxGnDialogContent
 import com.vismo.nextgenmeter.ui.shared.NxGnMeterDialog
+import com.vismo.nextgenmeter.R
+import com.vismo.nextgenmeter.ui.shared.GenericActionDialogContent
+import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.theme.Black
 import com.vismo.nextgenmeter.ui.theme.Purple40
 import com.vismo.nextgenmeter.ui.theme.Typography
+import com.vismo.nextgenmeter.ui.theme.oswaldFontFamily
 import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import kotlinx.coroutines.delay
@@ -188,7 +201,8 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
                     Modifier
                 }
             )
-            .weight(1f)
+            .weight(1f),
+        verticalArrangement = Arrangement.SpaceEvenly
     ) {
         Row(
             modifier = Modifier
@@ -196,7 +210,6 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
-
         ) {
             Text(text = "H.K.$",
                 color = Color.White,
@@ -210,8 +223,9 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             )
         }
         if (uiState.status == Paused) {
-            FareOrExtraRow(label = "FARE", value = uiState.fare.substring(0, uiState.fare.length - 1), color = uiState.totalColor)
-            FareOrExtraRow(label = "EXTRA", value = uiState.extras, color = uiState.totalColor)
+            FareOrExtraRow(label = " FARE ", value = uiState.fare.substring(0, uiState.fare.length - 1), showZero = false, color = uiState.totalColor, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(1.dp))
+            FareOrExtraRow(label = "EXTRA", value = uiState.extras, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f))
         } else if (uiState.status == Hired || uiState.status == PastTrip) {
             Row(
                 modifier = Modifier
@@ -242,28 +256,54 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
 }
 
 @Composable
-fun FareOrExtraRow(label: String, value: String, color: Color) {
+@OptIn(ExperimentalTextApi::class, ExperimentalUnitApi::class)
+fun FareOrExtraRow(label: String, value: String, showZero: Boolean, color: Color, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.Bottom,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 0.dp)
+            .border(1.dp, Color.Green)
+            .height(IntrinsicSize.Min),
+
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End
     ) {
 
         val valueDouble = value.toDoubleOrNull()
-        if (valueDouble != null && valueDouble > 0) {
-            Text(
-                text = value,
-                color = color,
-                style = Typography.displayMedium.copy(
-                    fontSize = 65.sp
-                ),
-                textAlign = TextAlign.End,
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
+        if (valueDouble != null && valueDouble > 0 || showZero) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .border(1.dp, Color.Magenta)
+                    .padding(0.dp)
+            ) {
+                Text(
+                    text = value,
+                    color = color,
+
+                    fontSize = 65.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontFamily = oswaldFontFamily,
+                    letterSpacing = TextUnit(-0.3F, TextUnitType.Sp),
+                    textAlign = TextAlign.End,
+                    style = TextStyle(
+                        lineHeight = 65.sp,
+                        lineHeightStyle = LineHeightStyle(
+                            alignment = LineHeightStyle.Alignment.Center,
+                            trim = LineHeightStyle.Trim.None
+                        ),
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    ),
+                    modifier = Modifier
+                        .padding(0.dp)
+                        //.weight(1f)
+                        //.align(Alignment.CenterVertically)
+                        .wrapContentWidth()
+                        .border(1.dp, Color.Red)
+                )
+            }
         }
         Box(modifier = Modifier
-            .weight(1f)
             .align(Alignment.CenterVertically)
         ) {
             Text(
@@ -272,9 +312,11 @@ fun FareOrExtraRow(label: String, value: String, color: Color) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .rotate(270f) // Orienting the text vertically
-                    .offset(x = 1.dp) // Move the text down
-                    .offset(y = 1.dp) // Move the text right
-                    .align(Alignment.Center)
+                    //.offset(x = 1.dp) // Move the text down
+                    //.offset(y = 1.dp) // Move the text right
+                    .align(Alignment.CenterEnd)
+                    .border(1.dp, Color.Yellow)
+                    .padding(0.dp)
             )
         }
     }
@@ -434,13 +476,36 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
 
                 Spacer(modifier = Modifier.weight(1f))  // Space to push the second Text to the right
 
-                Text(
-                    text = "${uiState.status.toStringCN()} ${uiState.status.toStringEN()}",
-                    color = Color.White,
-                    style = Typography.headlineSmall,
-                    textAlign = TextAlign.End,
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.wrapContentWidth(Alignment.End)
-                )
+                ) {
+                    Text(
+                        text = uiState.status.toStringCN(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        lineHeight = 20.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = uiState.status.toStringEN(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        lineHeight = 20.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+//                Text(
+//                    text = "${uiState.status.toStringCN()} ${uiState.status.toStringEN()}",
+//                    color = Color.White,
+//                    style = Typography.headlineSmall,
+//                    textAlign = TextAlign.End,
+//                    modifier = Modifier.wrapContentWidth(Alignment.End)
+//                )
             }
         }
     }
