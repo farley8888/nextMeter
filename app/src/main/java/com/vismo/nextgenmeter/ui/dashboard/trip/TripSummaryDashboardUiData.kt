@@ -6,6 +6,7 @@ data class TripSummaryDashboardUiData (
     val totalWaitTime: String = "0",
     val totalDistanceInKM: String = "0",
     val totalFare: String = "$0.0",
+    val totalExtras: String = "$0.0",
 )
 
 enum class TripSummaryDashboardType {
