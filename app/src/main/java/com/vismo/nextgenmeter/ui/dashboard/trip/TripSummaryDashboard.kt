@@ -34,14 +34,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.vismo.nextgenmeter.ui.pair.DashAndGoldQrCodeView
-import com.vismo.nextgenmeter.ui.pair.HealthCheckDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalToast
 import com.vismo.nextgenmeter.ui.theme.Black
@@ -52,7 +48,6 @@ import com.vismo.nextgenmeter.ui.theme.nobel50
 import com.vismo.nextgenmeter.ui.theme.nobel600
 import com.vismo.nextgenmeter.ui.theme.nobel800
 import com.vismo.nextgenmeter.ui.theme.pastelGreen400
-import com.vismo.nextgenmeter.ui.theme.primary600
 import com.vismo.nextgenmeter.ui.theme.secondary500
 import com.vismo.nextgenmeter.ui.theme.valencia200
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
