@@ -72,7 +72,7 @@ fun LocalTripHistoryScreen(viewModel: LocalTripHistoryViewModel) {
                     false
                 }
             },
-        contentPadding = PaddingValues(horizontal = 8.dp)
+        contentPadding = PaddingValues(horizontal = 0.dp)
     ) {
         // Add header as a list item
         item {
@@ -136,10 +136,20 @@ fun TripHeaderRow() {
             textAlign = TextAlign.Center
         )
         val columnWeight = 1f
-        listOf("日", "始", "達", "里數", "侯時", "車費", "附加","總費").forEach { label ->
+        listOf("日", "始", "達", "里數", "侯時", "車費").forEach { label ->
             Text(
                 text = label,
                 modifier = Modifier.weight(columnWeight),
+                fontSize = fontSize,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+        }
+        val columnWeightWide = 1.25f
+        listOf("附加","總費").forEach { label ->
+            Text(
+                text = label,
+                modifier = Modifier.weight(columnWeightWide),
                 fontSize = fontSize,
                 color = Color.White,
                 textAlign = TextAlign.Center
@@ -160,7 +170,7 @@ fun TripFooterRow() {
         Row(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically // Add this line
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
                 onClick = { /* TODO */ },
@@ -169,34 +179,50 @@ fun TripFooterRow() {
                 ),
                 modifier = Modifier
                     .height(40.dp)
-                    .width(100.dp)
-                    .padding(vertical = 0.dp)
+                    .width(100.dp),
+                contentPadding = PaddingValues(vertical = 0.dp, horizontal = 16.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center // Center the content
+                ) {
+                    Text(
+                        text = "打印",
+                        color = Color.White,
+                        fontSize = 24.sp // Increased font size
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp), // Match the button's height
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "打印",
-                    color = Color.Black,
-                    fontSize = 14.sp
+                    text = "現金",
+                    color = Color.Red,
+                    fontSize = 24.sp, // Adjusted font size if needed
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
             }
-            Text(
-                text = "現金",
-                color = Color.Red,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
+            Box(
                 modifier = Modifier
-                    .weight(1f),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "電子支付",
-                color = pastelGreen600,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .weight(1f),
-                textAlign = TextAlign.Center
-            )
+                    .weight(1f)
+                    .height(40.dp), // Match the button's height
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "電子支付",
+                    color = pastelGreen600,
+                    fontSize = 24.sp, // Adjusted font size if needed
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
+        // Add a spacer to push the button to the right
         Spacer(modifier = Modifier.weight(1f))
     }
 }
@@ -226,6 +252,8 @@ fun TripItemRow(count: Int, trip: TripData, isSelected: Boolean, onClick: () -> 
             textAlign = TextAlign.Center
         )
         val columnWeight = 1f
+        val columnWeightWide = 1.25f
+
 
         // date in dd/mm format
         Text(
@@ -275,15 +303,15 @@ fun TripItemRow(count: Int, trip: TripData, isSelected: Boolean, onClick: () -> 
             textAlign = TextAlign.Center
         )
         Text(
-            text = "+"+trip.extra.toString(),
-            modifier = Modifier.weight(columnWeight),
+            text = "+$"+trip.extra.toString(),
+            modifier = Modifier.weight(columnWeightWide),
             fontSize = fontSize,
             color = defaultColor,
             textAlign = TextAlign.Center
         )
         Text(
-            text = trip.totalFare.toString(),
-            modifier = Modifier.weight(columnWeight),
+            text = "$"+trip.totalFare.toString(),
+            modifier = Modifier.weight(columnWeightWide),
             fontSize = fontSize,
             color = textColor,
             textAlign = TextAlign.Center
