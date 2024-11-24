@@ -63,12 +63,16 @@ class TtsUtil @Inject constructor(
                             if (_currentLanguagePref.value != TtsLanguagePref.OFF && _wasTripJustStarted.value && trip.licensePlate.isNotBlank()) {
                                 playWhenTripStarted(trip.licensePlate)
                                 setWasTripJustStarted(false)
+                            } else if (_currentLanguagePref.value == TtsLanguagePref.OFF && _wasTripJustStarted.value) {
+                                setWasTripJustStarted(false)
                             }
                         }
 
                         TripStatus.STOP -> {
                             if (_currentLanguagePref.value != TtsLanguagePref.OFF && _wasTripJustPaused.value) {
                                 playWhenTripPaused(trip.totalFare, trip.extra > 0)
+                                setWasTripJustPaused(false)
+                            } else if (_currentLanguagePref.value == TtsLanguagePref.OFF && _wasTripJustPaused.value) {
                                 setWasTripJustPaused(false)
                             }
                         }
