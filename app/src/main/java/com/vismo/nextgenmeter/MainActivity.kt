@@ -15,6 +15,8 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -47,6 +49,7 @@ import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
 import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.ui.NavigationGraph
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
+import com.vismo.nextgenmeter.ui.shared.GlobalToastHolder
 import com.vismo.nextgenmeter.ui.theme.CableMeterTheme
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import com.vismo.nxgnfirebasemodule.model.AGPS
@@ -167,11 +170,18 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                             )
                         }
                     ) { innerPadding ->
-                        NavigationGraph(
-                            navController = navController!!,
-                            innerPadding = innerPadding,
-                            snackbarDelegate = snackbarDelegate
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                        ) {
+                            NavigationGraph(
+                                navController = navController!!,
+                                innerPadding = innerPadding,
+                                snackbarDelegate = snackbarDelegate
+                            )
+
+                            GlobalToastHolder()
+                        }
                     }
                 }
             }

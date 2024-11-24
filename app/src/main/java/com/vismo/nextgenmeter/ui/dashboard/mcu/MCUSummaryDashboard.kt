@@ -75,7 +75,7 @@ fun MCUSummaryDashboard(
                     .height(40.dp)
             ) {
                 Text(
-                    text = "指令输入",
+                    text = "指令輸入",
                     style = Typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black

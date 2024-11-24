@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -24,19 +26,32 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.nextgenmeter.ui.pair.DashAndGoldQrCodeView
+import com.vismo.nextgenmeter.ui.pair.HealthCheckDialogContent
+import com.vismo.nextgenmeter.ui.shared.GlobalDialog
+import com.vismo.nextgenmeter.ui.shared.GlobalToast
 import com.vismo.nextgenmeter.ui.theme.Black
+import com.vismo.nextgenmeter.ui.theme.Typography
+import com.vismo.nextgenmeter.ui.theme.nobel100
 import com.vismo.nextgenmeter.ui.theme.nobel50
 import com.vismo.nextgenmeter.ui.theme.nobel600
+import com.vismo.nextgenmeter.ui.theme.nobel800
 import com.vismo.nextgenmeter.ui.theme.pastelGreen400
+import com.vismo.nextgenmeter.ui.theme.primary600
 import com.vismo.nextgenmeter.ui.theme.secondary500
 import com.vismo.nextgenmeter.ui.theme.valencia200
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
@@ -50,36 +65,134 @@ fun TripSummaryDashboard(
 ) {
     val allTripsSummary = viewModel.allTripSummary.collectAsState().value
 
-    Row (
-        modifier = Modifier.fillMaxSize()
+    val showDialogClearAllLocalTrips = remember { mutableStateOf(false) }
+
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
             .background(Black)
     ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Options(navigateToTripHistory, navigateToAdjustBrightnessOrVolume, navigateToMCUSummary)
+        Row() {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Options(navigateToTripHistory, navigateToAdjustBrightnessOrVolume, navigateToMCUSummary)
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1.8f)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                TripSummary(
+                    allTripsSummary = allTripsSummary,
+                    viewModel = viewModel,
+                    onClickBtnClearAllLocalTrips = {
+                        showDialogClearAllLocalTrips.value = true
+                    },
+                    onClickBtnPrintRecord = {},
+                )
+            }
         }
-        Column(
-            modifier = Modifier
-                .weight(1.8f)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            TripSummary(
-                allTripsSummary = allTripsSummary,
-                viewModel = viewModel
+
+        Dialog(showDialog = showDialogClearAllLocalTrips) {
+            DialogContentClearAllLocalTrips(
+                onConfirm = {
+                    viewModel.clearAllLocalTrips()
+                    GlobalToast.show("所有行程資料已清除")
+                },
+                onDismiss = {
+                    showDialogClearAllLocalTrips.value = false
+                }
             )
         }
     }
 }
 
+
 @Composable
-fun ActionButtons(viewModel: TripSummaryDashboardViewModel) {
+fun Dialog(showDialog: MutableState<Boolean>, dialogContent: @Composable () -> Unit) {
+    GlobalDialog(
+        onDismiss = {},
+        showDialog = showDialog,
+        isBlinking = false,
+        content = dialogContent,
+    )
+}
+
+@Composable
+fun DialogContentClearAllLocalTrips(onDismiss: () -> Unit = {}, onCancel: () -> Unit = {}, onConfirm: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = "清除行程資料",
+            color = nobel100,
+            style = Typography.headlineSmall,
+            textAlign = TextAlign.Left,
+        )
+        Text(
+            text = "確定清除所有行程資料？",
+            color = nobel100,
+            style = Typography.bodyLarge,
+            textAlign = TextAlign.Left,
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp, alignment = Alignment.End),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Button(
+                onClick = {
+                    onConfirm()
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = nobel800,
+                    contentColor = nobel50
+                ),
+            ) {
+                Text(
+                    text = "確認",
+                    style = Typography.bodySmall
+                )
+            }
+            Button(
+                onClick = {
+                    onCancel()
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = nobel800,
+                    contentColor = nobel50
+                ),
+            ) {
+                Text(
+                    text = "取消",
+                    style = Typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun ActionButtons(onClickBtnClearAllLocalTrips: () -> Unit, onClickBtnPrintRecord: () -> Unit) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .padding(start = 16.dp, end = 16.dp),
@@ -89,13 +202,15 @@ fun ActionButtons(viewModel: TripSummaryDashboardViewModel) {
             containerColor = valencia200,
             textColor = Black,
             LocalView.current) {
-            viewModel.clearAllLocalTrips()
+            onClickBtnClearAllLocalTrips()
         }
         CustomButton(
             text = "打印記錄",
             containerColor = nobel600,
             textColor = nobel50,
-            LocalView.current) {}
+            LocalView.current) {
+            onClickBtnPrintRecord()
+        }
     }
 }
 
@@ -143,7 +258,9 @@ fun ColumnScope.Options(
 @Composable
 fun TripSummary(
     allTripsSummary: TripSummaryDashboardUiData,
-    viewModel: TripSummaryDashboardViewModel
+    viewModel: TripSummaryDashboardViewModel,
+    onClickBtnClearAllLocalTrips: () -> Unit,
+    onClickBtnPrintRecord: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -151,7 +268,10 @@ fun TripSummary(
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        ActionButtons(viewModel = viewModel)
+        ActionButtons(
+            onClickBtnClearAllLocalTrips = onClickBtnClearAllLocalTrips,
+            onClickBtnPrintRecord = onClickBtnPrintRecord,
+        )
         Row(
             modifier = Modifier.padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
