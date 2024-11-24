@@ -4,7 +4,13 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,12 +18,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,6 +52,8 @@ import com.vismo.nextgenmeter.ui.theme.pastelGreen700
 import com.vismo.nextgenmeter.ui.theme.primary800
 import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun EditKValueAndLicensePlateScreen(
@@ -118,6 +130,25 @@ fun EditKValueAndLicensePlateScreen(
                     color = Color.Black
                 )
             }
+
+            Box(
+                modifier = Modifier
+                    .timedClick(
+                        timeInMillis = 10000,
+                    ) { passed: Boolean ->
+
+                        if (!passed) {
+                            return@timedClick;
+                        }
+
+                        openSystemSettings(context = view.context)
+                        performVirtualTapFeedback(view)
+                    }
+                    .height(108.dp)
+                    .fillMaxWidth()
+            ) {
+                //
+            }
         }
 
         Column(
@@ -126,17 +157,6 @@ fun EditKValueAndLicensePlateScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Button(onClick = {
-                openSystemSettings(context = view.context)
-                performVirtualTapFeedback(view)
-                             },
-                colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text(text = "App Settings", style = Typography.titleMedium)
-            }
             Button(onClick = {
                 performVirtualTapFeedback(view)
                 navigateToAdminAdvancedEdit()
@@ -176,6 +196,43 @@ fun EditKValueAndLicensePlateScreen(
         }
     }
 }
+
+
+@Composable
+private fun Modifier.timedClick(
+    timeInMillis: Long,
+    interactionSource: MutableInteractionSource = remember {MutableInteractionSource()},
+    onClick: (Boolean) -> Unit
+) = composed {
+
+    var timeOfTouch = -1L
+    LaunchedEffect(key1 = timeInMillis, key2 = interactionSource) {
+        interactionSource.interactions
+            .onEach { interaction: Interaction ->
+                when (interaction) {
+                    is PressInteraction.Press -> {
+                        timeOfTouch = System.currentTimeMillis()
+                    }
+                    is PressInteraction.Release -> {
+                        val currentTime = System.currentTimeMillis()
+                        onClick(currentTime - timeOfTouch > timeInMillis)
+                    }
+                    is PressInteraction.Cancel -> {
+                        onClick(false)
+                    }
+                }
+
+            }
+            .launchIn(this)
+    }
+
+    Modifier.clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        onClick = {}
+    )
+}
+
 
 private fun openSystemSettings(context: Context) {
     val intent = Intent("android.intent.action.VIEW").apply {
