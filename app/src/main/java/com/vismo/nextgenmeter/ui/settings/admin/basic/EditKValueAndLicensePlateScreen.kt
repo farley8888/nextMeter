@@ -3,8 +3,12 @@ package com.vismo.nextgenmeter.ui.settings.admin.basic
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.view.RoundedCorner
+import android.view.Surface
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -13,15 +17,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -37,6 +46,9 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -52,6 +64,7 @@ import com.vismo.nextgenmeter.ui.theme.pastelGreen700
 import com.vismo.nextgenmeter.ui.theme.primary800
 import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
@@ -157,16 +170,35 @@ fun EditKValueAndLicensePlateScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Button(onClick = {
-                performVirtualTapFeedback(view)
-                navigateToAdminAdvancedEdit()
-                             },
-                colors = ButtonDefaults.buttonColors(containerColor = primary800, contentColor = mineShaft100),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)) {
-                Text(text = "Advance Settings", style = Typography.titleMedium)
+
+            Surface(
+                shape = ButtonDefaults.shape,
+                color = primary800,
+                contentColor = mineShaft100,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    performVirtualTapFeedback(view)
+                                    navigateToAdminAdvancedEdit()
+                                },
+                            )
+                        }
+                        .fillMaxWidth()
+                        .defaultMinSize(
+                            minWidth = ButtonDefaults.MinWidth,
+                            minHeight = ButtonDefaults.MinHeight
+                        )
+                        .padding(ButtonDefaults.ContentPadding),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(text = "Advance Settings", style = Typography.titleMedium)
+                }
             }
+
             Divider(modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 2.dp),
