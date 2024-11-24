@@ -8,6 +8,7 @@ import com.vismo.nextgenmeter.R
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.module.IoDispatcher
+import com.vismo.nextgenmeter.module.MainDispatcher
 import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ import kotlin.math.roundToInt
 class TtsUtil @Inject constructor(
     private val appContext: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     private val localeHelper: LocaleHelper
 ) {
     private var mediaPlayer: MediaPlayer? = null
@@ -107,7 +109,7 @@ class TtsUtil @Inject constructor(
         }
     }
 
-    private fun playNextAudio(context: Context) {
+    private suspend fun playNextAudio(context: Context) {
         if (currentFileIndex >= audioFiles.size) {
             currentFileIndex = 0
             return
@@ -120,26 +122,40 @@ class TtsUtil @Inject constructor(
         }
 
         afd?.let { descriptor ->
-            mediaPlayer?.reset() ?: run { mediaPlayer = MediaPlayer() }
-            try {
-                mediaPlayer?.apply {
-                    setDataSource(descriptor.fileDescriptor, descriptor.startOffset, 3000L.coerceAtLeast(descriptor.length))
-                    prepareAsync()
-                    setOnPreparedListener {
-                        start()
+            withContext(mainDispatcher) {
+                mediaPlayer?.reset() ?: run { mediaPlayer = MediaPlayer() }
+                try {
+                    mediaPlayer?.apply {
+                        setDataSource(
+                            descriptor.fileDescriptor,
+                            descriptor.startOffset,
+                            3000L.coerceAtLeast(descriptor.length)
+                        )
+                        prepareAsync()
+                        setOnPreparedListener {
+                            start()
+                        }
+                        setOnCompletionListener {
+                            currentFileIndex++
+                            scope.launch {
+                                playNextAudio(context)
+                            }
+                        }
                     }
-                    setOnCompletionListener {
-                        currentFileIndex++
-                        playNextAudio(context)
-                    }
+                    descriptor.close()
+                } catch (e: IOException) {
+                    Log.e("TTS", "Error playing audio file [${audioFiles[currentFileIndex]}]", e)
+                } catch (e: IllegalStateException) {
+                    Log.e("TTS", "MediaPlayer is in an invalid state", e)
+                    // Handle the exception, possibly resetting the MediaPlayer
+                } finally {
+                    descriptor.close()
                 }
-                descriptor.close()
-            } catch (e: IOException) {
-                Log.e("TTS", "Error playing audio file [${audioFiles[currentFileIndex]}]", e)
             }
         } ?: run {
             Log.e("TTS", "FileNotFound: ${audioFiles[currentFileIndex]}")
         }
+
     }
 
     private fun playWhenTripPaused(
@@ -191,6 +207,8 @@ class TtsUtil @Inject constructor(
         mediaPlayer?.apply {
             stop()
             reset()
+            release()
+            mediaPlayer = null
         }
     }
 
@@ -286,6 +304,13 @@ class TtsUtil @Inject constructor(
     }
 
     fun isPlaying(): Boolean {
-        return (mediaPlayer?.isPlaying == true)
+        try {
+            mediaPlayer?.let {
+                return it.isPlaying
+            }
+        } catch (e: IllegalStateException) {
+            Log.e("TTS", "MediaPlayer", e)
+        }
+        return false
     }
 }
