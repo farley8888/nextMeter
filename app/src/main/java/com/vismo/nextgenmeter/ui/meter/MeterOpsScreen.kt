@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -131,7 +132,7 @@ fun ExtrasAndFareHeader(uiState: MeterOpsUiData) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(2.dp),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -140,7 +141,8 @@ fun ExtrasAndFareHeader(uiState: MeterOpsUiData) {
             color = Color.White,
             fontSize = 12.sp,
             modifier = Modifier
-                .weight(0.3f)
+                .weight(0.32f)
+                .padding(start = 8.dp)
         )
         Text(
             text = fareOrTotal,
@@ -170,13 +172,13 @@ fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, meterLockState: MeterLockAc
         TotalBox(uiState)
     }
 
-    Spacer(modifier = Modifier.height(10.dp))
+    Spacer(modifier = Modifier.height(8.dp))
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .weight(.7f),
+            .weight(.73f),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {
@@ -188,7 +190,6 @@ fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, meterLockState: MeterLockAc
 fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
     Column(
         modifier = Modifier
-            // .size(height = 220.dp, width = 180.dp) // Set a constant height and width
             .then(
                 if (uiState.status == Paused) {
                     Modifier.border(1.dp, Color.White)
@@ -209,7 +210,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             Text(text = "H.K.$",
                 color = Color.White,
                 fontSize = 12.sp,
-                modifier = Modifier.weight(6.8f)
+                modifier = Modifier.weight(6.8f).padding(start = 8.dp)
             )
             Text(text = "¢",
                 color = Color.White,
@@ -247,13 +248,13 @@ fun FareOrExtraRow(label: String, value: String, showZero: Boolean, color: Color
                 Text(
                     text = value,
                     color = color,
-                    fontSize = 65.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 72.sp,
+                    fontWeight = FontWeight.Medium,
                     fontFamily = oswaldFontFamily,
-                    letterSpacing = TextUnit(-2F, TextUnitType.Sp), //squeeze the text together
+                    letterSpacing = TextUnit(-5F, TextUnitType.Sp), //squeeze the text together
                     textAlign = TextAlign.End,
                     style = TextStyle(
-                        lineHeight = 65.sp,
+                        lineHeight = 72.sp,
                         lineHeightStyle = LineHeightStyle(
                             alignment = LineHeightStyle.Alignment.Center,
                             trim = LineHeightStyle.Trim.None
@@ -269,17 +270,17 @@ fun FareOrExtraRow(label: String, value: String, showZero: Boolean, color: Color
         Box(modifier = Modifier
             .align(Alignment.CenterVertically)
             .wrapContentSize()
-            .fillMaxHeight()
+            .wrapContentHeight()
             .padding(0.dp)
         ) {
             Text(
-                text = if (label.isBlank()) "DUMMY" else label,
+                text = if (label.isBlank()) "-----" else label,
                 fontWeight = FontWeight.Bold,
                 color = if (label.isBlank()) Color.Transparent else Color.Yellow,
                 maxLines = 1,
                 modifier = Modifier
                     .rotate(270f) // Orienting the text vertically
-                    .align(Alignment.CenterEnd)
+                    .align(Alignment.BottomStart)
                     .padding(0.dp)
             )
         }
@@ -291,7 +292,7 @@ fun FareOrExtraRow(label: String, value: String, showZero: Boolean, color: Color
 fun RowScope.TotalBox(uiState: MeterOpsUiData) {
     Column(
         modifier = Modifier
-            .weight(2.4f)
+            .weight(2.2f)
             .padding(8.dp)
             .height(height = 250.dp) // Set a constant height
     ) {
@@ -346,10 +347,10 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
                         text = totalFare,
                         color = uiState.totalColor,
                         style = Typography.displayLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 140.sp,
-                            letterSpacing = 0.sp,
-                            lineHeight = 140.sp
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 142.sp,
+                            letterSpacing = TextUnit(-5F, TextUnitType.Sp), //squeeze the text together
+                            lineHeight = 142.sp
                         ),
                         textAlign = TextAlign.End
                     )
@@ -375,7 +376,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     color = Color.Gray,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
                 Spacer(modifier = Modifier
                     .fillMaxWidth()
@@ -384,9 +385,14 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 Text(
                     text = if(uiState.remainingOverSpeedTimeInSeconds != null) "0.0" else uiState.distanceInKM,
                     color = Color.Gray,
-                    style = Typography.displaySmall,
+                    style = Typography.displayLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 48.sp,
+                        letterSpacing = TextUnit(-2F, TextUnitType.Sp), //squeeze the text together
+                        lineHeight = 48.sp
+                    ),
                     textAlign = TextAlign.End,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.End),
                 )
         }
         Column(
@@ -410,9 +416,14 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 Text(
                     text = uiState.remainingOverSpeedTimeInSeconds ?: uiState.duration,
                     color = Color.Gray,
-                    style = Typography.displaySmall,
+                    style = Typography.displayLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 48.sp,
+                        letterSpacing = TextUnit(-2F, TextUnitType.Sp), //squeeze the text together
+                        lineHeight = 48.sp
+                    ),
                     textAlign = TextAlign.End,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.End)
                 )
         }
         val buttonContainerColor = if(uiState.status is Paused) red else if(uiState.status is Hired) Purple40 else nobel800
@@ -426,55 +437,50 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                 .weight(1f)
                 .padding(2.dp),
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = buttonContainerColor)
+            colors = ButtonDefaults.buttonColors(containerColor = buttonContainerColor),
+            contentPadding = PaddingValues(top = 2.dp, bottom = 2.dp, start = 8.dp, end = 8.dp)
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 8.dp),
+                    .fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = uiState.languagePref.toString(),
                     color = Color.White,
-                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 34.sp,
+                    lineHeight = 34.sp,
                     textAlign = TextAlign.Start,
-                    modifier = Modifier.wrapContentWidth(Alignment.Start)
+                    modifier = Modifier.wrapContentWidth(Alignment.Start).padding(start = 16.dp)
                 )
 
                 Spacer(modifier = Modifier.weight(1f))  // Space to push the second Text to the right
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.wrapContentWidth(Alignment.End)
+                    modifier = Modifier.wrapContentWidth(Alignment.End).padding(end = 16.dp)
                 ) {
                     Text(
                         text = uiState.status.toStringCN(),
                         color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        lineHeight = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 27.sp,
+                        lineHeight = 27.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = uiState.status.toStringEN(),
                         color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        lineHeight = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 27.sp,
+                        lineHeight = 27.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f)
                     )
                 }
-//                Text(
-//                    text = "${uiState.status.toStringCN()} ${uiState.status.toStringEN()}",
-//                    color = Color.White,
-//                    style = Typography.headlineSmall,
-//                    textAlign = TextAlign.End,
-//                    modifier = Modifier.wrapContentWidth(Alignment.End)
-//                )
             }
         }
     }
