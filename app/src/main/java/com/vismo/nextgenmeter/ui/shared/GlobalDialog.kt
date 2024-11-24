@@ -112,7 +112,7 @@ private fun GlobalDialogUI(
 }
 
 @Composable
-private fun BlinkingVisibility(
+fun BlinkingVisibility(
     isVisible: Boolean,
     content: @Composable () -> Unit
 ) {

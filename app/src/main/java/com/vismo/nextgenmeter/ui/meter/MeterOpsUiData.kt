@@ -13,6 +13,7 @@ data class MeterOpsUiData(
     val languagePref: TtsLanguagePref = TtsLanguagePref.OFF,
     val totalColor: Color = red,
     val remainingOverSpeedTimeInSeconds: String? = null,
+    val overSpeedDurationInSeconds: Int = 0,
 )
 
 sealed class TtsLanguagePref {
