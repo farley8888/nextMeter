@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -24,24 +26,28 @@ class MCUSummaryDashboardViewModel @Inject constructor(
     private val _mcuSummaryUiState = MutableStateFlow(MCUSummaryUiData())
     val mcuSummaryUiState: StateFlow<MCUSummaryUiData> = _mcuSummaryUiState
 
+    private val mutex = Mutex() // Mutex for synchronization
+
     init {
         measureBoardRepository.enquireParameters()
         val romVersion = getROMVersion()
         val androidId = getAndroidId()
-        viewModelScope.launch {
-            withContext(ioDispatcher) {
-                launch {
-                    DeviceDataStore.mcuPriceParams.collectLatest {
-                        it?.let {
+        viewModelScope.launch(ioDispatcher) {
+            launch {
+                DeviceDataStore.mcuPriceParams.collectLatest {
+                    it?.let {
+                        mutex.withLock {
                             _mcuSummaryUiState.value = _mcuSummaryUiState.value.copy(
                                 fareParams = it
                             )
                         }
                     }
                 }
-                launch {
-                    DeviceDataStore.deviceIdData.collectLatest {
-                        it?.let {
+            }
+            launch {
+                DeviceDataStore.deviceIdData.collectLatest {
+                    it?.let {
+                        mutex.withLock {
                             _mcuSummaryUiState.value = _mcuSummaryUiState.value.copy(
                                 deviceIdData = it,
                                 androidId = androidId,
