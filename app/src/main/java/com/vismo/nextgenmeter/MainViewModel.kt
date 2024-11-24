@@ -210,7 +210,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun observeTripDate() {
-        TripDataStore.tripData.collectLatest {
+        TripDataStore.ongoingTripData.collectLatest {
             if (it != null && it.endTime == null) {
                 _isTripInProgress.value = true
             } else {

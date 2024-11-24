@@ -33,7 +33,7 @@ class PeripheralControlRepositoryImpl(
         scope.launch {
             initHardware()
             ensureCH3Initialized()
-            TripDataStore.tripData.collect { trip ->
+            TripDataStore.ongoingTripData.collect { trip ->
                 trip?.let {
                     if (trip.requiresUpdateOnDatabase) {
                         if (trip.tripStatus == TripStatus.HIRED || trip.tripStatus == TripStatus.STOP) {

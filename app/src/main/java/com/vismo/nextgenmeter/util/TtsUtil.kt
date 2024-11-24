@@ -56,7 +56,7 @@ class TtsUtil @Inject constructor(
 
     init {
         scope.launch {
-            TripDataStore.tripData.collect { trip ->
+            TripDataStore.ongoingTripData.collect { trip ->
                 trip?.let {
                     when (trip.tripStatus) {
                         TripStatus.HIRED -> {
