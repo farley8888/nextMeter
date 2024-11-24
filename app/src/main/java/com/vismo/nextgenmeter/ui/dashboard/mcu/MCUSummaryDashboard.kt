@@ -156,7 +156,7 @@ fun MCUSummaryDashboard(
             // DetailRow("APP版本", uiState.appVersion)
             DetailRow("APP版本", "5.0.0.990")
 
-            DetailRow("車費版本", uiState.fareParams.parametersVersion)
+//            DetailRow("車費版本", uiState.fareParams.parametersVersion) // remove for TD version
             DetailRow("K值", uiState.fareParams.kValue)
         }
 
