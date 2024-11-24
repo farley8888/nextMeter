@@ -25,10 +25,24 @@ sealed class TtsLanguagePref {
             OFF -> ""
         }
     }
+    fun toLanguageCode(): String {
+        return when (this) {
+            EN -> KEY_EN
+            ZH_CN -> KEY_ZH_CN
+            ZH_HK -> KEY_ZH_HK
+            OFF -> ""
+        }
+    }
     object EN : TtsLanguagePref()
     object ZH_CN : TtsLanguagePref()
     object ZH_HK : TtsLanguagePref()
     object OFF : TtsLanguagePref()
+
+    companion object {
+        const val KEY_EN = "en"
+        const val KEY_ZH_CN = "zh"
+        const val KEY_ZH_HK = "zh-rHK"
+    }
 }
 
 sealed class TripStateInMeterOpsUI {
