@@ -14,6 +14,7 @@ data class MeterOpsUiData(
     val totalColor: Color = red,
     val remainingOverSpeedTimeInSeconds: String? = null,
     val overSpeedDurationInSeconds: Int = 0,
+    val mcuStartingPrice: String = "",
 )
 
 sealed class TtsLanguagePref {

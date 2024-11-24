@@ -94,6 +94,19 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveMcuStartPrice(mcuStartPrice: String) {
+        context.dataStore.edit { settings ->
+            settings[KEY_MCU_START_PRICE] = mcuStartPrice
+        }
+    }
+
+    suspend fun getMcuStartPrice(): Flow<String?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_MCU_START_PRICE]
+            }
+    }
+
 
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
@@ -103,6 +116,7 @@ class MeterPreferenceRepository(
         private val KEY_LICENSE_PLATE = stringPreferencesKey("license_plate")
         private val KEY_DEVICE_ID = stringPreferencesKey("device_id")
         private val KEY_LOCALE = stringPreferencesKey("selected_language")
+        private val KEY_MCU_START_PRICE = stringPreferencesKey("mcu_start_price")
     }
 
 }

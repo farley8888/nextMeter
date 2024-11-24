@@ -23,6 +23,14 @@ object MeasureBoardUtils {
     const val REQUEST_UPGRADE_FIRMWARE = "A8"
     const val UPGRADING_FIRMWARE = "E1"
 
+    fun formatStartingPrice(input: String): String {
+        return if (input.length == 4) {
+            "${input.substring(0, 2)}.${input.substring(2)}"
+        } else {
+            input // Return input as is if it doesn't match the expected length
+        }
+    }
+
     fun getTimeInSeconds(duration: String): Long =
         if (duration.length == 6) {
             val hour = duration.substring(0, 2)

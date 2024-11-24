@@ -316,7 +316,8 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             // if status = hired, show fare
             // if status = paused, show total
             val numberToShow = if(uiState.status == Hired || uiState.status == PastTrip) uiState.fare else if (uiState.status == Paused) uiState.totalFare else ""
-            val totalFare = if(uiState.remainingOverSpeedTimeInSeconds != null && uiState.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) "c27.00" else numberToShow
+            val startingPrice = if(uiState.mcuStartingPrice.isNotEmpty()) "c${uiState.mcuStartingPrice}" else "27.00"
+            val totalFare = if(uiState.remainingOverSpeedTimeInSeconds != null && uiState.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) "c${uiState.mcuStartingPrice}" else numberToShow
             val totalFareDouble = uiState.totalFare.toDoubleOrNull()
             var isVisible by remember { mutableStateOf(true) }
             val isBlinking = uiState.overSpeedDurationInSeconds in 1..TOTAL_LOCK_BEEP_COUNTER
