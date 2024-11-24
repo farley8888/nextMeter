@@ -412,7 +412,7 @@ class MeterOpsViewModel @Inject constructor(
 
     companion object {
         private const val LOCK_DIALOG_VISIBILITY_DURATION = 10 // seconds
-        private const val TOTAL_LOCK_DURATION = 40 // seconds
+        private const val TOTAL_LOCK_DURATION = 60*2 // seconds
         const val TOTAL_LOCK_BEEP_COUNTER = 30 //seconds
     }
 
