@@ -45,6 +45,7 @@ import com.vismo.nextgenmeter.ui.pair.HealthCheckDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalToast
 import com.vismo.nextgenmeter.ui.theme.Black
+import com.vismo.nextgenmeter.ui.theme.mineShaft600
 import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.nobel100
 import com.vismo.nextgenmeter.ui.theme.nobel50
@@ -278,8 +279,8 @@ fun TripSummary(
         ) {
             DataColumn(title = "", data = listOf("旗數", "里數", "候時", "金額", "附加費"), horizontalAlignment = Alignment.CenterHorizontally)
             DataColumn(title = "總數", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare, allTripsSummary.totalExtras))
-            DataColumn(title = "現金", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare, allTripsSummary.totalExtras))
-            DataColumn(title = "電子", data = listOf("0", "0", "0", "0", "$0.00"))
+            DataColumn(title = "現金", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare, allTripsSummary.totalExtras), textColor = mineShaft600)
+            DataColumn(title = "電子", data = listOf("0", "0.0", "00:00:00", "$0.0", "$0.0"), textColor = mineShaft600)
         }
     }
 }
@@ -287,7 +288,8 @@ fun TripSummary(
 @Composable
 fun RowScope.DataColumn(
     title: String, data: List<String>,
-    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    textColor: Color = Color.White
 ) {
     Column(
         horizontalAlignment = horizontalAlignment,
@@ -295,12 +297,12 @@ fun RowScope.DataColumn(
     ) {
         Text(text = title, style = MaterialTheme.typography.headlineSmall.copy(
             textDecoration = TextDecoration.Underline
-        ))
+        ), color = textColor)
 
         Spacer(modifier = Modifier.height(4.dp))
 
         data.forEach { item ->
-            Text(text = item, style = MaterialTheme.typography.titleLarge)
+            Text(text = item, style = MaterialTheme.typography.titleLarge, color = textColor)
         }
     }
 }
