@@ -141,11 +141,18 @@ class MeterOpsViewModel @Inject constructor(
                         "zh-rHK" -> TtsLanguagePref.ZH_HK
                         else -> TtsLanguagePref.OFF
                     }
-                    _uiState.value = _uiState.value.copy(languagePref = languagePref)
+                    uiUpdateMutex.withLock {
+                        _uiState.value = _uiState.value.copy(languagePref = languagePref)
+                        ttsUtil.setLanguagePref(languagePref)
+                    }
                 }
             }
         }
         tripRepository.initObservers()
+    }
+
+    fun isTTSPlaying(): Boolean {
+        return ttsUtil.isPlaying()
     }
 
     private suspend fun handleOverSpeed(trip: TripData, isAbnormalPulseTriggered: Boolean) {
