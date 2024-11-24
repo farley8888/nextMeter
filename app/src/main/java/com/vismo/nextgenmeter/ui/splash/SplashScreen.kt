@@ -38,12 +38,7 @@ fun SplashScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        CircleLoader(
-            color = secondary700,
-            secondColor = gold700,
-            modifier = Modifier.size(100.dp),
-            isVisible = isLoading
-        )
+        // 2024 11 24 - VAN - removed the splash screen loading circle loader from here
         if ((!isLoading && showLoginToggle && showConnectionIconsToggle) || alwaysNavigateToPair == true) {
             navigateToPair()
         } else if(!isLoading) {
