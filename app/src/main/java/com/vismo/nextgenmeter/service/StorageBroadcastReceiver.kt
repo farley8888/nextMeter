@@ -9,6 +9,11 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 
 class StorageBroadcastReceiver: BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
+       // ignore initial sticky broadcast
+        if (isInitialStickyBroadcast) {
+            return
+        }
+
         val status = when (intent?.action) {
             Intent.ACTION_MEDIA_MOUNTED -> {
                 StorageReceiverStatus.Mounted
