@@ -19,7 +19,6 @@ import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.module.MainDispatcher
-import com.vismo.nextgenmeter.repository.FirebaseAuthRepository.Companion
 import com.vismo.nextgenmeter.util.GlobalUtils.divideBy100AndConvertToDouble
 import com.vismo.nextgenmeter.util.GlobalUtils.extractSubstring
 import com.vismo.nextgenmeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
@@ -128,7 +127,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         DeviceDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
         DeviceDataStore.setMCUTime(result.substring(40, 40 + 12))
 
-        TripDataStore.ongoingTripData.value?.tripStatus?.let { tripStatus ->
+        TripDataStore.ongoingTripData.value?.let { _ ->
             TripDataStore.clearTripData()
         }
         dashManagerConfig.setDeviceIdData(deviceId = measureBoardDeviceId, licensePlate =  licensePlate)
