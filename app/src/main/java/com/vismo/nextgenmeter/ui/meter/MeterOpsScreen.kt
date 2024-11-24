@@ -69,7 +69,6 @@ fun MeterOpsScreen(
     val view = LocalView.current
     val meterLockState = viewModel.meterLockState.collectAsState().value
     val lockTitle = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "異常脈衝" else if (meterLockState is MeterLockAction.Lock) "被鎖定" else ""
-    val lockMessage = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "Please check the pulse sensor" else if (meterLockState is MeterLockAction.Lock) "Please drive safely" else ""
     val lockDialogShowState = remember { mutableStateOf(false) }
     val showSnackBar = viewModel.showSnackBarMessage.collectAsState().value
 
