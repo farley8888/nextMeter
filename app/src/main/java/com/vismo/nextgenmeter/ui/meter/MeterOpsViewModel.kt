@@ -2,7 +2,9 @@ package com.vismo.nextgenmeter.ui.meter
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
+import com.vismo.nextgenmeter.model.Quadruple
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
@@ -10,6 +12,7 @@ import com.vismo.nextgenmeter.model.shouldLockMeter
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
+import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_EN
 import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_ZH_CN
 import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_ZH_HK
@@ -69,8 +72,9 @@ class MeterOpsViewModel @Inject constructor(
                         TripDataStore.ongoingTripData,
                         TripDataStore.isAbnormalPulseTriggered,
                         tripRepository.remoteUnlockMeter,
-                    ) { tripData, isAbnormalPulseTriggered, remoteUnlockMeter -> Triple(tripData, isAbnormalPulseTriggered, remoteUnlockMeter) }
-                    .collectLatest { (tripData, isAbnormalPulseTriggered, remoteUnlockMeter) ->
+                        DeviceDataStore.deviceGodCodeUnlockState,
+                    ) { tripData, isAbnormalPulseTriggered, remoteUnlockMeter, deviceGodUnlockState -> Quadruple(tripData, isAbnormalPulseTriggered, remoteUnlockMeter, deviceGodUnlockState) }
+                    .collectLatest { (tripData, isAbnormalPulseTriggered, remoteUnlockMeter, deviceGodUnlockState) ->
                         _ongoingTrip.value = tripData
 
                         val trip = tripData ?: return@collectLatest
@@ -81,7 +85,7 @@ class MeterOpsViewModel @Inject constructor(
                             TripStatus.ENDED, null -> ForHire
                         }
 
-                        if (remoteUnlockMeter && status is Hired) {
+                        if ((remoteUnlockMeter || deviceGodUnlockState == DeviceGodCodeUnlockState.Unlocked) && status is Hired) {
                             unlockMeterInMCU(isAbnormalPulseTriggered)
                             tripRepository.resetUnlockMeterStatusInRemote()
                             return@collectLatest
@@ -116,7 +120,7 @@ class MeterOpsViewModel @Inject constructor(
                     meterLockState.collectLatest {
                         when (it) {
                             is MeterLockAction.Lock -> {
-                                tripRepository.lockMeter(20, 80, TOTAL_LOCK_BEEP_COUNTER)
+                                tripRepository.lockMeter(10, 80, TOTAL_LOCK_BEEP_COUNTER)
                             }
                             MeterLockAction.Unlock -> {
                                 tripRepository.unlockMeter()
@@ -203,7 +207,6 @@ class MeterOpsViewModel @Inject constructor(
 
     private suspend fun updateUIStateForTrip(trip: TripData, status: TripStateInMeterOpsUI) {
         uiUpdateMutex.withLock {
-            val remainingOverDuration = TOTAL_LOCK_DURATION - trip.overSpeedDurationInSeconds
             _uiState.value = _uiState.value.copy(
                 status = status,
                 extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
@@ -213,7 +216,8 @@ class MeterOpsViewModel @Inject constructor(
                 totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
                 languagePref = _uiState.value.languagePref,
                 overSpeedDurationInSeconds = trip.overSpeedDurationInSeconds,
-                remainingOverSpeedTimeInSeconds = if(trip.shouldLockMeter() && trip.overSpeedDurationInSeconds > 0) {
+                remainingOverSpeedTimeInSeconds = if(trip.shouldLockMeter() && trip.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) {
+                    val remainingOverDuration = TOTAL_LOCK_DURATION  - trip.overSpeedDurationInSeconds
                     MeterOpsUtil.getFormattedDurationFromSeconds((if (remainingOverDuration > 0)remainingOverDuration else 0).toLong())
                 } else null,
             )
@@ -418,8 +422,9 @@ class MeterOpsViewModel @Inject constructor(
 
     companion object {
         private const val LOCK_DIALOG_VISIBILITY_DURATION = 10 // seconds
-        private const val TOTAL_LOCK_DURATION = 60*2 // seconds
+        private const val TOTAL_COUNTDOWN_DURATION = 60*1 // seconds - max time shown in countdown
         const val TOTAL_LOCK_BEEP_COUNTER = 30 //seconds
+        private const val TOTAL_LOCK_DURATION = TOTAL_COUNTDOWN_DURATION + TOTAL_LOCK_BEEP_COUNTER // seconds
     }
 
 }
