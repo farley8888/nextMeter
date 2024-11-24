@@ -100,7 +100,7 @@ class MainViewModel @Inject constructor(
             launch { observeMCUTIme() }
             launch { observeHeartBeatInterval() }
             launch { observeMeterAndTripInfo() }
-            launch { observeTripDate() }
+            launch { observeTripData() }
             launch { observeFirebaseAuthSuccess() }
             launch { observeShowLoginToggle() }
             launch { observeShowConnectionIconsToggle() }
@@ -209,13 +209,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private suspend fun observeTripDate() {
+    private suspend fun observeTripData() {
         TripDataStore.ongoingTripData.collectLatest {
-            if (it != null && it.endTime == null) {
-                _isTripInProgress.value = true
-            } else {
-                _isTripInProgress.value = false
-            }
+            _isTripInProgress.value = it != null
         }
     }
 
