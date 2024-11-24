@@ -84,7 +84,7 @@ fun MeterOpsScreen(
             .focusable()
             .fillMaxSize()
             .onKeyEvent {
-                if (it.type == KeyDown && meterLockState !is MeterLockAction.Lock) {
+                if (it.type == KeyDown && meterLockState !is MeterLockAction.Lock && !viewModel.isTTSPlaying()) {
                     val code = it.nativeKeyEvent.scanCode
                     val repeatCount = it.nativeKeyEvent.repeatCount
                     val isLongPress = it.nativeKeyEvent.isLongPress
