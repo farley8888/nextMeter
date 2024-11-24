@@ -21,6 +21,7 @@ import com.vismo.nextgenmeter.ui.theme.gold600
 import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.util.LocaleHelper
+import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nextgenmeter.util.TtsUtil
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -85,7 +86,7 @@ class MeterOpsViewModel @Inject constructor(
                             TripStatus.ENDED, null -> ForHire
                         }
 
-                        if ((remoteUnlockMeter || deviceGodUnlockState == DeviceGodCodeUnlockState.Unlocked) && status is Hired) {
+                        if ((remoteUnlockMeter || deviceGodUnlockState == DeviceGodCodeUnlockState.Unlocked) && status is Hired && trip.shouldLockMeter()) {
                             unlockMeterInMCU(isAbnormalPulseTriggered)
                             tripRepository.resetUnlockMeterStatusInRemote()
                             return@collectLatest
@@ -207,6 +208,7 @@ class MeterOpsViewModel @Inject constructor(
 
     private suspend fun updateUIStateForTrip(trip: TripData, status: TripStateInMeterOpsUI) {
         uiUpdateMutex.withLock {
+            val isLocked = trip.shouldLockMeter()
             _uiState.value = _uiState.value.copy(
                 status = status,
                 extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
@@ -215,11 +217,16 @@ class MeterOpsViewModel @Inject constructor(
                 duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
                 totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
                 languagePref = _uiState.value.languagePref,
-                overSpeedDurationInSeconds = trip.overSpeedDurationInSeconds,
-                remainingOverSpeedTimeInSeconds = if(trip.shouldLockMeter() && trip.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) {
+                overSpeedDurationInSeconds = if (isLocked) trip.overSpeedDurationInSeconds else 0,
+                remainingOverSpeedTimeInSeconds = if(isLocked && trip.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) {
                     val remainingOverDuration = TOTAL_LOCK_DURATION  - trip.overSpeedDurationInSeconds
                     MeterOpsUtil.getFormattedDurationFromSeconds((if (remainingOverDuration > 0)remainingOverDuration else 0).toLong())
                 } else null,
+                mcuStartingPrice = if (isLocked) {
+                    val savedStartPrice = meterPreferenceRepository.getMcuStartPrice().first() ?: DEFAULT_STARTING_PRICE
+                    val startPrice = MeasureBoardUtils.formatStartingPrice(savedStartPrice)
+                    if (startPrice.isNotEmpty()) startPrice else DEFAULT_STARTING_PRICE
+                } else ""
             )
         }
     }
@@ -425,6 +432,7 @@ class MeterOpsViewModel @Inject constructor(
         private const val TOTAL_COUNTDOWN_DURATION = 60*1 // seconds - max time shown in countdown
         const val TOTAL_LOCK_BEEP_COUNTER = 30 //seconds
         private const val TOTAL_LOCK_DURATION = TOTAL_COUNTDOWN_DURATION + TOTAL_LOCK_BEEP_COUNTER // seconds
+        private const val DEFAULT_STARTING_PRICE = "27.00"
     }
 
 }
