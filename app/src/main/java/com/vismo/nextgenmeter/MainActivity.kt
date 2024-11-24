@@ -120,7 +120,6 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                         sbHostState = snackbarHostState
                         coroutineScope = rememberCoroutineScope()
                     }
-                    val isTripInProgress = mainViewModel.isTripInProgress.collectAsState().value
                     val showSnackBar = mainViewModel.snackBarContent.collectAsState().value
                     LaunchedEffect(showSnackBar) {
                         if (showSnackBar != null) {
@@ -146,14 +145,20 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                             AppBar(
                                 viewModel = mainViewModel,
                                 onBackButtonClick = {
-                                    if (!isTripInProgress && navController?.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
-                                        navController!!.popBackStack()
+                                    lifecycleScope.launch {
+                                        repeatOnLifecycle(Lifecycle.State.STARTED) {
+                                            val isTripInProgress = mainViewModel.isTripInProgress.first()
+                                            if (!isTripInProgress && navController?.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
+                                                navController!!.popBackStack()
+                                            }
+                                        }
                                     }
                                 },
                                 onLogoLongPress = {
                                     lifecycleScope.launch {
                                         repeatOnLifecycle(Lifecycle.State.STARTED) {
-                                            if (mainViewModel.showLoginToggle.first() == true && isCurrentScreenMeterOps()) {
+                                            val isTripInProgress = mainViewModel.isTripInProgress.first()
+                                            if (mainViewModel.showLoginToggle.first() == true && isCurrentScreenMeterOps() && !isTripInProgress) {
                                                 navigateToSplashScreen(alwaysNavigateToPair = true)
                                             }
                                         }
