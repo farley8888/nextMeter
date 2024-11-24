@@ -3,8 +3,8 @@ package com.vismo.nextgenmeter.ui.shared
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,15 +21,19 @@ fun GlobalPinWidget(onOtpEntered: (String) -> Unit) {
     var pin by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .width(270.dp),  // 2024 11 24 VAN - not enough time to figure out the real way to make the container width responsive
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly
     ) {
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         GlobalPinTextField(
             pin = pin,
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         val view = LocalView.current
         GlobalNumberKeypad(
