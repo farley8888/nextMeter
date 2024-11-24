@@ -118,8 +118,8 @@ fun BlinkingVisibility(
 ) {
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = tween(durationMillis = 1000)),
-        exit = fadeOut(animationSpec = tween(durationMillis = 1000))
+        enter = fadeIn(animationSpec = tween(durationMillis = 500)),
+        exit = fadeOut(animationSpec = tween(durationMillis = 500))
     ) {
         content()
     }
