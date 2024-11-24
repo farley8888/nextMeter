@@ -223,30 +223,6 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
         } else if (uiState.status == Hired || uiState.status == PastTrip) {
             FareOrExtraRow(label = "", value = uiState.extras, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.weight(1f))
-//            Row(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .weight(2.5f),
-//                verticalAlignment = Alignment.Top,
-//                horizontalArrangement = Arrangement.End
-//            ) {
-//                val extras = uiState.extras
-//                val extrasDouble = extras.toDoubleOrNull()
-//                if (extrasDouble != null && extrasDouble > 0) {
-//                    Text(
-//                        text = extrasDouble.toString(),
-//                        color = uiState.totalColor,
-//                        style = Typography.displayMedium.copy(
-//                            fontWeight = FontWeight.SemiBold,
-//                            fontSize = 70.sp,
-//                            letterSpacing = 0.sp,
-//                            lineHeight = 100.sp
-//                        ),
-//                        textAlign = TextAlign.End,
-//                        modifier = Modifier.align(Alignment.Top)
-//                    )
-//                }
-//            }
         }
     }
 }
@@ -271,7 +247,6 @@ fun FareOrExtraRow(label: String, value: String, showZero: Boolean, color: Color
                 Text(
                     text = value,
                     color = color,
-
                     fontSize = 65.sp,
                     fontWeight = FontWeight.ExtraBold,
                     fontFamily = oswaldFontFamily,
@@ -298,9 +273,9 @@ fun FareOrExtraRow(label: String, value: String, showZero: Boolean, color: Color
             .padding(0.dp)
         ) {
             Text(
-                text = label,
+                text = if (label.isBlank()) "DUMMY" else label,
                 fontWeight = FontWeight.Bold,
-                color = Color.Yellow,
+                color = if (label.isBlank()) Color.Transparent else Color.Yellow,
                 maxLines = 1,
                 modifier = Modifier
                     .rotate(270f) // Orienting the text vertically
