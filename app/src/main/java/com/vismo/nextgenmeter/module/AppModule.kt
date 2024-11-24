@@ -68,11 +68,13 @@ object AppModule {
     fun providesTtsUtil(
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        @MainDispatcher mainDispatcher: CoroutineDispatcher,
         localeHelper: LocaleHelper
     ): TtsUtil {
         return TtsUtil(
             appContext = context,
             ioDispatcher = ioDispatcher,
+            mainDispatcher = mainDispatcher,
             localeHelper = localeHelper
         )
     }

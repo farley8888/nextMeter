@@ -438,7 +438,7 @@ class MainViewModel @Inject constructor(
         } catch (e: IOException) {
             // Handle exceptions
             Log.e("ReadFile", "Error reading file", e)
-            _snackBarContent.value = Pair("插入的SD卡無效", SnackbarState.ERROR)
+            _snackBarContent.value = Pair("Error reading file", SnackbarState.ERROR)
         }
     }
 
@@ -447,11 +447,11 @@ class MainViewModel @Inject constructor(
         val trimmedText = text.trim()
         if (trimmedText == StorageBroadcastReceiver.STATIC_GOD_CODE) {
             enableADB()
-            _snackBarContent.value = Pair("USB鎖定已解除", SnackbarState.SUCCESS)
+            _snackBarContent.value = Pair("USB unlocked!", SnackbarState.SUCCESS)
             DeviceDataStore.setDeviceGodCodeUnlockState(DeviceGodCodeUnlockState.Unlocked)
         } else {
             // show error message
-            _snackBarContent.value = Pair("插入的SD卡無效", SnackbarState.ERROR)
+            _snackBarContent.value = Pair("USB locked!", SnackbarState.ERROR)
         }
     }
 
@@ -460,7 +460,7 @@ class MainViewModel @Inject constructor(
             disableADB()
         }
 
-        _snackBarContent.value = Pair("SD卡已卸載", SnackbarState.DEFAULT)
+        _snackBarContent.value = Pair("SD card removed", SnackbarState.DEFAULT)
         DeviceDataStore.setDeviceGodCodeUnlockState(DeviceGodCodeUnlockState.Locked)
     }
 

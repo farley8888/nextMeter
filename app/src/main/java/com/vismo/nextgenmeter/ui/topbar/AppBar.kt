@@ -41,7 +41,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.MainViewModel
+import com.vismo.nextgenmeter.util.Constant
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import kotlinx.coroutines.delay
 import kotlin.coroutines.cancellation.CancellationException
@@ -74,6 +76,11 @@ fun AppBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
+                Text(
+                    text = uiState.dateTime,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(start = 8.dp, end = 8.dp).wrapContentSize(align = Alignment.Center)
+                )
                 if (uiState.isBackButtonVisible) {
                     IconButton({
                         onBackButtonClick()
@@ -82,31 +89,30 @@ fun AppBar(
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = "Back",
+                            modifier = Modifier.padding(end = 8.dp).size(32.dp),
+                            tint = Color.White
                         )
                     }
                 }
-                Text(
-                    text = uiState.dateTime,
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(start = 20.dp, end = 16.dp).wrapContentSize(align = Alignment.Center)
-                )
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .border(
-                            BorderStroke(1.dp, Color.White),
-                            shape = RoundedCornerShape(4.dp)
+                if(BuildConfig.FLAVOR != Constant.ENV_PRD) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .border(
+                                BorderStroke(1.dp, Color.White),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .wrapContentSize(align = Alignment.Center)
+                    ) {
+                        Text(
+                            text = uiState.envVariable,
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.wrapContentSize(align = Alignment.Center)
                         )
-                        .wrapContentSize(align = Alignment.Center)
-                ) {
-                    Text(
-                        text = uiState.envVariable,
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.wrapContentSize(align = Alignment.Center)
-                    )
+                    }
                 }
             }
         },

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -60,7 +59,7 @@ import com.vismo.nextgenmeter.ui.shared.NxGnMeterDialog
 import com.vismo.nextgenmeter.ui.theme.Black
 import com.vismo.nextgenmeter.ui.theme.Purple40
 import com.vismo.nextgenmeter.ui.theme.Typography
-import com.vismo.nextgenmeter.ui.theme.nobel800
+import com.vismo.nextgenmeter.ui.theme.nobel500
 import com.vismo.nextgenmeter.ui.theme.oswaldFontFamily
 import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
@@ -128,7 +127,7 @@ fun MeterOpsScreen(
 @Composable
 fun ExtrasAndFareHeader(uiState: MeterOpsUiData) {
     val extrasOrDetails = if (uiState.status == Paused) "DETAILS" else "EXTRAS"
-    val fareOrTotal = if (uiState.status == Paused) "FARE" else "TOTAL"
+    val fareOrTotal = if (uiState.status == Paused) "TOTAL" else "FARE"
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -426,7 +425,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     modifier = Modifier.align(Alignment.End)
                 )
         }
-        val buttonContainerColor = if(uiState.status is Paused) red else if(uiState.status is Hired) Purple40 else nobel800
+        val buttonContainerColor = if(uiState.status is Paused) red else if(uiState.status is Hired) Purple40 else nobel500
         Button(
             onClick = {
                 if(meterLockState !is MeterLockAction.Lock) {
