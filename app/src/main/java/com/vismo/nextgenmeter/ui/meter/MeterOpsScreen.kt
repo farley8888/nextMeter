@@ -320,12 +320,16 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             val totalFareDouble = uiState.totalFare.toDoubleOrNull()
             var isVisible by remember { mutableStateOf(true) }
             val isBlinking = uiState.overSpeedDurationInSeconds in 1..TOTAL_LOCK_BEEP_COUNTER
-            if (isBlinking) {
-                LaunchedEffect(Unit) {
+            LaunchedEffect(isBlinking) {
+                if (isBlinking) {
                     while (true) {
-                        delay(1000)
-                        isVisible = !isVisible
+                        isVisible = true
+                        delay(500)
+                        isVisible = false
+                        delay(500)
                     }
+                } else {
+                    isVisible = true
                 }
             }
             if (totalFareDouble != null && totalFareDouble > 0) { // So that we don't show 0 as the total fare
