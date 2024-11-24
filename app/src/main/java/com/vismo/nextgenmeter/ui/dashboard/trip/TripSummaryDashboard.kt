@@ -2,6 +2,7 @@ package com.vismo.nextgenmeter.ui.dashboard.trip
 
 import android.view.View
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,15 +27,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vismo.nextgenmeter.ui.theme.nobel400
+import com.vismo.nextgenmeter.ui.theme.Black
 import com.vismo.nextgenmeter.ui.theme.nobel50
-import com.vismo.nextgenmeter.ui.theme.nobel500
-import com.vismo.nextgenmeter.ui.theme.nobel800
-import com.vismo.nextgenmeter.ui.theme.valencia300
+import com.vismo.nextgenmeter.ui.theme.nobel600
+import com.vismo.nextgenmeter.ui.theme.pastelGreen400
+import com.vismo.nextgenmeter.ui.theme.secondary500
+import com.vismo.nextgenmeter.ui.theme.valencia200
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
@@ -48,6 +52,7 @@ fun TripSummaryDashboard(
 
     Row (
         modifier = Modifier.fillMaxSize()
+            .background(Black)
     ) {
         Column(
             modifier = Modifier
@@ -77,23 +82,25 @@ fun TripSummaryDashboard(
 fun ActionButtons(viewModel: TripSummaryDashboardViewModel) {
     Row(modifier = Modifier
         .fillMaxWidth()
-        .padding(16.dp)
+        .padding(start = 16.dp, end = 16.dp),
     ) {
         CustomButton(
-            text = "清除\n" + "資料",
-            containerColor = valencia300,
+            text = "清除資料",
+            containerColor = valencia200,
+            textColor = Black,
             LocalView.current) {
             viewModel.clearAllLocalTrips()
         }
         CustomButton(
-            text = "打印\n" + "記錄",
-            containerColor = nobel400,
+            text = "打印記錄",
+            containerColor = nobel600,
+            textColor = nobel50,
             LocalView.current) {}
     }
 }
 
 @Composable 
-fun RowScope.CustomButton(text: String, containerColor: Color, view: View, onClick: () -> Unit) {
+fun RowScope.CustomButton(text: String, containerColor: Color, textColor: Color, view: View, onClick: () -> Unit) {
     Button(
         onClick = {
             onClick()
@@ -114,7 +121,8 @@ fun RowScope.CustomButton(text: String, containerColor: Color, view: View, onCli
         ){
             Text(
                 text = text,
-                fontSize = 18.sp,
+                color = textColor,
+                style = MaterialTheme.typography.headlineSmall
             )
         }
 
@@ -127,9 +135,9 @@ fun ColumnScope.Options(
     navigateToAdjustBrightnessOrVolume: () -> Unit,
     navigateToMCUSummary: () -> Unit
 ) {
-    CustomListItem(text = "本更行程數據", LocalView.current, navigateToTripHistory)
-    CustomListItem(text = "系統設定", LocalView.current, navigateToAdjustBrightnessOrVolume)
-    CustomListItem(text = "系統資料", LocalView.current, navigateToMCUSummary)
+    CustomListItem(text = "本更行程數據", LocalView.current, navigateToTripHistory, secondary500)
+    CustomListItem(text = "系統設定", LocalView.current, navigateToAdjustBrightnessOrVolume, pastelGreen400)
+    CustomListItem(text = "系統資料", LocalView.current, navigateToMCUSummary, pastelGreen400)
 }
 
 @Composable
@@ -139,19 +147,19 @@ fun TripSummary(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = nobel800),
+        colors = CardDefaults.cardColors(containerColor = Black),
         shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         ActionButtons(viewModel = viewModel)
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            DataColumn(title = "", data = listOf("旗數", "里數", "候時", "金額"), horizontalAlignment = Alignment.CenterHorizontally)
-            DataColumn(title = "總數", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare))
-            DataColumn(title = "現金", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare))
-            DataColumn(title = "電子", data = listOf("0", "0", "0", "$0.00"))
+            DataColumn(title = "", data = listOf("旗數", "里數", "候時", "金額", "附加費"), horizontalAlignment = Alignment.CenterHorizontally)
+            DataColumn(title = "總數", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare, allTripsSummary.totalExtras))
+            DataColumn(title = "現金", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare, allTripsSummary.totalExtras))
+            DataColumn(title = "電子", data = listOf("0", "0", "0", "0", "$0.00"))
         }
     }
 }
@@ -165,18 +173,28 @@ fun RowScope.DataColumn(
         horizontalAlignment = horizontalAlignment,
         modifier = Modifier.weight(1f)
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleLarge)
+        Text(text = title, style = MaterialTheme.typography.headlineSmall.copy(
+            textDecoration = TextDecoration.Underline
+        ))
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         data.forEach { item ->
-            Text(text = item, style = MaterialTheme.typography.bodyLarge)
+            Text(text = item, style = MaterialTheme.typography.titleLarge)
         }
     }
 }
 
 @Composable
-fun ColumnScope.CustomListItem(text: String, view: View, onClick: () -> Unit) {
+fun ColumnScope.CustomListItem(text: String, view: View, onClick: () -> Unit, color10percent: Color) {
+    // Define a vertical gradient with color stops at specific positions
+    val gradient = Brush.verticalGradient(
+        0f to color10percent,   // Start at 0%, color is Blue
+        0.15f to color10percent, // At 15%, color is still Blue
+        0.15f to nobel600, // From 15%, color changes to Gray
+        1f to nobel600    // At 100%, color is Gray
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -186,15 +204,17 @@ fun ColumnScope.CustomListItem(text: String, view: View, onClick: () -> Unit) {
                 performVirtualTapFeedback(view = view)
             }
             .padding(16.dp)
+            // Apply the gradient background with rounded corners
+            .background(brush = gradient, shape = RoundedCornerShape(8.dp))
             .border(
-                BorderStroke(2.dp, nobel500),
+                BorderStroke(2.dp, nobel600),
                 shape = RoundedCornerShape(8.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineMedium,
             color = Color.White
         )
     }

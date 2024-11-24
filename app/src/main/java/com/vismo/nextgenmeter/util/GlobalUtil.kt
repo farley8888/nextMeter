@@ -133,6 +133,14 @@ object GlobalUtils {
         }
     }
 
+    fun formatSecondsToHHMMSS(seconds: Long): String {
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val secs = seconds % 60
+
+        return String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, secs)
+    }
+
     fun getFormattedStartPrice(startingPrice: String): String {
         return if (startingPrice.toDoubleOrNull() == null) {
             startingPrice

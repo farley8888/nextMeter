@@ -4,7 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.LocalTripsRepository
-import com.vismo.nextgenmeter.util.GlobalUtils.formatSecondsToCompactFormat
+import com.vismo.nextgenmeter.util.GlobalUtils.formatSecondsToHHMMSS
+import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,15 +30,17 @@ class TripSummaryDashboardViewModel @Inject constructor(
             withContext(ioDispatcher) {
                 localTripsRepository.getAllTripsFlow().collect { allTrips ->
                     val numberOfTrips = allTrips.size.toString()
-                    val sumTotalFare = allTrips.sumOf { it.totalFare }.toString()
-                    val sumWaitingTime = formatSecondsToCompactFormat(allTrips.sumOf { it.waitDurationInSeconds })
+                    val sumTotalFare = allTrips.sumOf { it.fare }.roundTo(2).toString()
+                    val sumExtras = allTrips.sumOf { it.extra }.roundTo(2).toString()
+                    val sumWaitingTime = formatSecondsToHHMMSS(allTrips.sumOf { it.waitDurationInSeconds })
                     val sumOfDistanceInKm = (allTrips.sumOf { it.distanceInMeter } / 1000).toString()
                     _allTripsSummary.value = TripSummaryDashboardUiData(
                         TripSummaryDashboardType.ALL,
                         numberOfTrips,
                         sumWaitingTime,
                         "$sumOfDistanceInKm",
-                        "$$sumTotalFare"
+                        "$$sumTotalFare",
+                        "$$sumExtras"
                     )
                 }
             }
