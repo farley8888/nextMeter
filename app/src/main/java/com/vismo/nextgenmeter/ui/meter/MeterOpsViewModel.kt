@@ -112,7 +112,7 @@ class MeterOpsViewModel @Inject constructor(
                     meterLockState.collectLatest {
                         when (it) {
                             is MeterLockAction.Lock -> {
-                                tripRepository.lockMeter(20, 80, OVERSPEED_BEEP_COUNTER)
+                                tripRepository.lockMeter(20, 80, TOTAL_LOCK_BEEP_COUNTER)
                             }
                             MeterLockAction.Unlock -> {
                                 tripRepository.unlockMeter()
@@ -159,10 +159,13 @@ class MeterOpsViewModel @Inject constructor(
         if (trip.overSpeedDurationInSeconds > 3 && _meterLockState.value == MeterLockAction.NoAction) {
             _meterLockState.value = MeterLockAction.Lock(isAbnormalPulseTriggered)
         }
-        if (trip.overSpeedDurationInSeconds > OVERSPEED_BEEP_COUNTER) {
+        if (trip.overSpeedDurationInSeconds > LOCK_DIALOG_VISIBILITY_DURATION && uiState.value.overSpeedDurationInSeconds < LOCK_DIALOG_VISIBILITY_DURATION) {
             updateUIStateForTrip(trip, Hired)
         }
-        if (trip.overSpeedDurationInSeconds > OVERSPEED_LOCKUP_COUNTER && !isUnlockRun) {
+        if (trip.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) {
+            updateUIStateForTrip(trip, Hired)
+        }
+        if (trip.overSpeedDurationInSeconds > TOTAL_LOCK_DURATION && !isUnlockRun) {
             unlockMeterInMCU(isAbnormalPulseTriggered)
         }
     }
@@ -195,6 +198,7 @@ class MeterOpsViewModel @Inject constructor(
 
     private suspend fun updateUIStateForTrip(trip: TripData, status: TripStateInMeterOpsUI) {
         uiUpdateMutex.withLock {
+            val remainingOverDuration = TOTAL_LOCK_DURATION - trip.overSpeedDurationInSeconds
             _uiState.value = _uiState.value.copy(
                 status = status,
                 extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
@@ -203,7 +207,10 @@ class MeterOpsViewModel @Inject constructor(
                 duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
                 totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
                 languagePref = _uiState.value.languagePref,
-                remainingOverSpeedTimeInSeconds = if(trip.shouldLockMeter() && trip.overSpeedDurationInSeconds > 0) MeterOpsUtil.getFormattedDurationFromSeconds((OVERSPEED_LOCKUP_COUNTER - trip.overSpeedDurationInSeconds).toLong()) else null,
+                overSpeedDurationInSeconds = trip.overSpeedDurationInSeconds,
+                remainingOverSpeedTimeInSeconds = if(trip.shouldLockMeter() && trip.overSpeedDurationInSeconds > 0) {
+                    MeterOpsUtil.getFormattedDurationFromSeconds((if (remainingOverDuration > 0)remainingOverDuration else 0).toLong())
+                } else null,
             )
         }
     }
@@ -404,8 +411,9 @@ class MeterOpsViewModel @Inject constructor(
     }
 
     companion object {
-        private const val OVERSPEED_LOCKUP_COUNTER = 40 // seconds
-        private const val OVERSPEED_BEEP_COUNTER = 30 //seconds
+        private const val LOCK_DIALOG_VISIBILITY_DURATION = 10 // seconds
+        private const val TOTAL_LOCK_DURATION = 40 // seconds
+        const val TOTAL_LOCK_BEEP_COUNTER = 30 //seconds
     }
 
 }

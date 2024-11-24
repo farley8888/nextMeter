@@ -19,16 +19,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.TaxiAlert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -44,15 +44,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vismo.nextgenmeter.ui.shared.GenericActionDialogContent
-import com.vismo.nextgenmeter.ui.shared.GlobalDialog
+import com.vismo.nextgenmeter.ui.meter.MeterOpsViewModel.Companion.TOTAL_LOCK_BEEP_COUNTER
+import com.vismo.nextgenmeter.ui.shared.BlinkingVisibility
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
+import com.vismo.nextgenmeter.ui.shared.NxGnDialogContent
+import com.vismo.nextgenmeter.ui.shared.NxGnMeterDialog
 import com.vismo.nextgenmeter.ui.theme.Black
 import com.vismo.nextgenmeter.ui.theme.Purple40
 import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.red
-import com.vismo.nextgenmeter.ui.theme.valencia100
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
+import kotlinx.coroutines.delay
 
 
 @Composable
@@ -66,7 +68,7 @@ fun MeterOpsScreen(
     val uiState = viewModel.uiState.collectAsState().value
     val view = LocalView.current
     val meterLockState = viewModel.meterLockState.collectAsState().value
-    val lockTitle = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "Abnormal Pulse" else if (meterLockState is MeterLockAction.Lock) "Over-Speed" else ""
+    val lockTitle = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "異常脈衝" else if (meterLockState is MeterLockAction.Lock) "被鎖定" else ""
     val lockMessage = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "Please check the pulse sensor" else if (meterLockState is MeterLockAction.Lock) "Please drive safely" else ""
     val lockDialogShowState = remember { mutableStateOf(false) }
     val showSnackBar = viewModel.showSnackBarMessage.collectAsState().value
@@ -100,22 +102,10 @@ fun MeterOpsScreen(
                 }
             }
     ) {
-        lockDialogShowState.value = lockTitle.isNotEmpty() && uiState.remainingOverSpeedTimeInSeconds == null // cause this becomes non null 30 seconds after. and we only want to show the dialog once
-        GlobalDialog(
-            onDismiss = {},
-            showDialog = lockDialogShowState,
-            isBlinking = false,
-            content = {
-                GenericActionDialogContent(
-                    title = lockTitle,
-                    message = lockMessage,
-                    actions = emptyList(),
-                    iconResId = Icons.Rounded.TaxiAlert,
-                    backgroundColor = valencia100,
-                    dismissDialog = { lockDialogShowState.value = false }
-                )
-            }
-        )
+        lockDialogShowState.value = lockTitle.isNotEmpty() && uiState.overSpeedDurationInSeconds < 10 // we only want to show the dialog once for the first 10 seconds
+        NxGnMeterDialog(showDialog = lockDialogShowState, onDismiss = {}, content = { NxGnDialogContent(
+            message = lockTitle,
+        ) })
         TaxiMeterUI(uiState, meterLockState, viewModel)
     }
 
@@ -327,20 +317,32 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             // if status = hired, show fare
             // if status = paused, show total
             val numberToShow = if(uiState.status == Hired || uiState.status == PastTrip) uiState.fare else if (uiState.status == Paused) uiState.totalFare else ""
-            val totalFare = if(uiState.remainingOverSpeedTimeInSeconds != null) "c${numberToShow}" else numberToShow
+            val totalFare = if(uiState.remainingOverSpeedTimeInSeconds != null && uiState.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) "c27.00" else numberToShow
             val totalFareDouble = uiState.totalFare.toDoubleOrNull()
+            var isVisible by remember { mutableStateOf(true) }
+            val isBlinking = uiState.overSpeedDurationInSeconds in 1..TOTAL_LOCK_BEEP_COUNTER
+            if (isBlinking) {
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        delay(1000)
+                        isVisible = !isVisible
+                    }
+                }
+            }
             if (totalFareDouble != null && totalFareDouble > 0) { // So that we don't show 0 as the total fare
-                Text(
-                    text = totalFare,
-                    color = uiState.totalColor,
-                    style = Typography.displayLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 140.sp,
-                        letterSpacing = 0.sp,
-                        lineHeight = 100.sp
-                    ),
-                    textAlign = TextAlign.End
-                )
+                BlinkingVisibility(isVisible = isVisible || !isBlinking) { // blink for the first 30 seconds of lock state
+                    Text(
+                        text = totalFare,
+                        color = uiState.totalColor,
+                        style = Typography.displayLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 140.sp,
+                            letterSpacing = 0.sp,
+                            lineHeight = 100.sp
+                        ),
+                        textAlign = TextAlign.End
+                    )
+                }
             }
         }
     }
@@ -369,7 +371,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     .height(1.dp)
                     .background(Color.White))
                 Text(
-                    text = if(uiState.remainingOverSpeedTimeInSeconds != null) "c0.0" else uiState.distanceInKM,
+                    text = if(uiState.remainingOverSpeedTimeInSeconds != null) "0.0" else uiState.distanceInKM,
                     color = Color.Gray,
                     style = Typography.displaySmall,
                     textAlign = TextAlign.End,
