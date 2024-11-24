@@ -132,6 +132,17 @@ class MeterOpsViewModel @Inject constructor(
                         }
                     }
                 }
+                launch {
+                    // set current state of language preference
+                    val currentLocale = localeHelper.getLocale().language
+                    val languagePref = when (currentLocale) {
+                        "en" -> TtsLanguagePref.EN
+                        "zh" -> TtsLanguagePref.ZH_CN
+                        "zh-rHK" -> TtsLanguagePref.ZH_HK
+                        else -> TtsLanguagePref.OFF
+                    }
+                    _uiState.value = _uiState.value.copy(languagePref = languagePref)
+                }
             }
         }
         tripRepository.initObservers()
