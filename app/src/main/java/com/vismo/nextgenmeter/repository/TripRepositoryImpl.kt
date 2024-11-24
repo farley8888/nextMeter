@@ -44,7 +44,7 @@ class TripRepositoryImpl @Inject constructor(
         repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
         repositoryScope?.launch {
             launch {
-                TripDataStore.tripData.collect { trip ->
+                TripDataStore.ongoingTripData.collect { trip ->
                     trip?.let {
                         // Update trip in Firestore if required
                         if (trip.requiresUpdateOnDatabase) {
@@ -128,7 +128,7 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     override fun resumeTrip() {
-        TripDataStore.tripData.value?.let {
+        TripDataStore.ongoingTripData.value?.let {
             measureBoardRepository.writeResumeTripCommand()
         }
     }
@@ -149,13 +149,13 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     override fun pauseTrip() {
-        TripDataStore.tripData.value?.let {
+        TripDataStore.ongoingTripData.value?.let {
             measureBoardRepository.writePauseTripCommand()
         }
     }
 
     override fun addExtras(extrasAmount: Int) {
-        TripDataStore.tripData.value?.let {
+        TripDataStore.ongoingTripData.value?.let {
             val extrasTotal = (it.extra + extrasAmount).toInt()
             if (extrasTotal < 1000) {
                 measureBoardRepository.writeAddExtrasCommand(extrasTotal)
@@ -164,7 +164,7 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     override fun subtractExtras(extrasAmount: Int) {
-        TripDataStore.tripData.value?.let {
+        TripDataStore.ongoingTripData.value?.let {
             val extrasTotal = (it.extra - extrasAmount).toInt()
             val finalTotal = if (extrasTotal < 0) 0 else extrasTotal
             // we want the beep sound to be played when the extras total is 0
@@ -187,6 +187,12 @@ class TripRepositoryImpl @Inject constructor(
 
     override fun resetUnlockMeterStatusInRemote() {
         dashManager.resetUnlockMeterStatusInRemote()
+    }
+
+    override suspend fun getMostRecentTrip() {
+        measureBoardRepository.emitBeepSound(5, 0, 1)
+        val mostRecentTrip = localTripsRepository.getMostRecentTrip()
+        TripDataStore.setMostRecentTripData(mostRecentTrip)
     }
 
 }

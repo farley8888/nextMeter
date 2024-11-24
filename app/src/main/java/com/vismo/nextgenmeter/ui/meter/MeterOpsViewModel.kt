@@ -9,6 +9,7 @@ import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.model.shouldLockMeter
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
+import com.vismo.nextgenmeter.ui.shared.SnackbarState
 import com.vismo.nextgenmeter.ui.theme.gold600
 import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.theme.red
@@ -19,8 +20,10 @@ import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,7 +38,7 @@ class MeterOpsViewModel @Inject constructor(
     private val localeHelper: LocaleHelper,
     private val ttsUtil: TtsUtil
 ) : ViewModel() {
-    private val _currentTrip = MutableStateFlow<TripData?>(null)
+    private val _ongoingTrip = MutableStateFlow<TripData?>(null)
     private val _uiState = MutableStateFlow<MeterOpsUiData>(
         MeterOpsUiData(
             status = ForHire,
@@ -51,18 +54,20 @@ class MeterOpsViewModel @Inject constructor(
     val meterLockState = _meterLockState
     private val uiUpdateMutex = Mutex()
     private var isUnlockRun = false
+    private val _showSnackBarMessage = MutableStateFlow<Pair<String, SnackbarState>?>(null)
+    val showSnackBarMessage: StateFlow<Pair<String, SnackbarState>?> = _showSnackBarMessage
 
     init {
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 launch {
                     combine(
-                        TripDataStore.tripData,
+                        TripDataStore.ongoingTripData,
                         TripDataStore.isAbnormalPulseTriggered,
                         tripRepository.remoteUnlockMeter,
                     ) { tripData, isAbnormalPulseTriggered, remoteUnlockMeter -> Triple(tripData, isAbnormalPulseTriggered, remoteUnlockMeter) }
                     .collectLatest { (tripData, isAbnormalPulseTriggered, remoteUnlockMeter) ->
-                        _currentTrip.value = tripData
+                        _ongoingTrip.value = tripData
 
                         val trip = tripData ?: return@collectLatest
 
@@ -117,6 +122,13 @@ class MeterOpsViewModel @Inject constructor(
                             MeterLockAction.NoAction -> {
                                 // do nothing
                             }
+                        }
+                    }
+                }
+                launch {
+                    TripDataStore.mostRecentTripData.collectLatest {
+                        it?.let {
+                            updateUIStateForTrip(it, PastTrip)
                         }
                     }
                 }
@@ -237,7 +249,6 @@ class MeterOpsViewModel @Inject constructor(
                     // subtract extras - $1
                     subtractExtras(1)
                 }
-
             }
         }
     }
@@ -245,8 +256,8 @@ class MeterOpsViewModel @Inject constructor(
     private fun handleSinglePress(code: Int) {
         when (code) {
             248 -> {
-                // ready for hire
-                endTripAndReadyForHire()
+                // ready for hire or remove most recent trip
+                handleOn248Pressed()
             }
 
             249 -> {
@@ -270,15 +281,40 @@ class MeterOpsViewModel @Inject constructor(
             }
 
             255 -> {
-                // print receipt
-                printReceipt()
+                // print receipt or show recent trip details
+                handleRecentTripDetailsOrPrintTrip()
             }
         }
     }
 
-    private fun printReceipt() {
+    private fun handleRecentTripDetailsOrPrintTrip() {
         viewModelScope.launch(ioDispatcher) {
-            _currentTrip.value?.let { trip ->
+            if (_ongoingTrip.value == null) { // only if there is no ongoing trip
+                val mostRecentTrip = TripDataStore.mostRecentTripData.first()
+                if (mostRecentTrip == null) {
+                    try {
+                        tripRepository.getMostRecentTrip()
+                    } catch (e: Exception) {
+                        // show error message if there is no recent trip
+                        _showSnackBarMessage.value = Pair("没有行程資料", SnackbarState.ERROR)
+                    }
+                } else {
+                    // print receipt for recent trip
+                    peripheralControlRepository.writePrintReceiptCommand(mostRecentTrip)
+                }
+            } else {
+                printReceiptForOngoingTrip()
+            }
+        }
+    }
+
+    fun clearSnackBarMessage() {
+        _showSnackBarMessage.value = null
+    }
+
+    private fun printReceiptForOngoingTrip() {
+        viewModelScope.launch(ioDispatcher) {
+            _ongoingTrip.value?.let { trip ->
                 if (trip.tripStatus == TripStatus.STOP) {
                     peripheralControlRepository.writePrintReceiptCommand(trip)
                 }
@@ -300,7 +336,10 @@ class MeterOpsViewModel @Inject constructor(
 
     private fun startOrResumeTrip() {
         viewModelScope.launch(ioDispatcher) {
-            if (_currentTrip.value == null) {
+            if(TripDataStore.mostRecentTripData.first() != null) {
+                return@launch
+            }
+            if (_ongoingTrip.value == null) {
                 tripRepository.startTrip()
                 ttsUtil.setWasTripJustStarted(true)
                 return@launch
@@ -312,7 +351,10 @@ class MeterOpsViewModel @Inject constructor(
 
     private fun pauseTrip() {
         viewModelScope.launch(ioDispatcher) {
-            if (_currentTrip.value == null) {
+            if(TripDataStore.mostRecentTripData.first() != null) {
+                return@launch
+            }
+            if (_ongoingTrip.value == null) {
                 tripRepository.startAndPauseTrip()
             } else {
                 tripRepository.pauseTrip()
@@ -321,11 +363,20 @@ class MeterOpsViewModel @Inject constructor(
         }
     }
 
-    private fun endTripAndReadyForHire() {
+    private fun handleOn248Pressed() {
         viewModelScope.launch(ioDispatcher) {
-            if (_currentTrip.value?.tripStatus == TripStatus.STOP) {
-                tripRepository.endTrip()
+            if (_ongoingTrip.value != null) {
+                endTripAndReadyForHire()
+            } else if (TripDataStore.mostRecentTripData.first() != null) {
+                TripDataStore.clearMostRecentTripData()
+                updateUIStateForHire()
             }
+        }
+    }
+
+    private suspend fun endTripAndReadyForHire() {
+        if (_ongoingTrip.value?.tripStatus == TripStatus.STOP) {
+            tripRepository.endTrip()
         }
     }
 

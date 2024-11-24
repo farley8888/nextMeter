@@ -43,7 +43,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.sql.Time
 import java.util.logging.Logger
 import javax.inject.Inject
 
@@ -123,7 +122,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         DeviceDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
         DeviceDataStore.setMCUTime(result.substring(40, 40 + 12))
 
-        TripDataStore.tripData.value?.tripStatus?.let { tripStatus ->
+        TripDataStore.ongoingTripData.value?.tripStatus?.let { tripStatus ->
             TripDataStore.clearTripData()
         }
         dashManagerConfig.setDeviceIdData(deviceId = measureBoardDeviceId, licensePlate =  licensePlate)

@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.ui.shared.GenericActionDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
+import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.theme.Black
 import com.vismo.nextgenmeter.ui.theme.Purple40
 import com.vismo.nextgenmeter.ui.theme.Typography
@@ -56,6 +57,7 @@ import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 @Composable
 fun MeterOpsScreen(
     viewModel: MeterOpsViewModel,
+    snackbarDelegate: GlobalSnackbarDelegate,
     navigateToDashBoard: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -65,6 +67,12 @@ fun MeterOpsScreen(
     val lockTitle = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "Abnormal Pulse" else if (meterLockState is MeterLockAction.Lock) "Over-Speed" else ""
     val lockMessage = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "Please check the pulse sensor" else if (meterLockState is MeterLockAction.Lock) "Please drive safely" else ""
     val lockDialogShowState = remember { mutableStateOf(false) }
+    val showSnackBar = viewModel.showSnackBarMessage.collectAsState().value
+
+    if (showSnackBar != null) {
+        snackbarDelegate.showSnackbar(showSnackBar.second,showSnackBar.first)
+        viewModel.clearSnackBarMessage()
+    }
 
     Column(
         modifier =
@@ -211,7 +219,7 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
         if (uiState.status == Paused) {
             FareOrExtraRow(label = "FARE", value = uiState.fare.substring(0, uiState.fare.length - 1), color = uiState.totalColor)
             FareOrExtraRow(label = "EXTRA", value = uiState.extras, color = uiState.totalColor)
-        } else if (uiState.status == Hired) {
+        } else if (uiState.status == Hired || uiState.status == PastTrip) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -315,7 +323,7 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
         ){
             // if status = hired, show fare
             // if status = paused, show total
-            val numberToShow = if(uiState.status == Hired) uiState.fare else if (uiState.status == Paused) uiState.totalFare else ""
+            val numberToShow = if(uiState.status == Hired || uiState.status == PastTrip) uiState.fare else if (uiState.status == Paused) uiState.totalFare else ""
             val totalFare = if(uiState.remainingOverSpeedTimeInSeconds != null) "c${numberToShow}" else numberToShow
             val totalFareDouble = uiState.totalFare.toDoubleOrNull()
             if (totalFareDouble != null && totalFareDouble > 0) { // So that we don't show 0 as the total fare

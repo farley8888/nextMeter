@@ -62,3 +62,11 @@ data object Paused : TripStateInMeterOpsUI() {
         return "停"
     }
 }
+data object PastTrip : TripStateInMeterOpsUI() {
+    override fun toStringEN(): String {
+        return "FOR HIRE"
+    }
+    override fun toStringCN(): String {
+        return "空"
+    }
+}

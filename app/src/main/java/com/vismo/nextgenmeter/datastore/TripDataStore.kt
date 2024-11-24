@@ -7,8 +7,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 object TripDataStore {
-    private val _tripData = MutableStateFlow<TripData?>(null)
-    val tripData: StateFlow<TripData?> = _tripData
+    private val _ongoingTripData = MutableStateFlow<TripData?>(null)
+    val ongoingTripData: StateFlow<TripData?> = _ongoingTripData
 
     private val _isAbnormalPulseTriggered = MutableStateFlow(false)
     val isAbnormalPulseTriggered: StateFlow<Boolean> = _isAbnormalPulseTriggered
@@ -16,23 +16,26 @@ object TripDataStore {
     private val _fallbackTripDataToStartNewTrip = MutableStateFlow<TripData?>(null)
     val fallbackTripDataToStartNewTrip: StateFlow<TripData?> = _fallbackTripDataToStartNewTrip
 
+    private val _mostRecentTripData = MutableStateFlow<TripData?>(null)
+    val mostRecentTripData: StateFlow<TripData?> = _mostRecentTripData
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setTripData(tripData: TripData) {
         mutex.withLock {
-            this._tripData.value = tripData
+            this._ongoingTripData.value = tripData
         }
     }
 
     suspend fun clearTripData() {
         mutex.withLock {
-            this._tripData.value = null
+            this._ongoingTripData.value = null
         }
     }
 
     suspend fun updateTripDataValue(updatedTripData: TripData) {
         mutex.withLock {
-            this._tripData.value = updatedTripData
+            this._ongoingTripData.value = updatedTripData
         }
     }
 
@@ -44,7 +47,7 @@ object TripDataStore {
 
     suspend fun setFallbackTripDataToStartNewTrip(fallbackTripData: TripData) {
         mutex.withLock {
-            if (_tripData.value == null) { // only if there is no ongoing trip
+            if (_ongoingTripData.value == null) { // only if there is no ongoing trip
                 this._fallbackTripDataToStartNewTrip.value = fallbackTripData
             }
         }
@@ -53,6 +56,18 @@ object TripDataStore {
     suspend fun clearFallbackTripDataToStartNewTrip() {
         mutex.withLock {
             this._fallbackTripDataToStartNewTrip.value = null
+        }
+    }
+
+    suspend fun setMostRecentTripData(mostRecentTripData: TripData?) {
+        mutex.withLock {
+            this._mostRecentTripData.value = mostRecentTripData
+        }
+    }
+
+    suspend fun clearMostRecentTripData() {
+        mutex.withLock {
+            this._mostRecentTripData.value = null
         }
     }
 }

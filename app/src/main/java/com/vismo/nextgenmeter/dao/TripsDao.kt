@@ -24,6 +24,9 @@ interface TripsDao {
     @Delete
     suspend fun deleteTrip(trip: TripData)
 
+    @Query("SELECT * FROM trips ORDER BY start_time DESC LIMIT 1")
+    suspend fun getMostRecentTrip(): TripData?
+
     @Query("SELECT * FROM trips")
     suspend fun getAllTrips(): List<TripData>
 

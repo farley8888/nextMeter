@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.repository
 
+import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import kotlinx.coroutines.flow.StateFlow
 
@@ -30,5 +31,7 @@ interface TripRepository {
     fun unlockMeter()
 
     fun resetUnlockMeterStatusInRemote()
+
+    suspend fun getMostRecentTrip()
 
 }
