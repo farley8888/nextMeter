@@ -136,7 +136,7 @@ fun MCUSummaryDashboard(
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
-                    text = "TOYOTA CROWN",
+                    text = "",
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
