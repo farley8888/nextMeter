@@ -141,6 +141,12 @@ object GlobalUtils {
         return String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, secs)
     }
 
+    fun formatSecondsToHHMM(seconds: Long): String {
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        return String.format(Locale.US, "%02d:%02d", hours, minutes)
+    }
+
     fun getFormattedStartPrice(startingPrice: String): String {
         return if (startingPrice.toDoubleOrNull() == null) {
             startingPrice
@@ -171,5 +177,13 @@ object GlobalUtils {
         } else {
         "$${String.format(Locale.US, "%.2f", (changedStepPrice).toDouble() / 5 / 100)}"
             }
+    }
+
+    /**
+     * Format the timestamp to date in dd/MM format
+     */
+    fun formatTimestampToDate(time: Timestamp): String {
+        val sdf = SimpleDateFormat("dd/MM", Locale.getDefault())
+        return sdf.format(Date(time.seconds * 1000))
     }
 }

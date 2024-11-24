@@ -7,7 +7,7 @@ data class MeterOpsUiData(
     val status: TripStateInMeterOpsUI,
     val totalFare: String,
     val fare: String,
-    val extras: String,
+    val extras: String = "0.0",
     val distanceInKM: String,
     val duration: String,
     val languagePref: TtsLanguagePref = TtsLanguagePref.OFF,
