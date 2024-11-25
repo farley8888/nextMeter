@@ -34,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
@@ -55,7 +54,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.ui.meter.MeterOpsViewModel.Companion.TOTAL_LOCK_BEEP_COUNTER
 import com.vismo.nextgenmeter.ui.shared.BlinkingVisibility
@@ -233,7 +231,8 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             FareOrExtraRow(label = " FARE ", value = uiState.fare.substring(0, uiState.fare.length - 1), showZero = false, color = uiState.totalColor, modifier = Modifier.weight(1f))
             FareOrExtraRow(label = "EXTRA", value = uiState.extras, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f).offset(y = (-8).dp))
         } else if (uiState.status == Hired || uiState.status == PastTrip) {
-            FareOrExtraRow(label = "", value = uiState.extras, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f))
+            val extraValue = if (uiState.remainingOverSpeedTimeInSeconds != null && uiState.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) "0.0" else uiState.extras
+            FareOrExtraRow(label = "", value = extraValue, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.weight(1f))
         }
     }

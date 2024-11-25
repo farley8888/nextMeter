@@ -86,7 +86,7 @@ class MeterOpsViewModel @Inject constructor(
                             TripStatus.ENDED, null -> ForHire
                         }
 
-                        if ((remoteUnlockMeter || deviceGodUnlockState == DeviceGodCodeUnlockState.Unlocked) && status is Hired && trip.shouldLockMeter()) {
+                        if ((remoteUnlockMeter || deviceGodUnlockState == DeviceGodCodeUnlockState.Unlocked) && (status is Hired || status is Paused) && trip.shouldLockMeter()) {
                             unlockMeterInMCU(isAbnormalPulseTriggered)
                             tripRepository.resetUnlockMeterStatusInRemote()
                             return@collectLatest
