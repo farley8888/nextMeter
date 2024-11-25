@@ -7,6 +7,7 @@ import androidx.room.TypeConverters
 import com.google.firebase.Timestamp
 import com.google.gson.annotations.SerializedName
 import com.vismo.nextgenmeter.db.Converters
+import com.vismo.nextgenmeter.ui.meter.MeterOpsViewModel
 import javax.annotation.Nonnull
 
 @Entity(tableName = "trips")
@@ -82,5 +83,16 @@ enum class TripStatus {
 
 fun TripData.shouldLockMeter(): Boolean {
     val currentMCUStatus = OngoingMeasureBoardStatus.fromInt(mcuStatus ?: -1)
-    return (currentMCUStatus is OngoingMeasureBoardStatusOverspeed || currentMCUStatus is OngoingMeasureBoardStatusFault) && overSpeedDurationInSeconds > 0
+    val isStatusLocked =
+        currentMCUStatus is OngoingMeasureBoardStatusOverspeed || currentMCUStatus is OngoingMeasureBoardStatusFault
+    val isOverSpeed = overSpeedDurationInSeconds > 0
+    return if (!isStatusLocked && isOverSpeed) {
+        MeterOpsViewModel.lockMeterFallbackCounter += 1
+        MeterOpsViewModel.lockMeterFallbackCounter >= 3
+    } else if (isStatusLocked && isOverSpeed) {
+        true
+    } else if(!isStatusLocked && !isOverSpeed && MeterOpsViewModel.lockMeterFallbackCounter > 0) {
+        MeterOpsViewModel.lockMeterFallbackCounter = 0
+        false
+    } else false
 }
