@@ -276,7 +276,9 @@ class MeterOpsViewModel @Inject constructor(
     private fun handleLongPress(code: Int, repeatCount: Int) {
         when (code) {
             252 -> {
-                // TODO: put flag down
+                if (repeatCount.mod(10) == 0) {
+                    tryToPutFlagDown()
+                }
             }
 
             253 -> {
@@ -326,6 +328,12 @@ class MeterOpsViewModel @Inject constructor(
                 // print receipt or show recent trip details
                 handleRecentTripDetailsOrPrintTrip()
             }
+        }
+    }
+
+    private fun tryToPutFlagDown() {
+        viewModelScope.launch {
+            peripheralControlRepository.toggleForHireFlag(goDown = true)
         }
     }
 
@@ -412,6 +420,9 @@ class MeterOpsViewModel @Inject constructor(
             } else if (TripDataStore.mostRecentTripData.first() != null) {
                 TripDataStore.clearMostRecentTripData()
                 updateUIStateForHire()
+            } else if (TripDataStore.mostRecentTripData.first() == null && _ongoingTrip.value == null) {
+                // press end to raise flag if there is no ongoing trip and no recent trip - try to put flag up
+                peripheralControlRepository.toggleForHireFlag(goDown = false)
             }
         }
     }
