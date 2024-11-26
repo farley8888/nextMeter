@@ -35,12 +35,10 @@ class PeripheralControlRepositoryImpl(
             ensureCH3Initialized()
             TripDataStore.ongoingTripData.collect { trip ->
                 trip?.let {
-                    if (trip.requiresUpdateOnDatabase) {
-                        if (trip.tripStatus == TripStatus.HIRED || trip.tripStatus == TripStatus.STOP) {
-                            toggleForHireFlag(isDown = true)
-                        } else {
-                            toggleForHireFlag(isDown = false)
-                        }
+                    if (trip.tripStatus == TripStatus.HIRED || trip.tripStatus == TripStatus.STOP) {
+                        toggleForHireFlag(goDown = true)
+                    } else {
+                        toggleForHireFlag(goDown = false)
                     }
                 }
             }
@@ -59,17 +57,18 @@ class PeripheralControlRepositoryImpl(
         val gpio116 = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio116/value")
         Log.d(TAG, "initHardware gpio117 = $gpio117, io116 = $gpio116")
 
-        toggleForHireFlag(isDown = false)
+        toggleForHireFlag(goDown = false)
     }
 
-    private fun toggleForHireFlag(isDown: Boolean) {
+    override fun toggleForHireFlag(goDown: Boolean) {
         scope.launch {
+            val isCurrentlyDown = isFlagCurrentlyDown()
             try {
-                if (isDown) {
+                if (goDown  && !isCurrentlyDown) {
                     ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio117/value"))
                     delay(300)
                     ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio116/value"))
-                } else {
+                } else if (!goDown && isCurrentlyDown) {
                     ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio117/value"))
                     delay(300)
                     ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio116/value"))
@@ -78,6 +77,13 @@ class PeripheralControlRepositoryImpl(
                 e.printStackTrace()
             }
         }
+    }
+
+    private fun isFlagCurrentlyDown(): Boolean {
+        val gpio117 = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio117/value")
+        val gpio116 = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio116/value")
+        val isCurrentlyDown = gpio117.trim() == "0" && gpio116.trim() == "1"
+        return isCurrentlyDown
     }
 
     private suspend fun ensureCH3Initialized() {
