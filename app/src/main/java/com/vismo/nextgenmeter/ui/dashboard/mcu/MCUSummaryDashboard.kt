@@ -3,6 +3,7 @@ package com.vismo.nextgenmeter.ui.dashboard.mcu
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,15 +20,21 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.nextgenmeter.ui.shared.FlippableCard
 import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.gold350
 import com.vismo.nextgenmeter.ui.theme.mineShaft100
@@ -48,6 +55,7 @@ fun MCUSummaryDashboard(
     navigate: () -> Unit
 ) {
     val uiState = viewModel.mcuSummaryUiState.collectAsState().value
+    var isFlipped by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -134,6 +142,13 @@ fun MCUSummaryDashboard(
                         shape = RoundedCornerShape(8.dp)
                     )
                     .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onLongPress = {
+                                isFlipped = !isFlipped
+                            }
+                        )
+                    }
             ) {
                 Text(
                     text = "",
@@ -145,19 +160,19 @@ fun MCUSummaryDashboard(
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            DetailRow("安桌固件", uiState.androidROMVersion)
-            DetailRow("安桌ID", uiState.androidId)
-            DetailRow("計量ID", uiState.deviceIdData.deviceId)
-            // Remove for TD
-            // DetailRow("計量固件", uiState.fareParams.firmwareVersion)
-
-            // Hardcode for TD version
-            //
-            // DetailRow("APP版本", uiState.appVersion)
-            DetailRow("APP版本", "5.0.0.990")
-
-//            DetailRow("車費版本", uiState.fareParams.parametersVersion) // remove for TD version
-            DetailRow("K值", uiState.fareParams.kValue)
+            FlippableCard(
+                isFlipped = isFlipped,
+                frontContent = {
+                    Column {
+                        McuInfoForTD(uiState)
+                    }
+                },
+                backContent = {
+                    Column {
+                        McuInfoForAdmin(uiState)
+                    }
+                }
+            )
         }
 
         // Second Column
@@ -170,6 +185,23 @@ fun MCUSummaryDashboard(
             PricingDetails(uiState)
         }
     }
+}
+
+@Composable
+fun McuInfoForAdmin(uiState: MCUSummaryUiData) {
+    DetailRow("APP版本", uiState.appVersion)
+    DetailRow("K值", uiState.fareParams.kValue)
+    DetailRow("車費版本", uiState.fareParams.parametersVersion)
+    DetailRow("計量固件", uiState.fareParams.firmwareVersion)
+}
+
+@Composable
+fun McuInfoForTD(uiState: MCUSummaryUiData) {
+    DetailRow("安桌固件", uiState.androidROMVersion)
+    DetailRow("安桌ID", uiState.androidId)
+    DetailRow("計量ID", uiState.deviceIdData.deviceId)
+    DetailRow("APP版本", "5.0.0.990")
+    DetailRow("K值", uiState.fareParams.kValue)
 }
 
 @Composable
