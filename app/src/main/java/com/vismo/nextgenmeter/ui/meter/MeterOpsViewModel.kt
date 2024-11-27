@@ -433,7 +433,6 @@ class MeterOpsViewModel @Inject constructor(
         const val TOTAL_LOCK_BEEP_COUNTER = 30 //seconds
         private const val TOTAL_LOCK_DURATION = TOTAL_COUNTDOWN_DURATION + TOTAL_LOCK_BEEP_COUNTER // seconds
         private const val DEFAULT_STARTING_PRICE = "27.00"
-        var lockMeterFallbackCounter = 0
     }
 
 }
