@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalToast
 import com.vismo.nextgenmeter.ui.theme.Black
@@ -98,10 +99,17 @@ fun TripSummaryDashboard(
         }
 
         Dialog(showDialog = showDialogClearAllLocalTrips) {
-            DialogContentClearAllLocalTrips(
+            GenericDialogContent(
+                title = "清除行程資料",
+                message = "確定清除所有行程資料？",
+                confirmButtonText = "確認",
                 onConfirm = {
                     viewModel.clearAllLocalTrips()
                     GlobalToast.show("所有行程資料已清除")
+                },
+                cancelButtonText = "取消",
+                onCancel = {
+                    showDialogClearAllLocalTrips.value = false
                 },
                 onDismiss = {
                     showDialogClearAllLocalTrips.value = false
@@ -120,70 +128,6 @@ fun Dialog(showDialog: MutableState<Boolean>, dialogContent: @Composable () -> U
         isBlinking = false,
         content = dialogContent,
     )
-}
-
-@Composable
-fun DialogContentClearAllLocalTrips(onDismiss: () -> Unit = {}, onCancel: () -> Unit = {}, onConfirm: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            text = "清除行程資料",
-            color = nobel100,
-            style = Typography.headlineSmall,
-            textAlign = TextAlign.Left,
-        )
-        Text(
-            text = "確定清除所有行程資料？",
-            color = nobel100,
-            style = Typography.bodyLarge,
-            textAlign = TextAlign.Left,
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp, alignment = Alignment.End),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Button(
-                onClick = {
-                    onConfirm()
-                    onDismiss()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = nobel800,
-                    contentColor = nobel50
-                ),
-            ) {
-                Text(
-                    text = "確認",
-                    style = Typography.bodySmall
-                )
-            }
-            Button(
-                onClick = {
-                    onCancel()
-                    onDismiss()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = nobel800,
-                    contentColor = nobel50
-                ),
-            ) {
-                Text(
-                    text = "取消",
-                    style = Typography.bodySmall
-                )
-            }
-        }
-    }
 }
 
 

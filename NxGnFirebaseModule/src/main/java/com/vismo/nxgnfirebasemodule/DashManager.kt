@@ -24,7 +24,7 @@ import com.vismo.nxgnfirebasemodule.model.Session
 import com.vismo.nxgnfirebasemodule.model.Settings
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
-import com.vismo.nxgnfirebasemodule.util.Constant.COMPLETED_ON
+import com.vismo.nxgnfirebasemodule.model.shouldPrompt
 import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
 import com.vismo.nxgnfirebasemodule.util.Constant.HEARTBEAT_COLLECTION
@@ -96,7 +96,7 @@ class DashManager @Inject constructor(
         scope.launch {
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
-//            launch { checkForMostRelevantUpdate() } // Not needed for now
+            launch { checkForMostRelevantUpdate() }
         }
         isInitialized = true
     }
@@ -403,11 +403,10 @@ class DashManager @Inject constructor(
     }
 
     private fun checkForMostRelevantUpdate() {
-        val updateCollection = getMeterDocument()
+        val updatesCollection = getMeterDocument()
             .collection(UPDATES_COLLECTION)
 
-        updateCollection
-            .whereEqualTo(COMPLETED_ON, null)
+        updatesCollection
             .orderBy(CREATED_ON, Query.Direction.DESCENDING)
             .limit(1)
             .get(Source.SERVER)
@@ -418,8 +417,10 @@ class DashManager @Inject constructor(
                     // Manually add the document ID to the JSON string
                     json =
                         json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
-
-                    _mostRelevantUpdate.value = gson.fromJson(json, Update::class.java)
+                    val update = gson.fromJson(json, Update::class.java)
+                    if (update.shouldPrompt()) {
+                        _mostRelevantUpdate.value = update
+                    }
                     Log.d(TAG, "checkForUpdates $json")
                 }
                 Log.d(TAG, "checkForUpdates addOnSuccessListener")
@@ -427,6 +428,26 @@ class DashManager @Inject constructor(
             .addOnFailureListener {
                 Log.e(TAG, "checkForUpdates error", it)
             }
+    }
+
+    fun writeUpdateResult(update: Update) {
+        scope.launch {
+            val json = gson.toJson(update)
+            val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
+
+            val updatesCollection = getMeterDocument()
+                .collection(UPDATES_COLLECTION)
+
+            updatesCollection
+                .document(update.id)
+                .set(map, SetOptions.merge())
+                .addOnSuccessListener {
+                    Log.d(TAG, "updateMostRelevantUpdate successfully")
+                }
+                .addOnFailureListener {
+                    Log.e(TAG, "updateMostRelevantUpdate error", it)
+                }
+        }
     }
 
 

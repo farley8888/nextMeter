@@ -2,6 +2,7 @@ package com.vismo.nextgenmeter.repository
 
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nxgnfirebasemodule.model.MeterDeviceProperties
+import com.vismo.nxgnfirebasemodule.model.Update
 import kotlinx.coroutines.flow.StateFlow
 
 interface RemoteMeterControlRepository {
@@ -9,6 +10,9 @@ interface RemoteMeterControlRepository {
     val heartBeatInterval: StateFlow<Int>
     val meterDeviceProperties: StateFlow<MeterDeviceProperties?>
     val meterIdentifier: StateFlow<String>
+    val remoteUpdateRequest: StateFlow<Update?>
+
+    fun initDashManager()
 
     fun observeFlows()
 
@@ -21,4 +25,7 @@ interface RemoteMeterControlRepository {
     fun performHealthCheck()
 
     fun updateLicensePlateAndKValue(licensePlate: String, kValue: String)
+
+    fun writeUpdateResultToFireStore(update: Update)
+
 }
