@@ -36,6 +36,8 @@ import com.vismo.nextgenmeter.ui.settings.AdjustBrightnessOrVolumeViewModel
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.splash.SplashScreen
 import com.vismo.nextgenmeter.ui.splash.SplashScreenViewModel
+import com.vismo.nextgenmeter.ui.update.UpdateScreen
+import com.vismo.nextgenmeter.ui.update.UpdateViewModel
 
 @Composable
 fun NavigationGraph(
@@ -142,6 +144,9 @@ fun NavigationGraph(
         }
         composable(NavigationDestination.AdjustBrightnessOrVolume.route) {
             AdjustBrightnessOrVolumeScreen(viewModel = hiltViewModel<AdjustBrightnessOrVolumeViewModel>())
+        }
+        composable(NavigationDestination.UpdateApk.route) {
+            UpdateScreen(viewModel = hiltViewModel<UpdateViewModel>())
         }
     }
 }

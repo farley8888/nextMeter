@@ -83,10 +83,15 @@ object GlobalUtils {
         return Base64.encodeToString(encrypted, Base64.DEFAULT)
     }
 
-    fun formatTimestampToTime(timestamp: Timestamp?, showDate: Boolean = false): String {
+    fun formatTimestamp(timestamp: Timestamp?, showTime: Boolean = true, showDate: Boolean = false): String {
         return timestamp?.let {
-            val dateFormat = if (showDate) "dd/MM" else ""
-            val sdf = SimpleDateFormat("$dateFormat HH:mm", Locale.getDefault())
+            val dateFormat = when {
+                showDate && showTime -> "dd/MM HH:mm"
+                showDate -> "dd/MM"
+                showTime -> "HH:mm"
+                else -> ""
+            }
+            val sdf = SimpleDateFormat(dateFormat, Locale.getDefault())
             sdf.format(Date(it.seconds * 1000))
         } ?: "N/A"
     }
@@ -179,11 +184,4 @@ object GlobalUtils {
             }
     }
 
-    /**
-     * Format the timestamp to date in dd/MM format
-     */
-    fun formatTimestampToDate(time: Timestamp): String {
-        val sdf = SimpleDateFormat("dd/MM", Locale.getDefault())
-        return sdf.format(Date(time.seconds * 1000))
-    }
 }

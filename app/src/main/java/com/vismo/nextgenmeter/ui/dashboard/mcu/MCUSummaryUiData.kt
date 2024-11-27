@@ -9,7 +9,7 @@ data class MCUSummaryUiData(
     val vehicleModel: String = "",
     val androidROMVersion: String = "",
     val androidId: String = "",
-    val appVersion: String = "v${BuildConfig.VERSION_NAME} (${DashManagerConfig.VERSION_NAME})",
+    val appVersion: String = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
     val fareParams: MCUFareParams = MCUFareParams("", "", "", "", "", "", "", ""),
     val deviceIdData: DeviceIdData = DeviceIdData("", "")
 )

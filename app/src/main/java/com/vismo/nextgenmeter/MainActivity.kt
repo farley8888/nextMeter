@@ -15,7 +15,6 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -48,13 +47,17 @@ import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
 import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.ui.NavigationGraph
+import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
+import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.GlobalToastHolder
 import com.vismo.nextgenmeter.ui.theme.CableMeterTheme
+import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
+import com.vismo.nxgnfirebasemodule.model.canBeSnoozed
 import com.vismo.nxgnfirebasemodule.util.DashUtil
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -131,6 +134,12 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                         }
                     }
 
+                    val aValidUpdate = mainViewModel.aValidUpdate.collectAsState().value
+                    val showUpdateDialog = remember { mutableStateOf(false) }
+                    val isDialogShown = remember {
+                        mutableStateOf(false)
+                    }
+                    showUpdateDialog.value = aValidUpdate != null && !isDialogShown.value
                     Scaffold(
                         snackbarHost = {
                             SnackbarHost(
@@ -181,6 +190,30 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                             )
 
                             GlobalToastHolder()
+                            GlobalDialog(
+                                showDialog = showUpdateDialog,
+                                onDismiss = { /*TODO*/ },
+                                content = {
+                                    GenericDialogContent(
+                                        title = "設備需升級軟件",
+                                        message = aValidUpdate?.description ?: "",
+                                        confirmButtonText = "立即更新",
+                                        onConfirm = {
+                                            // navigate to update
+                                            navController?.navigate(NavigationDestination.UpdateApk.route)
+                                        },
+                                        confirmButtonColor = pastelGreen600,
+                                        cancelButtonText = if(aValidUpdate?.canBeSnoozed() == true) "稍后更新" else null,
+                                        onCancel = {
+                                            mainViewModel.snoozeUpdate(update = aValidUpdate)
+                                        },
+                                        onDismiss = {
+                                            showUpdateDialog.value = false
+                                            isDialogShown.value = true
+                                        }
+                                    )
+                                }
+                            )
                         }
                     }
                 }
@@ -385,6 +418,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
             data object AdminBasicEdit : NavigationDestination("adminBasicEdit")
             data object AdminAdvancedEdit : NavigationDestination("adminAdvancedEdit")
             data object AdjustBrightnessOrVolume : NavigationDestination("adjustBrightnessOrVolume")
+            data object UpdateApk : NavigationDestination("updateApk")
         }
     }
 

@@ -14,3 +14,20 @@ data class Update(
     @SerializedName("url") val url: String,
     @SerializedName("version") val version: String
 )
+
+fun Update.canBeSnoozed(): Boolean {
+    val now = Timestamp.now()
+    val snoozeUntil = now.seconds + 86400
+    return snoozeUntil < mustUpdateBefore.seconds
+}
+
+fun Update.snoozeForADay(): Update {
+    val now = Timestamp.now()
+    val snoozeUntil = now.seconds + 86400
+    return this.copy(snoozeUntil = Timestamp(snoozeUntil, 0))
+}
+
+fun Update.shouldPrompt(): Boolean {
+    // complete on timestamp is null and snooze until is either null or before current time
+    return (completedOn == null) && (snoozeUntil == null || snoozeUntil.seconds < Timestamp.now().seconds)
+}

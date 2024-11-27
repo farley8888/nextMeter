@@ -37,15 +37,19 @@ import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
+import com.vismo.nxgnfirebasemodule.model.Update
+import com.vismo.nxgnfirebasemodule.model.snoozeForADay
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -61,16 +65,15 @@ class MainViewModel @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository,
     private val peripheralControlRepository: PeripheralControlRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val remoteMCUControlRepository: RemoteMeterControlRepository,
+    private val remoteMeterControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
     private val tripRepository: TripRepository,
     @ApplicationContext private val context: Context,
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val driverPreferenceRepository: DriverPreferenceRepository,
-    private val dashManager: DashManager,
     private val internetConnectivityObserver: InternetConnectivityObserver,
     private val networkTimeRepository: NetworkTimeRepository,
-    private val meterPreferenceRepository: MeterPreferenceRepository
+    private val meterPreferenceRepository: MeterPreferenceRepository,
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -94,6 +97,8 @@ class MainViewModel @Inject constructor(
 
     private val _snackBarContent = MutableStateFlow<Pair<String, SnackbarState>?>(null)
     val snackBarContent: StateFlow<Pair<String, SnackbarState>?> = _snackBarContent
+
+    val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest.stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
@@ -130,6 +135,15 @@ class MainViewModel @Inject constructor(
                         else -> {}
                     }
                 }
+            }
+        }
+    }
+
+    fun snoozeUpdate(update: Update?) {
+        viewModelScope.launch(ioDispatcher) {
+            update?.let {
+                val snoozedUpdate = it.snoozeForADay()
+                remoteMeterControlRepository.writeUpdateResultToFireStore(snoozedUpdate)
             }
         }
     }
@@ -176,7 +190,7 @@ class MainViewModel @Inject constructor(
             }
             Log.d(TAG, "FirebaseAuth initToken called")
         } else if (!DashManager.Companion.isInitialized) {
-            dashManager.init()
+            remoteMeterControlRepository.initDashManager()
             Log.d(TAG, "FirebaseAuth headers already present - calling dashManager.init()")
         }
     }
@@ -184,7 +198,7 @@ class MainViewModel @Inject constructor(
     private suspend fun observeFirebaseAuthSuccess() {
         firebaseAuthRepository.isFirebaseAuthSuccess.collectLatest { isFirebaseAuthSuccess ->
             if (isFirebaseAuthSuccess) {
-                dashManager.init()
+                remoteMeterControlRepository.initDashManager()
                 Log.d(TAG, "Firebase auth success - calling dashManager.init()")
             }
         }
@@ -217,7 +231,7 @@ class MainViewModel @Inject constructor(
 
     private suspend fun observeMeterAndTripInfo() {
         combine(
-            remoteMCUControlRepository.meterInfo,
+            remoteMeterControlRepository.meterInfo,
             tripRepository.currentTripPaidStatus
         ) { meterInfo, tripPaidStatus ->
             Pair(meterInfo, tripPaidStatus)
@@ -264,10 +278,10 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun observeHeartBeatInterval() {
-        remoteMCUControlRepository.heartBeatInterval.collectLatest { interval ->
+        remoteMeterControlRepository.heartBeatInterval.collectLatest { interval ->
             if (interval > 0) {
                 while (true) {
-                    remoteMCUControlRepository.sendHeartBeat()
+                    remoteMeterControlRepository.sendHeartBeat()
                     delay(interval* 1000L)
                 }
             }
@@ -347,7 +361,7 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                remoteMCUControlRepository.observeFlows()
+                remoteMeterControlRepository.observeFlows()
             }
         }
         observeFlows()
@@ -483,7 +497,7 @@ class MainViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         measureBoardRepository.stopCommunication()
-        remoteMCUControlRepository.onCleared()
+        remoteMeterControlRepository.onCleared()
         peripheralControlRepository.close()
         accEnquiryJob?.cancel()
         firebaseAuthRepository.cancel()

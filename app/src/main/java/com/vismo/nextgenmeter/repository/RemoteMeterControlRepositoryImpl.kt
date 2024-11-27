@@ -6,6 +6,7 @@ import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.model.McuInfo
+import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +31,12 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     override val meterDeviceProperties = dashManager.meterDeviceProperties
     override val meterIdentifier = measureBoardRepository.meterIdentifierInRemote
+
+    override val remoteUpdateRequest = dashManager.mostRelevantUpdate
+
+    override fun initDashManager() {
+        dashManager.init()
+    }
 
     override fun observeFlows() {
         CoroutineScope(ioDispatcher).launch {
@@ -81,6 +88,11 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
             resetMeterDevicesFlow()
         }
     }
+
+    override fun writeUpdateResultToFireStore(update: Update) {
+        dashManager.writeUpdateResult(update)
+    }
+
 
     private fun resetMeterDevicesFlow() {
         dashManager.resetMeterDeviceProperties()

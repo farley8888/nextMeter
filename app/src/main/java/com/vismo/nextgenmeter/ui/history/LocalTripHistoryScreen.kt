@@ -257,14 +257,14 @@ fun TripItemRow(count: Int, trip: TripData, isSelected: Boolean, onClick: () -> 
 
         // date in dd/mm format
         Text(
-            text = GlobalUtils.formatTimestampToDate(trip.startTime),
+            text = GlobalUtils.formatTimestamp(trip.startTime, showTime = false, showDate = true),
             modifier = Modifier.weight(columnWeight),
             fontSize = fontSize,
             color = defaultColor,
             textAlign = TextAlign.Center
         )
         Text(
-            text = GlobalUtils.formatTimestampToTime(trip.startTime),
+            text = GlobalUtils.formatTimestamp(trip.startTime),
             modifier = Modifier.weight(columnWeight),
             fontSize = fontSize,
             color = textColor,
@@ -272,7 +272,7 @@ fun TripItemRow(count: Int, trip: TripData, isSelected: Boolean, onClick: () -> 
         )
         val isEndDateDifferentFromStart = trip.endTime != null && !GlobalUtils.isSameDay(trip.startTime, trip.endTime)
         Text(
-            text = GlobalUtils.formatTimestampToTime(trip.pauseTime, showDate = isEndDateDifferentFromStart),
+            text = GlobalUtils.formatTimestamp(trip.pauseTime, showDate = isEndDateDifferentFromStart),
             modifier = Modifier.weight(columnWeight),
             fontSize = fontSize,
             color = textColor,

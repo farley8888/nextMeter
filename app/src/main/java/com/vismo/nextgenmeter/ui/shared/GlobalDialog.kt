@@ -7,22 +7,21 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -30,19 +29,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.vismo.nextgenmeter.ui.theme.Black
-import com.vismo.nextgenmeter.ui.theme.Purple80
+import com.vismo.nextgenmeter.ui.theme.Typography
+import com.vismo.nextgenmeter.ui.theme.nobel100
+import com.vismo.nextgenmeter.ui.theme.nobel50
+import com.vismo.nextgenmeter.ui.theme.nobel800
 import kotlinx.coroutines.delay
 
 @Composable
@@ -126,82 +123,79 @@ fun BlinkingVisibility(
 }
 
 @Composable
-fun GenericActionDialogContent(
+fun GenericDialogContent(
     title: String,
     message: String,
-    iconResId: Any,
-    backgroundColor: Color,
-    textColor: Color = Black,
-    actions: List<Pair<String, () -> Unit>>,
-    dismissDialog: () -> Unit
+    confirmButtonText: String,
+    onConfirm: () -> Unit,
+    cancelButtonText: String? = null, // Optional cancel button text
+    onCancel: (() -> Unit)? = null,  // Optional cancel button action
+    onDismiss: () -> Unit = {},
+    confirmButtonColor : Color = nobel800,
+    cancelButtonColor : Color = nobel800
 ) {
     Column(
-        Modifier
-            .background(backgroundColor)
+        modifier = Modifier
             .padding(16.dp)
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Image(
-            painter = when (iconResId) {
-                is Int -> painterResource(id = iconResId)
-                is androidx.compose.ui.graphics.vector.ImageVector -> rememberVectorPainter(
-                    image = iconResId
-                )
-                else -> throw IllegalArgumentException("Unsupported icon type")
-            },
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .padding(top = 16.dp)
-                .height(70.dp)
-                .fillMaxWidth()
-        )
-
         Text(
             text = title,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .padding(top = 16.dp)
-                .fillMaxWidth(),
-            style = MaterialTheme.typography.headlineSmall,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = textColor
+            color = nobel100,
+            style = Typography.headlineSmall,
+            textAlign = TextAlign.Left,
         )
-
         Text(
             text = message,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .padding(vertical = 16.dp, horizontal = 24.dp)
-                .fillMaxWidth(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = textColor,
+            color = nobel100,
+            style = Typography.bodyLarge,
+            textAlign = TextAlign.Left,
         )
 
-        if (actions.isNotEmpty()) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .background(Purple80),
-                horizontalArrangement = Arrangement.SpaceAround
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp, alignment = Alignment.End),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Button(
+                onClick = {
+                    onConfirm()
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = confirmButtonColor,
+                    contentColor = nobel50
+                ),
             ) {
-                actions.forEach { (label, action) ->
-                    TextButton(onClick = {
-                        action()
-                        dismissDialog()
-                    }) {
-                        Text(
-                            text = label,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
+                Text(
+                    text = confirmButtonText,
+                    style = Typography.bodySmall
+                )
+            }
+            // Render the cancel button only if cancelButtonText and onCancel are provided
+            if (cancelButtonText != null && onCancel != null) {
+                Button(
+                    onClick = {
+                        onCancel()
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = cancelButtonColor,
+                        contentColor = nobel50
+                    ),
+                ) {
+                    Text(
+                        text = cancelButtonText,
+                        style = Typography.bodySmall
+                    )
                 }
             }
         }
     }
 }
+
