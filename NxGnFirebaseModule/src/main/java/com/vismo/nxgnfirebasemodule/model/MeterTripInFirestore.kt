@@ -34,7 +34,10 @@ data class MeterTripInFirestore(
     @SerializedName("discount_rules") val discountRules: List<DiscountRule?>? = null,
     @SerializedName("applicable_payment_method_for_discount") val applicablePaymentMethodForDiscount: List<String>? = null,
     @SerializedName("payment_method_selected") val paymentMethodSelectedOnPOS: String? = null,
-    @SerializedName("payment_information") val paymentInformation: List<Map<String, *>>? = null
+    @SerializedName("payment_information") val paymentInformation: List<Map<String, *>>? = null,
+    @SerializedName("session") val sessionId: String? = null,
+    @SerializedName("driver") val driver: Driver? = null,
+    @SerializedName("creation_time") val creationTime: Timestamp? = null,
 ): Serializable
 
 enum class TripStatus {
