@@ -36,7 +36,7 @@ class LocalTripHistoryViewModel @Inject constructor(
 
     fun printReceipt(tripData: TripData) {
         viewModelScope.launch(ioDispatcher) {
-            peripheralControlRepository.writePrintReceiptCommand(tripData)
+            peripheralControlRepository.printTripReceiptCommand(tripData)
         }
     }
 }

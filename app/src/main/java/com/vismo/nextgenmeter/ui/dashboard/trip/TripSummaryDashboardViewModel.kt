@@ -2,10 +2,13 @@ package com.vismo.nextgenmeter.ui.dashboard.trip
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
+import com.vismo.nextgenmeter.model.TripSummary
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.LocalTripsRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
+import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
 import com.vismo.nextgenmeter.util.GlobalUtils.formatSecondsToHHMMSS
 import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -52,8 +55,8 @@ class TripSummaryDashboardViewModel @Inject constructor(
                         val currentLicensePlate = meterPreferenceRepository.getLicensePlate().first()
                         val tripsWithLicensePlate = allTrips.filter { it.licensePlate == currentLicensePlate }
 
-                        val sumTotalFare = tripsWithLicensePlate.sumOf { it.fare }.roundTo(2).toString()
-                        val sumExtras = tripsWithLicensePlate.sumOf { it.extra }.roundTo(2).toString()
+                        val sumTotalFare = formatToNDecimalPlace(allTrips.sumOf { it.fare }, 2)
+                        val sumExtras = formatToNDecimalPlace(allTrips.sumOf { it.extra }, 2)
                         val sumWaitingTime =
                             formatSecondsToHHMMSS(tripsWithLicensePlate.sumOf { it.waitDurationInSeconds })
                         val sumOfDistanceInKm =
@@ -69,8 +72,8 @@ class TripSummaryDashboardViewModel @Inject constructor(
                         )
 
                         val cashOnlyTrips = tripsWithLicensePlate.filter { !it.isDash  }
-                        val sumTotalFareCash = cashOnlyTrips.sumOf { it.fare }.roundTo(2).toString()
-                        val sumExtrasCash = cashOnlyTrips.sumOf { it.extra }.roundTo(2).toString()
+                        val sumTotalFareCash = formatToNDecimalPlace(cashOnlyTrips.sumOf { it.fare }, 2)
+                        val sumExtrasCash = formatToNDecimalPlace(cashOnlyTrips.sumOf { it.extra }, 2)
                         val sumWaitingTimeCash =
                             formatSecondsToHHMMSS(cashOnlyTrips.sumOf { it.waitDurationInSeconds })
                         val sumOfDistanceInKmCash = (cashOnlyTrips.sumOf { it.distanceInMeter } / 1000).toString()
@@ -84,8 +87,8 @@ class TripSummaryDashboardViewModel @Inject constructor(
                         )
 
                         val dashOnlyTrips = tripsWithLicensePlate.filter { it.isDash }
-                        val sumTotalFareDash = dashOnlyTrips.sumOf { it.fare }.roundTo(2).toString()
-                        val sumExtrasDash = dashOnlyTrips.sumOf { it.extra }.roundTo(2).toString()
+                        val sumTotalFareDash = formatToNDecimalPlace(dashOnlyTrips.sumOf { it.fare }, 2)
+                        val sumExtrasDash = formatToNDecimalPlace(dashOnlyTrips.sumOf { it.extra }, 2)
                         val sumWaitingTimeDash =
                             formatSecondsToHHMMSS(dashOnlyTrips.sumOf { it.waitDurationInSeconds })
                         val sumOfDistanceInKmDash = (dashOnlyTrips.sumOf { it.distanceInMeter } / 1000).toString()
@@ -107,7 +110,28 @@ class TripSummaryDashboardViewModel @Inject constructor(
     fun printSummary() {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-//                peripheralControlRepository.printSummary()
+                val sortedTrips = localTripsRepository.getAllTrips().sortedBy { it.startTime }
+                val tripSummary = TripSummary(
+                    licensePlate = meterPreferenceRepository.getLicensePlate().first() ?: "",
+                    firstStartTime = sortedTrips.first().startTime,
+                    lastEndTime = sortedTrips.last().endTime ?: Timestamp.now(),
+                    allTripsCount = sortedTrips.size,
+                    cashTripsCount = sortedTrips.count { !it.isDash },
+                    dashTripsCount = sortedTrips.count { it.isDash },
+                    allTripsDistanceInKm = sortedTrips.sumOf { it.distanceInMeter } / 1000,
+                    cashTripsDistanceInKm = sortedTrips.filter { !it.isDash }.sumOf { it.distanceInMeter } / 1000,
+                    dashTripsDistanceInKm = sortedTrips.filter { it.isDash }.sumOf { it.distanceInMeter } / 1000,
+                    allTripsWaitTime = sortedTrips.sumOf { it.waitDurationInSeconds },
+                    cashTripsWaitTime = sortedTrips.filter { !it.isDash }.sumOf { it.waitDurationInSeconds },
+                    dashTripsWaitTime = sortedTrips.filter { it.isDash }.sumOf { it.waitDurationInSeconds },
+                    allTripsFare = sortedTrips.sumOf { it.fare },
+                    cashTripsFare = sortedTrips.filter { !it.isDash }.sumOf { it.fare },
+                    dashTripsFare = sortedTrips.filter { it.isDash }.sumOf { it.fare },
+                    allTripsExtras = sortedTrips.sumOf { it.extra },
+                    cashTripsExtras = sortedTrips.filter { !it.isDash }.sumOf { it.extra },
+                    dashTripsExtras = sortedTrips.filter { it.isDash }.sumOf { it.extra }
+                )
+                peripheralControlRepository.printSummaryReceiptCommand(tripSummary)
             }
         }
     }

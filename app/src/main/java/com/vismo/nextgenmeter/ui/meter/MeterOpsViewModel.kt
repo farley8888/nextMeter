@@ -350,7 +350,7 @@ class MeterOpsViewModel @Inject constructor(
                     }
                 } else {
                     // print receipt for recent trip
-                    peripheralControlRepository.writePrintReceiptCommand(mostRecentTrip)
+                    peripheralControlRepository.printTripReceiptCommand(mostRecentTrip)
                 }
             } else {
                 printReceiptForOngoingTrip()
@@ -366,7 +366,7 @@ class MeterOpsViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) {
             _ongoingTrip.value?.let { trip ->
                 if (trip.tripStatus == TripStatus.STOP) {
-                    peripheralControlRepository.writePrintReceiptCommand(trip)
+                    peripheralControlRepository.printTripReceiptCommand(trip)
                 }
             }
         }

@@ -1,7 +1,6 @@
 package com.vismo.nextgenmeter.model
 
 import com.google.gson.annotations.SerializedName
-import com.vismo.nxgnfirebasemodule.model.McuInfo
 import java.util.Locale
 
 data class MCUFareParams(
