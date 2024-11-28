@@ -84,15 +84,7 @@ enum class TripStatus {
 fun TripData.shouldLockMeter(): Boolean {
     val currentMCUStatus = OngoingMeasureBoardStatus.fromInt(mcuStatus ?: -1)
     val isStatusLocked =
-        currentMCUStatus is OngoingMeasureBoardStatusOverspeed || currentMCUStatus is OngoingMeasureBoardStatusFault
+        currentMCUStatus is OngoingMeasureBoardStatusOverspeed || currentMCUStatus is OngoingMeasureBoardStatusFault || currentMCUStatus is OngoingMeasureBoardStatusFaultAndOverspeed
     val isOverSpeed = overSpeedDurationInSeconds > 0
-    return if (!isStatusLocked && isOverSpeed) {
-        MeterOpsViewModel.lockMeterFallbackCounter += 1
-        MeterOpsViewModel.lockMeterFallbackCounter >= 3
-    } else if (isStatusLocked && isOverSpeed) {
-        true
-    } else if(!isStatusLocked && !isOverSpeed && MeterOpsViewModel.lockMeterFallbackCounter > 0) {
-        MeterOpsViewModel.lockMeterFallbackCounter = 0
-        false
-    } else false
+    return isStatusLocked && isOverSpeed
 }

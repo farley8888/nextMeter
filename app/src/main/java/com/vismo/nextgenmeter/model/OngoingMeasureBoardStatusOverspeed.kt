@@ -8,6 +8,7 @@ sealed class OngoingMeasureBoardStatus(val num: Int) {
                 1 -> OngoingMeasureBoardStatusStopped(status)
                 2, 3 -> OngoingMeasureBoardStatusOverspeed(status)  // 2 - hired and overspeed, 3 - stopped and overspeed
                 4, 5 -> OngoingMeasureBoardStatusFault(status) // 4 - hired and fault, 5 - stopped and fault
+                6, 7  -> OngoingMeasureBoardStatusFaultAndOverspeed(status) // 6 - hired and fault and overspeed, 7 - stopped and fault and overspeed
                 else -> OngoingMeasureBoardStatusUnknown(status)
             }
         }
@@ -38,6 +39,13 @@ data class OngoingMeasureBoardStatusFault(val status: Int) :
     OngoingMeasureBoardStatus(status) {
     override fun toString(): String {
         return "Fault: $status"
+    }
+}
+
+data class OngoingMeasureBoardStatusFaultAndOverspeed(val status: Int) :
+    OngoingMeasureBoardStatus(status) {
+    override fun toString(): String {
+        return "Fault and Overspeed: $status"
     }
 }
 
