@@ -136,7 +136,7 @@ fun TripHeaderRow() {
             textAlign = TextAlign.Center
         )
         val columnWeight = 1f
-        listOf("日", "始", "達", "里數", "侯時", "車費").forEach { label ->
+        listOf("日", "始", "達", "里數", "候時", "車費").forEach { label ->
             Text(
                 text = label,
                 modifier = Modifier.weight(columnWeight),
