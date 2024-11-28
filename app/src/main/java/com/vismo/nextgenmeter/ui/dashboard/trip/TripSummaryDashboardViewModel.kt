@@ -29,19 +29,34 @@ class TripSummaryDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 localTripsRepository.getAllTripsFlow().collect { allTrips ->
-                    val numberOfTrips = allTrips.size.toString()
-                    val sumTotalFare = allTrips.sumOf { it.fare }.roundTo(2).toString()
-                    val sumExtras = allTrips.sumOf { it.extra }.roundTo(2).toString()
-                    val sumWaitingTime = formatSecondsToHHMMSS(allTrips.sumOf { it.waitDurationInSeconds })
-                    val sumOfDistanceInKm = (allTrips.sumOf { it.distanceInMeter } / 1000).toString()
-                    _allTripsSummary.value = TripSummaryDashboardUiData(
-                        TripSummaryDashboardType.ALL,
-                        numberOfTrips,
-                        sumWaitingTime,
-                        "$sumOfDistanceInKm",
-                        "$$sumTotalFare",
-                        "$$sumExtras"
-                    )
+                    if (allTrips.isNotEmpty()) {
+                        val sortedTrips = allTrips.sortedBy { it.startTime }
+                        val firstTrip = sortedTrips.first()
+                        val lastTrip = sortedTrips.last()
+                        val licensePlate = firstTrip.licensePlate
+
+                        val numberOfTrips = allTrips.size.toString()
+                        val sumTotalFare = allTrips.sumOf { it.fare }.roundTo(2).toString()
+                        val sumExtras = allTrips.sumOf { it.extra }.roundTo(2).toString()
+                        val sumWaitingTime =
+                            formatSecondsToHHMMSS(allTrips.sumOf { it.waitDurationInSeconds })
+                        val sumOfDistanceInKm =
+                            (allTrips.sumOf { it.distanceInMeter } / 1000).toString()
+
+                        val startTimeOfFirstTrip = firstTrip.startTime
+                        val endTimeOfLastTrip = lastTrip.endTime
+                        _allTripsSummary.value = TripSummaryDashboardUiData(
+                            TripSummaryDashboardType.ALL,
+                            numberOfTrips,
+                            sumWaitingTime,
+                            "$sumOfDistanceInKm",
+                            "$$sumTotalFare",
+                            "$$sumExtras",
+                            startTimeOfFirstTrip,
+                            endTimeOfLastTrip,
+                            licensePlate
+                        )
+                    }
                 }
             }
         }
@@ -53,5 +68,11 @@ class TripSummaryDashboardViewModel @Inject constructor(
                 localTripsRepository.clearAllTrips()
             }
         }
+    }
+
+    /**
+     * Get the summary of all trips and send print to printer
+     */
+    fun printSummary() {
     }
 }
