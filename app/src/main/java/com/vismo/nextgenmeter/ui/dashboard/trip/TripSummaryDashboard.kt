@@ -61,6 +61,8 @@ fun TripSummaryDashboard(
     navigateToMCUSummary: () -> Unit
 ) {
     val allTripsSummary = viewModel.allTripSummary.collectAsState().value
+    val cashTripsSummary = viewModel.cashTripsSummary.collectAsState().value
+    val dashTripsSummary = viewModel.dashTripsSummary.collectAsState().value
 
     val showDialogClearAllLocalTrips = remember { mutableStateOf(false) }
 
@@ -89,7 +91,8 @@ fun TripSummaryDashboard(
             ) {
                 TripSummary(
                     allTripsSummary = allTripsSummary,
-                    viewModel = viewModel,
+                    cashTripsSummary = cashTripsSummary,
+                    dashTripsSummary = dashTripsSummary,
                     onClickBtnClearAllLocalTrips = {
                         showDialogClearAllLocalTrips.value = true
                     },
@@ -198,7 +201,8 @@ fun ColumnScope.Options(
 @Composable
 fun TripSummary(
     allTripsSummary: TripSummaryDashboardUiData,
-    viewModel: TripSummaryDashboardViewModel,
+    cashTripsSummary : TripSummaryDashboardUiData,
+    dashTripsSummary : TripSummaryDashboardUiData,
     onClickBtnClearAllLocalTrips: () -> Unit,
     onClickBtnPrintRecord: () -> Unit
 ) {
@@ -218,8 +222,8 @@ fun TripSummary(
         ) {
             DataColumn(title = "", data = listOf("旗數", "里數", "候時", "金額", "附加費"), horizontalAlignment = Alignment.CenterHorizontally)
             DataColumn(title = "總數", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare, allTripsSummary.totalExtras))
-            DataColumn(title = "現金", data = listOf(allTripsSummary.totalTrips, allTripsSummary.totalDistanceInKM, allTripsSummary.totalWaitTime, allTripsSummary.totalFare, allTripsSummary.totalExtras), textColor = mineShaft600)
-            DataColumn(title = "電子", data = listOf("0", "0.0", "00:00:00", "$0.0", "$0.0"), textColor = mineShaft600)
+            DataColumn(title = "現金", data = listOf(cashTripsSummary.totalTrips, cashTripsSummary.totalDistanceInKM, cashTripsSummary.totalWaitTime, cashTripsSummary.totalFare, cashTripsSummary.totalExtras), textColor = mineShaft600)
+            DataColumn(title = "電子", data = listOf(dashTripsSummary.totalTrips, dashTripsSummary.totalDistanceInKM, dashTripsSummary.totalWaitTime, dashTripsSummary.totalFare, dashTripsSummary.totalExtras), textColor = mineShaft600)
         }
     }
 }
