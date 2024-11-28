@@ -227,13 +227,15 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
         }
         Spacer(modifier = Modifier
             .height(2.dp))
-        if (uiState.status == Paused) {
-            FareOrExtraRow(label = " FARE ", value = uiState.fare.substring(0, uiState.fare.length - 1), showZero = false, color = uiState.totalColor, modifier = Modifier.weight(1f))
-            FareOrExtraRow(label = "EXTRA", value = uiState.extras, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f).offset(y = (-8).dp))
-        } else if (uiState.status == Hired || uiState.status == PastTrip) {
-            val extraValue = if (uiState.remainingOverSpeedTimeInSeconds != null && uiState.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) "0.0" else uiState.extras
-            FareOrExtraRow(label = "", value = extraValue, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.weight(1f))
+        if (uiState.totalFare.toDoubleOrNull() != null && uiState.totalFare.toDouble() > 0) {
+            if (uiState.status == Paused) {
+                FareOrExtraRow(label = " FARE ", value = uiState.fare.substring(0, uiState.fare.length - 1), showZero = false, color = uiState.totalColor, modifier = Modifier.weight(1f))
+                FareOrExtraRow(label = "EXTRA", value = uiState.extras, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f).offset(y = (-8).dp))
+            } else if (uiState.status == Hired || uiState.status == PastTrip) {
+                val extraValue = if (uiState.remainingOverSpeedTimeInSeconds != null && uiState.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) "0.0" else uiState.extras
+                FareOrExtraRow(label = "", value = extraValue, showZero = true, color = uiState.totalColor, modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
     }
 }
@@ -396,18 +398,20 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     .fillMaxWidth()
                     .height(1.dp)
                     .background(Color.White))
-                Text(
-                    text = if(uiState.remainingOverSpeedTimeInSeconds != null) "0.0" else uiState.distanceInKM,
-                    color = Color.Gray,
-                    style = Typography.displayLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 48.sp,
-                        letterSpacing = TextUnit(-2F, TextUnitType.Sp), //squeeze the text together
-                        lineHeight = 48.sp
-                    ),
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.align(Alignment.End),
-                )
+                if (uiState.totalFare.toDoubleOrNull() != null && uiState.totalFare.toDouble() > 0) {
+                    Text(
+                        text = if (uiState.remainingOverSpeedTimeInSeconds != null) "0.0" else uiState.distanceInKM,
+                        color = Color.Gray,
+                        style = Typography.displayLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 48.sp,
+                            letterSpacing = TextUnit(-2F, TextUnitType.Sp), //squeeze the text together
+                            lineHeight = 48.sp
+                        ),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.align(Alignment.End),
+                    )
+                }
         }
         Column(
             modifier = Modifier
@@ -427,18 +431,20 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     .height(1.dp)
                     .background(Color.White)
                 )
-                Text(
-                    text = uiState.remainingOverSpeedTimeInSeconds ?: uiState.duration,
-                    color = Color.Gray,
-                    style = Typography.displayLarge.copy(
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 48.sp,
-                        letterSpacing = TextUnit(-2F, TextUnitType.Sp), //squeeze the text together
-                        lineHeight = 48.sp
-                    ),
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.align(Alignment.End)
-                )
+                if (uiState.totalFare.toDoubleOrNull() != null && uiState.totalFare.toDouble() > 0) {
+                    Text(
+                        text = uiState.remainingOverSpeedTimeInSeconds ?: uiState.duration,
+                        color = Color.Gray,
+                        style = Typography.displayLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 48.sp,
+                            letterSpacing = TextUnit(-2F, TextUnitType.Sp), //squeeze the text together
+                            lineHeight = 48.sp
+                        ),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
         }
         val buttonContainerColor = if(uiState.status is Paused) red else if(uiState.status is Hired) Purple40 else nobel500
         Button(

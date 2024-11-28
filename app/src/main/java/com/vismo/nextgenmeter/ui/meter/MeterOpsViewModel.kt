@@ -207,15 +207,20 @@ class MeterOpsViewModel @Inject constructor(
     }
 
     private suspend fun updateUIStateForTrip(trip: TripData, status: TripStateInMeterOpsUI) {
+        val savedStartPrice = meterPreferenceRepository.getMcuStartPrice().first() ?: DEFAULT_STARTING_PRICE
+        val startPrice = MeasureBoardUtils.formatStartingPrice(savedStartPrice).toDouble()
+        val fareIfZero = if (trip.fare == 0.0) startPrice else trip.fare
+        val totalFareIfZero = if (trip.totalFare == 0.0) startPrice else trip.totalFare
+
         uiUpdateMutex.withLock {
             val isLocked = trip.shouldLockMeter()
             _uiState.value = _uiState.value.copy(
                 status = status,
                 extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
-                fare = MeterOpsUtil.formatToNDecimalPlace(trip.fare, 2),
+                fare = MeterOpsUtil.formatToNDecimalPlace(fareIfZero, 2),
                 distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
                 duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
-                totalFare = MeterOpsUtil.formatToNDecimalPlace(trip.totalFare, 2),
+                totalFare = MeterOpsUtil.formatToNDecimalPlace(totalFareIfZero, 2),
                 languagePref = _uiState.value.languagePref,
                 overSpeedDurationInSeconds = if (isLocked) trip.overSpeedDurationInSeconds else 0,
                 remainingOverSpeedTimeInSeconds = if(isLocked && trip.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) {
