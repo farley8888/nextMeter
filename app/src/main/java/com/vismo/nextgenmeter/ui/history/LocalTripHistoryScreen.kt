@@ -7,10 +7,10 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,10 +38,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.semantics.Role.Companion.Button
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.model.TripData
@@ -57,59 +55,72 @@ fun LocalTripHistoryScreen(viewModel: LocalTripHistoryViewModel) {
     var selectedTripId by remember { mutableStateOf<String?>(null) }
     val focusRequester = remember { FocusRequester() }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .focusRequester(focusRequester)
-            .focusable()
-            .onKeyEvent {
-                if (it.type == KeyDown && it.nativeKeyEvent.scanCode == 255 && !it.nativeKeyEvent.isLongPress) {
-                    selectedTripId?.let { id ->
-                        viewModel.printReceipt(trips.find { trip -> trip.tripId == id }!!)
-                        true
-                    } ?: false
-                } else {
-                    false
-                }
-            },
-        contentPadding = PaddingValues(horizontal = 0.dp)
+    Column(
+        modifier = Modifier.fillMaxSize(),
     ) {
-        // Add header as a list item
-        item {
-            TripHeaderRow()
-        }
-        // Add trip items
-        // if trips is empty, show a message
-        if (trips.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "暫無行程",
-                        fontSize = 24.sp,
-                        color = Color.Gray
-                    )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .weight(1f),
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusRequester(focusRequester)
+                    .focusable()
+                    .onKeyEvent {
+                        if (it.type == KeyDown && it.nativeKeyEvent.scanCode == 255 && !it.nativeKeyEvent.isLongPress) {
+                            selectedTripId?.let { id ->
+                                viewModel.printReceipt(trips.find { trip -> trip.tripId == id }!!)
+                                true
+                            } ?: false
+                        } else {
+                            false
+                        }
+                    },
+                contentPadding = PaddingValues(horizontal = 0.dp)
+            ) {
+                // Add header as a list item
+                item {
+                    TripHeaderRow()
+                }
+                // Add trip items
+                // if trips is empty, show a message
+                if (trips.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                                .padding(8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "暫無行程",
+                                fontSize = 24.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                } else {
+                    items(trips) { trip ->
+                        TripItemRow(
+                            count = trips.indexOf(trip) + 1,
+                            trip = trip,
+                            isSelected = trip.tripId == selectedTripId,
+                            onClick = { selectedTripId = trip.tripId }
+                        )
+                    }
                 }
             }
-        } else {
-            items(trips) { trip ->
-                TripItemRow(
-                    count = trips.indexOf(trip) + 1,
-                    trip = trip,
-                    isSelected = trip.tripId == selectedTripId,
-                    onClick = { selectedTripId = trip.tripId }
-                )
+        }
+        TripFooterRow(onClick = {
+            selectedTripId?.let { id ->
+                viewModel.printReceipt(trips.find { trip -> trip.tripId == id }!!)
             }
-        }
-        item {
-            TripFooterRow()
-        }
+        })
     }
 
     // Request focus when the composable is first composed
@@ -158,13 +169,13 @@ fun TripHeaderRow() {
     }
 }
 
-// This suppose to be floating footer row, but now simply a placeholder
 @Composable
-fun TripFooterRow() {
+fun ColumnScope.TripFooterRow(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .weight(.2f),
         verticalAlignment = Alignment.CenterVertically // Ensure vertical alignment
     ) {
         Row(
@@ -173,7 +184,7 @@ fun TripFooterRow() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
-                onClick = { /* TODO */ },
+                onClick = { onClick() },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = gold500 // Set the button's color to gold
                 ),
