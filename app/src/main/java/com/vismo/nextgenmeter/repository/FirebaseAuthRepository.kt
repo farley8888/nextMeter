@@ -9,8 +9,6 @@ import com.vismo.nextgenmeter.api.NetworkResult
 import com.vismo.nextgenmeter.util.Constant.PRIVATE_KEY
 import com.vismo.nextgenmeter.util.Constant.PUBLIC_KEY
 import com.vismo.nextgenmeter.util.GlobalUtils
-import com.vismo.nxgnfirebasemodule.DashManager
-import com.vismo.nxgnfirebasemodule.DashManager.Companion
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -18,6 +16,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -33,6 +32,7 @@ class FirebaseAuthRepository @Inject constructor(
     private val auth: FirebaseAuth,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val meterOApiRepository: MeterOApiRepository,
+    private val meterPreferenceRepository: MeterPreferenceRepository
 ){
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Coroutine exception", throwable)
@@ -108,20 +108,22 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
-    private fun createSignedJwtRS256(privateKey: RSAPrivateKey, publicKey: RSAPublicKey): String {
+    private fun createSignedJwtRS256(licensePlate: String, privateKey: RSAPrivateKey, publicKey: RSAPublicKey): String {
         val algorithm = Algorithm.RSA256(publicKey, privateKey)
 
         return JWT.create()
-            .withKeyId("CM-CABLE01")
+            .withKeyId("CM-$licensePlate")
             .withExpiresAt(Date(System.currentTimeMillis() + 60 * 60 * 1000)) // 1 hour expiration
-            .withClaim("name", "CABLE01")
+            .withClaim("name", licensePlate)
             .withClaim("admin", true)
             .sign(algorithm)
     }
 
     private suspend fun renewToken(onSuccess: (String?) -> Unit, onError: (IOException) -> Unit) {
-        Log.d(TAG, "renewToken")
+        val licensePlate = meterPreferenceRepository.getLicensePlate().first() ?: "CM-CABLE01"
+
         val body = createSignedJwtRS256(
+            licensePlate,
             GlobalUtils.loadPrivateKey(PRIVATE_KEY),
             GlobalUtils.loadPublicKey(PUBLIC_KEY)
         )

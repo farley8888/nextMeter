@@ -18,13 +18,13 @@ data class Update(
 
 fun Update.canBeSnoozed(): Boolean {
     val now = Timestamp.now()
-    val snoozeUntil = now.seconds + 86400
+    val snoozeUntil = now.seconds + 86400 // 24 hours
     return snoozeUntil < mustUpdateBefore.seconds
 }
 
 fun Update.snoozeForADay(): Update {
     val now = Timestamp.now()
-    val snoozeUntil = now.seconds + 86400
+    val snoozeUntil = now.seconds + 86400 // 24 hours
     return this.copy(snoozeUntil = Timestamp(snoozeUntil, 0))
 }
 
