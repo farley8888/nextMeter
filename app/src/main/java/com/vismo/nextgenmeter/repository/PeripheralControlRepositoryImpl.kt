@@ -8,6 +8,7 @@ import com.serial.port.ByteUtils
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
+import com.vismo.nextgenmeter.model.TripSummary
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
 import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.getDistanceInKm
@@ -107,7 +108,92 @@ class PeripheralControlRepositoryImpl(
         }
     }
 
-    override suspend fun writePrintReceiptCommand(tripData: TripData) {
+    override suspend fun printSummaryReceiptCommand(tripSummary: TripSummary) {
+        try {
+            var data = Config.getStatisticSPIData()
+            data = String.format(
+                data,
+                MeasureBoardUtils.encodeHexString(tripSummary.licensePlate)
+                    .replace(" ", "")
+                    .padStart(16, 'F')
+                    .replace("FF", "20"),
+                Config.getSPIDateTime(tripSummary.firstStartTime.toDate()),
+                Config.getSPIDateTime(tripSummary.lastEndTime.toDate()),
+                Config.getSPIInt(tripSummary.allTripsCount.toString(), 3),
+                Config.getSPIInt(tripSummary.cashTripsCount.toString(), 3),
+                Config.getSPIInt(tripSummary.dashTripsCount.toString(), 3),
+                Config.getSPIDecimal(formatToNDecimalPlace(tripSummary.allTripsDistanceInKm, 2), 6),
+                Config.getSPIDecimal(
+                    formatToNDecimalPlace(tripSummary.cashTripsDistanceInKm, 2),
+                    6
+                ),
+                Config.getSPIDecimal(
+                    formatToNDecimalPlace(tripSummary.dashTripsDistanceInKm, 2),
+                    6
+                ),
+                Config.getSPIDecimal(
+                    formatToNDecimalPlace(tripSummary.allTripsWaitTime / 60.0, 2),
+                    7
+                ),
+                Config.getSPIDecimal(
+                    formatToNDecimalPlace(tripSummary.cashTripsWaitTime / 60.0, 2),
+                    7
+                ),
+                Config.getSPIDecimal(
+                    formatToNDecimalPlace(tripSummary.dashTripsWaitTime / 60.0, 2),
+                    7
+                ),
+                Config.getSPIDecimal(formatToNDecimalPlace(tripSummary.allTripsFare, 2), 8),
+                Config.getSPIDecimal(formatToNDecimalPlace(tripSummary.cashTripsFare, 2), 7),
+                Config.getSPIDecimal(formatToNDecimalPlace(tripSummary.dashTripsFare, 2), 7),
+                Config.getSPIDecimal(formatToNDecimalPlace(tripSummary.allTripsExtras, 2), 8),
+                Config.getSPIDecimal(formatToNDecimalPlace(tripSummary.cashTripsExtras, 2), 7),
+                Config.getSPIDecimal(formatToNDecimalPlace(tripSummary.dashTripsExtras, 2), 7),
+            )
+            data = data.replace(" ", "")
+            printData(data)
+        } catch (e: Exception) {
+            Logger.getLogger(TAG).warning("writePrintSummaryCommand: $e")
+        }
+    }
+
+    override suspend fun printTripReceiptCommand(tripData: TripData) {
+        try {
+            val licensePlate = tripData.licensePlate
+            val startDateTime = tripData.startTime.toDate()
+            val pauseDateTime = tripData.pauseTime?.toDate() ?: Date()
+            val paidKm = getDistanceInKm(tripData.distanceInMeter)
+            val waitTimeInMinutes = tripData.waitDurationInSeconds / 60.0
+            val paidMin = formatToNDecimalPlace(waitTimeInMinutes, 2)
+            val surcharge = formatToNDecimalPlace(tripData.extra, 2)
+            val total = formatToNDecimalPlace(tripData.totalFare, 2)
+
+            var data = Config.getSPIData()
+            data =
+                String.format(
+                    data,
+                    MeasureBoardUtils
+                        .encodeHexString(licensePlate)
+                        .replace(" ", "")
+                        .padStart(16, 'F')
+                        .replace("FF", "20"),
+                    Config.getSPIDateTime(startDateTime),
+                    Config.getSPIDateTime(pauseDateTime),
+                    Config.getSPIDecimal(paidKm, 6),
+                    Config.getSPIDecimal(paidKm, 6),
+                    Config.getSPIDecimal(paidMin, 6),
+                    Config.getSPIDecimal(surcharge, 7),
+                    Config.getSPIDecimal(total, 7),
+                )
+
+            data = data.replace(" ", "")
+            printData(data)
+        } catch (e: Exception) {
+            Logger.getLogger(TAG).warning("writePrintReceiptCommand: $e")
+        }
+    }
+
+    private suspend fun printData(data: String) {
         measureBoardRepository.emitBeepSound(10, 0, 1)
         ensureCH3Initialized()
         if (mWorkCh3 == null) {
@@ -115,38 +201,10 @@ class PeripheralControlRepositoryImpl(
             return
         } else {
             try {
-                val licensePlate = tripData.licensePlate
-                val startDateTime = tripData.startTime.toDate()
-                val pauseDateTime = tripData.pauseTime?.toDate() ?: Date()
-                val paidKm = getDistanceInKm(tripData.distanceInMeter)
-                val waitTimeInMinutes = tripData.waitDurationInSeconds / 60.0
-                val paidMin = formatToNDecimalPlace(waitTimeInMinutes, 2)
-                val surcharge = formatToNDecimalPlace(tripData.extra, 2)
-                val total = formatToNDecimalPlace(tripData.totalFare, 2)
-
-                var data = Config.getSPIData()
-                data =
-                    String.format(
-                        data,
-                        MeasureBoardUtils
-                            .encodeHexString(licensePlate)
-                            .replace(" ", "")
-                            .padStart(16, 'F')
-                            .replace("FF", "20"),
-                        Config.getSPIDateTime(startDateTime),
-                        Config.getSPIDateTime(pauseDateTime),
-                        Config.getSPIDecimal(paidKm, 6),
-                        Config.getSPIDecimal(paidKm, 6),
-                        Config.getSPIDecimal(paidMin, 6),
-                        Config.getSPIDecimal(surcharge, 7),
-                        Config.getSPIDecimal(total, 7),
-                    )
-
-                data = data.replace(" ", "")
                 val bytes = ByteUtils.hexStr2Byte(data)
                 mWorkCh3?.writer?.writeData(bytes)
             } catch (e: Exception) {
-                Logger.getLogger(TAG).warning("writePrintReceiptCommand: $e")
+                Logger.getLogger(TAG).warning("printData: $e")
             }
         }
     }

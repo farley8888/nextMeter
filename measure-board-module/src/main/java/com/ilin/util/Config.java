@@ -70,6 +70,28 @@ public class Config
 				"03";
 	}
 
+	public static String getStatisticSPIData(){
+		return 	"02 02 02 00 " +
+				"80 81 20 20 20 20 20 54 41 58 49 20 4E 4F 20 20 20 20 20 20 20 20 %1$s FF FF " +
+				"20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20" + //empty line
+				"20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20" + //empty line
+				"90 91 92 93 20 20 20 20 20 20 20 20 %2$s FF FF FF FF " +
+				"94 95 92 93 20 20 20 20 20 20 20 20 %3$s FF FF FF FF " +
+				"20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 " +
+				"20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 " +
+				"20 20 20 20 20 20 20 20 20 20 20 20 84 96 20 20 20 20 97 98 20 20 20 20 99 9A FF FF FF FF FF FF " + // table header
+				"9B 96 20 20 20 20 20 20 20 20 20 %4$s 20 20 20 20 20 %5$s 20 20 20 20 20 %6$s FF FF " +  // num of trip
+				"9C 88 85 86 20 20 %7$s 20 20 %8$s 20 20 %9$s FF FF FF FF " + // total distance
+				"9C 88 89 8A 20 %10$s 20 %11$s 20 %12$s FF FF FF FF " + //total wait time
+				"84 80 88 20 20 %13$s 20 %14$s 20 %15$s FF FF FF " + // total amt
+				"8B 8C 88 20 20 %16$s 20 %17$s 20 %18$s FF FF FF " + // total surcharge
+//				"20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20" + //empty line
+				"20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20" + //empty line
+				"20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20" + //empty line
+				"20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20" + //empty line
+				"03";
+	}
+
 	public static String getGrayscaleData(int grayscaleLevel) {
 		String data = String.format("02 09 00 01 %02X 03", grayscaleLevel);
 		return data;
@@ -128,16 +150,18 @@ public class Config
 		return result;
 	}
 
-	//write a convertor convert 1.6 to 31 2E 36
-	public static String getSPIDecial(String decial) {
-		String[] miles = decial.split("\\.");
+	//write a convertor convert 1 to 31
+	public static String getSPIInt(String val, int expectedLength) {
 		String result = "";
-		for (int i = 0; i < miles[0].length(); i++) {
-			result += Integer.toHexString(miles[0].charAt(i)) + " ";
+
+		if (val.length() < expectedLength) {
+			for (int i = 0; i < expectedLength - val.length(); i++) {
+				result += "20 ";
+			}
 		}
-		result += "2E ";
-		for (int i = 0; i < miles[1].length(); i++) {
-			result += Integer.toHexString(miles[1].charAt(i)) + " ";
+
+		for (int i = 0; i < val.length(); i++) {
+			result += Integer.toHexString(val.charAt(i)) + " ";
 		}
 		return result;
 	}
