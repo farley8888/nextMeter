@@ -1,12 +1,17 @@
 package com.vismo.nextgenmeter.ui.dashboard.mcu
 
+import androidx.compose.ui.graphics.Color
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
+import com.vismo.nextgenmeter.model.OperatingArea
+import com.vismo.nextgenmeter.model.Vehicle
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 
 data class MCUSummaryUiData(
-    val vehicleModel: String = "",
+    val vehicle: Vehicle? = null,
+    val operatingArea: String? = null,
+    val operatingAreaColor: Color = Color.Gray,
     val androidROMVersion: String = "",
     val androidId: String = "",
     val appVersion: String = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",

@@ -46,6 +46,7 @@ val primary600 = Color(0xFF1479C7)
 val primary700 = Color(0xFF0659A1)
 val primary800 = Color(0xFF003D7A)
 val blueLink = Color(0xFF1E88E5)
+val lantauBlue = Color(0xFF039BE5)
 
 // Secondary
 val secondary50 = Color(0xFFEEFFFD)
@@ -81,6 +82,7 @@ val valencia700 = Color(0xFFBA3330)
 val valencia800 = Color(0xFFAD2E2A)
 val valencia900 = Color(0xFF9F231E)
 val red = Color(0xFFFF0000)
+val urbanRed = Color(0xFFA8102A)
 
 // Pastel Green
 val pastelGreen50 = Color(0xFFEEFFF0)
@@ -93,6 +95,7 @@ val pastelGreen600 = Color(0xFF168E40)
 val pastelGreen700 = Color(0xFF0E672F)
 val pastelGreen800 = Color(0xFF094320)
 val pastelGreen900 = Color(0xFF062213)
+val ntGreen = Color(0xFF00b050)
 
 // Gold
 val gold50 = Color(0xFFFFFAE4)

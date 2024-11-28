@@ -101,15 +101,11 @@ fun MCUSummaryDashboard(
             ) {
                 Box(
                     modifier = Modifier
-                        .background(Color.Red)
+                        .background(uiState.operatingAreaColor)
                         .padding(horizontal = 16.dp)
-                        .border(
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color.Red)
-                        )
                 ) {
                     Text(
-                        text = "市區",
+                        text = uiState.operatingArea ?:"市區",
                         color = Color.White,
                         fontSize = 20.sp
                     )
@@ -158,7 +154,7 @@ fun MCUSummaryDashboard(
                     }
             ) {
                 Text(
-                    text = "",
+                    text = "${uiState.vehicle?.make} ${uiState.vehicle?.model}",
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
