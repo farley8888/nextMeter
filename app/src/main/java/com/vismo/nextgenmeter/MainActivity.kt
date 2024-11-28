@@ -170,7 +170,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                                     lifecycleScope.launch {
                                         repeatOnLifecycle(Lifecycle.State.STARTED) {
                                             val isTripInProgress = mainViewModel.isTripInProgress.first()
-                                            if (mainViewModel.showLoginToggle.first() == true && isCurrentScreenMeterOps() && !isTripInProgress) {
+                                            if (mainViewModel.showLoginToggle.first() == true && isCurrentScreenMeterOps() && !isTripInProgress && !isCurrentScreenUpdateApk()) {
                                                 navigateToSplashScreen(alwaysNavigateToPair = true)
                                             }
                                         }
@@ -227,7 +227,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
             val repeatCount = event.repeatCount
             val isLongPress = event.isLongPress
 
-            if (scanCode == 248 && repeatCount == 0 && !isLongPress && !isCurrentScreenMeterOps()) {
+            if (scanCode == 248 && repeatCount == 0 && !isLongPress && !isCurrentScreenMeterOps() && !isCurrentScreenUpdateApk()) {
                 navigateToMeterOpsScreen() // navigate to the MeterOps screen from any other screen
                 performVirtualTapFeedback(window.decorView)
                 return true
@@ -248,6 +248,14 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
     private fun isCurrentScreenMeterOps(): Boolean {
         return try {
             navController?.currentDestination?.route == NavigationDestination.MeterOps.route
+        } catch (_: IllegalArgumentException) {
+            false
+        }
+    }
+
+    private fun isCurrentScreenUpdateApk(): Boolean {
+        return try {
+            navController?.currentDestination?.route == NavigationDestination.UpdateApk.route
         } catch (_: IllegalArgumentException) {
             false
         }
