@@ -1,7 +1,6 @@
 package com.vismo.nxgnfirebasemodule.model
 
 import com.google.gson.annotations.SerializedName
-import java.util.Locale
 
 data class MeterFields(
     @SerializedName("settings") val settings: Settings?,
