@@ -22,7 +22,6 @@ import com.vismo.nextgenmeter.module.MainDispatcher
 import com.vismo.nextgenmeter.util.GlobalUtils.divideBy100AndConvertToDouble
 import com.vismo.nextgenmeter.util.GlobalUtils.extractSubstring
 import com.vismo.nextgenmeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
-import com.vismo.nextgenmeter.util.GlobalUtils.toIntOrZero
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.ABNORMAL_PULSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
@@ -237,7 +236,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private fun parseHeartbeatResult(result: String): OngoingMCUHeartbeatData {
         val heartbeatData = OngoingMCUHeartbeatData(
-            measureBoardStatus = result.extractSubstring(17, 1).toIntOrZero(),
+            measureBoardStatus = result.extractSubstring(17, 1).toIntOrNull() ?: 1,
             lockedDurationHex = result.extractSubstring(18, 4),
             distanceHex = result.extractSubstring(22, 6),
             duration = result.extractSubstring(28, 6),
