@@ -342,12 +342,17 @@ class DashManager @Inject constructor(
 
             val applicableFeeRate = settingsFeeRate ?: transactionFee?.dashFeeRate ?: _meterSdkConfig.value?.common?.dashFeeRate ?: 0.0
             val applicableFeeConstant = settingsFeeConstant ?: transactionFee?.dashFeeConstant ?: _meterSdkConfig.value?.common?.dashFeeConstant ?: 0.0
+            val sessionId = _meterFields.value?.session?.sessionId
+            val driver = _meterFields.value?.session?.driver
 
             updateTripOnFirestore(
                 MeterTripInFirestore(
                     tripId = tripId,
                     dashFeeRate = applicableFeeRate,
-                    dashFeeConstant = applicableFeeConstant
+                    dashFeeConstant = applicableFeeConstant,
+                    sessionId = sessionId,
+                    driver = driver,
+                    creationTime = Timestamp.now()
                 )
             )
         }
