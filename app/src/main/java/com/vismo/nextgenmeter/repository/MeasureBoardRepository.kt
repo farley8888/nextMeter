@@ -7,6 +7,8 @@ interface MeasureBoardRepository {
 
     val meterIdentifierInRemote: StateFlow<String>
 
+    fun init()
+
     fun writeStartTripCommand(tripId: String)
 
     fun writeStartAndPauseTripCommand(tripId: String)
