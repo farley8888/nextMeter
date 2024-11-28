@@ -144,8 +144,13 @@ fun MCUSummaryDashboard(
                     .padding(horizontal = 8.dp, vertical = 4.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
-                            onLongPress = {
-                                isFlipped = !isFlipped
+                            onPress = { offset ->
+                                val startTime = System.currentTimeMillis()
+                                val success = tryAwaitRelease()
+                                val duration = System.currentTimeMillis() - startTime
+                                if (success && duration >= 4000) {
+                                    isFlipped = !isFlipped
+                                }
                             }
                         )
                     }
