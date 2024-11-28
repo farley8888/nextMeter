@@ -85,12 +85,14 @@ object AppModule {
     fun provideFirebaseAuthRepository(
         auth: FirebaseAuth,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        meterOApiRepository: MeterOApiRepository
+        meterOApiRepository: MeterOApiRepository,
+        meterPreferenceRepository: MeterPreferenceRepository
     ): FirebaseAuthRepository {
         return FirebaseAuthRepository(
             auth = auth,
             ioDispatcher = ioDispatcher,
-            meterOApiRepository = meterOApiRepository
+            meterOApiRepository = meterOApiRepository,
+            meterPreferenceRepository = meterPreferenceRepository
         )
     }
 
