@@ -229,6 +229,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
 
             if (scanCode == 248 && repeatCount == 0 && !isLongPress && !isCurrentScreenMeterOps() && !isCurrentScreenUpdateApk()) {
                 navigateToMeterOpsScreen() // navigate to the MeterOps screen from any other screen
+                mainViewModel.emitBeepSound()
                 performVirtualTapFeedback(window.decorView)
                 return true
             }
