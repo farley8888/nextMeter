@@ -32,6 +32,7 @@ import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.gold350
 import com.vismo.nextgenmeter.ui.theme.mineShaft100
 import com.vismo.nextgenmeter.ui.theme.mineShaft600
+import com.vismo.nextgenmeter.ui.theme.newTerritoriesGreen
 import com.vismo.nextgenmeter.ui.theme.nobel200
 import com.vismo.nextgenmeter.ui.theme.nobel500
 import com.vismo.nextgenmeter.ui.theme.nobel700
@@ -91,15 +92,15 @@ fun MCUSummaryDashboard(
             ) {
                 Box(
                     modifier = Modifier
-                        .background(Color.Red)
+                        .background(newTerritoriesGreen)
                         .padding(horizontal = 16.dp)
                         .border(
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color.Red)
+                            border = BorderStroke(1.dp, newTerritoriesGreen)
                         )
                 ) {
                     Text(
-                        text = "市區",
+                        text = "新界",
                         color = Color.White,
                         fontSize = 20.sp
                     )

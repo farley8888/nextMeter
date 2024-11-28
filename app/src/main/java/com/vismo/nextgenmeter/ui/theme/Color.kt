@@ -93,6 +93,7 @@ val pastelGreen600 = Color(0xFF168E40)
 val pastelGreen700 = Color(0xFF0E672F)
 val pastelGreen800 = Color(0xFF094320)
 val pastelGreen900 = Color(0xFF062213)
+val newTerritoriesGreen = Color(0xFF00b050)
 
 // Gold
 val gold50 = Color(0xFFFFFAE4)
