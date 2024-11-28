@@ -51,7 +51,13 @@ object GlobalUtils {
     }
 
     fun String.toDoubleOrZero(): Double = this.toDoubleOrNull() ?: 0.0
-    fun String.toIntOrZero(): Int = this.toIntOrNull() ?: 0
+    fun Int.isStopped(): Boolean {
+        return when(this) { // 0 - hired, 1 - stopped, 2 - hired and overspeed, 3 - stopped and overspeed, 4 - hired and fault, 5 - stopped and fault, 6 - hired and fault and overspeed, 7 - stopped and fault and overspeed
+            0, 2, 4, 6 -> false
+            1, 3, 5, 7 -> true
+            else -> true
+        }
+    }
 
     fun String.extractSubstring(start: Int, length: Int): String {
         return if (start + length <= this.length) {

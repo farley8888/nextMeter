@@ -1,6 +1,7 @@
 package com.vismo.nextgenmeter.model
 
 import com.vismo.nextgenmeter.util.GlobalUtils.divideBy100AndConvertToDouble
+import com.vismo.nextgenmeter.util.GlobalUtils.isStopped
 import com.vismo.nextgenmeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
 
@@ -15,7 +16,7 @@ data class OngoingMCUHeartbeatData(
     val currentTime: String,
     val abnormalPulseCounterHex: String,
     val overspeedCounterHex: String,
-    val isStopped: Boolean = measureBoardStatus == 1,
+    val isStopped: Boolean = measureBoardStatus.isStopped(),
     val tripStatus: TripStatus = if (isStopped) TripStatus.STOP else TripStatus.HIRED,
     val lockedDurationDecimal: Int = 0,
     val distance: Double = 0.0,
