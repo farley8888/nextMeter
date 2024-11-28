@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -44,9 +43,10 @@ class MCUSummaryDashboardViewModel @Inject constructor(
                             _mcuSummaryUiState.value = _mcuSummaryUiState.value.copy(
                                 fareParams = it
                             )
+                            val newMcuStartPrice = mcuPriceParams.value?.startingPrice?.replace("$", "")
                             val savedMcuStartPrice = meterPreferenceRepository.getMcuStartPrice().first()
-                            if (mcuPriceParams.value?.startingPrice != null && savedMcuStartPrice != mcuPriceParams.value?.startingPrice) {
-                                meterPreferenceRepository.saveMcuStartPrice(it.startingPrice)
+                            if (newMcuStartPrice != null && savedMcuStartPrice != newMcuStartPrice && newMcuStartPrice.toDoubleOrNull() != null) {
+                                meterPreferenceRepository.saveMcuStartPrice(newMcuStartPrice)
                             }
                         }
                     }
