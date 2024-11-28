@@ -50,7 +50,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.vismo.nextgenmeter.ui.settings.admin.EditAdminPropertiesViewModel
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
@@ -99,8 +102,17 @@ fun EditKValueAndLicensePlateScreen(
                 Text(text = "車牌")
                 TextField(
                     value = licensePlate.takeIf { licensePlateEntered == null } ?: licensePlateEntered!!,
-                    onValueChange = { newText -> licensePlateEntered = newText  },
-                    modifier = Modifier.fillMaxWidth()
+                    onValueChange = { newText ->
+                        // remove line breaks
+                        licensePlateEntered = newText.replace("\n", "").uppercase()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        capitalization = KeyboardCapitalization.Characters,
+                        imeAction = ImeAction.Next
+                    ),
+                    visualTransformation = VisualTransformation.None
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -111,7 +123,8 @@ fun EditKValueAndLicensePlateScreen(
                     onValueChange = { newText -> kValueEntered = newText.uppercase() },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
                     ),
                 )
             }

@@ -46,10 +46,10 @@ fun EditFareCalculationPropertiesScreen(
     var priceParam2Entered: String?  by remember { mutableStateOf(null) }
     var priceParam3Entered: String?  by remember { mutableStateOf(null) }
     var priceParam4Entered: String?  by remember { mutableStateOf(null) }
-    val startPriceStr = mcuPriceParams.value?.startingPrice.takeIf { priceParam1Entered == null } ?: priceParam1Entered!!
-    val stepPriceStr = mcuPriceParams.value?.stepPrice.takeIf { priceParam2Entered == null } ?: priceParam2Entered!!
-    val changedStepPriceStr = mcuPriceParams.value?.changedStepPrice.takeIf { priceParam3Entered == null } ?: priceParam3Entered!!
-    val changedPriceAtStr = mcuPriceParams.value?.changedPriceAt.takeIf { priceParam4Entered == null } ?: priceParam4Entered!!
+    val startPriceStr = mcuPriceParams.value?.startingPrice?.replace("$", "")?.takeIf { priceParam1Entered == null } ?: priceParam1Entered!!
+    val stepPriceStr = mcuPriceParams.value?.stepPrice?.replace("$", "")?.takeIf { priceParam2Entered == null } ?: priceParam2Entered!!
+    val changedStepPriceStr = mcuPriceParams.value?.changedStepPrice?.replace("$", "")?.takeIf { priceParam3Entered == null } ?: priceParam3Entered!!
+    val changedPriceAtStr = mcuPriceParams.value?.changedPriceAt?.replace("$", "")?.takeIf { priceParam4Entered == null } ?: priceParam4Entered!!
 
     Column(
         modifier = Modifier
@@ -63,7 +63,11 @@ fun EditFareCalculationPropertiesScreen(
             TextField(
                 value = startPriceStr,
                 onValueChange = { newText -> priceParam1Entered = newText },
-                modifier = Modifier.weight(3f)
+                modifier = Modifier.weight(3f),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
+
             )
             Spacer(modifier = Modifier.width(16.dp))
             Text(text = "分水嶺", modifier = Modifier.weight(1f))

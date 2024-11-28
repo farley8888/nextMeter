@@ -2,6 +2,7 @@ package com.vismo.nextgenmeter.datastore
 
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
+import com.vismo.nextgenmeter.model.format
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -33,7 +34,7 @@ object DeviceDataStore {
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
         mutex.withLock {
-            this._mcuFareParams.value = mcuData
+            this._mcuFareParams.value = mcuData.format()
         }
     }
 
