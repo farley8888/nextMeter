@@ -12,7 +12,8 @@ data class Update(
     @SerializedName("must_update_before") val mustUpdateBefore: Timestamp,
     @SerializedName("snooze_until") val snoozeUntil: Timestamp?,
     @SerializedName("url") val url: String,
-    @SerializedName("version") val version: String
+    @SerializedName("version") val version: String,
+    @SerializedName("clear_cache") val doClearCache: Boolean = false
 )
 
 fun Update.canBeSnoozed(): Boolean {
