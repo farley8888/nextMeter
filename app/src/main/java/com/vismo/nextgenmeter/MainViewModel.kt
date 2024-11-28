@@ -493,6 +493,10 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun emitBeepSound() {
+        measureBoardRepository.emitBeepSound(5, 0, 1)
+    }
+
     fun resetSnackBarContent() {
         _snackBarContent.value = null
     }
