@@ -19,6 +19,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,7 @@ import com.vismo.nextgenmeter.util.GlobalUtils.getFormattedChangedStepPrice
 import com.vismo.nextgenmeter.util.GlobalUtils.getFormattedStartPrice
 import com.vismo.nextgenmeter.util.GlobalUtils.getFormattedStepPrice
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
+import kotlinx.coroutines.delay
 
 
 @Composable
@@ -188,6 +190,14 @@ fun MCUSummaryDashboard(
         ) {
             // Pricing Section
             PricingDetails(uiState)
+        }
+
+        // Reset isFlipped after 5 seconds when it becomes true
+        LaunchedEffect(isFlipped) {
+            if (isFlipped) {
+                delay(5000) // Wait for 5 seconds
+                isFlipped = false // Reset isFlipped back to false
+            }
         }
     }
 }
