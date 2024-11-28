@@ -96,7 +96,13 @@ fun TripSummaryDashboard(
                     onClickBtnClearAllLocalTrips = {
                         showDialogClearAllLocalTrips.value = true
                     },
-                    onClickBtnPrintRecord = {},
+                    onClickBtnPrintRecord = {
+                        if (allTripsSummary.totalTrips.toInt() == 0) {
+                            GlobalToast.show("無行程資料")
+                            return@TripSummary
+                        }
+                        viewModel.printSummary()
+                    },
                 )
             }
         }
