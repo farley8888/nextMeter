@@ -62,12 +62,12 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
     }
-    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
+    private var scope: CoroutineScope? = null
 
     override val meterIdentifierInRemote: StateFlow<String> = dashManagerConfig.meterIdentifier
 
     private fun startMessageProcessor() {
-        scope.launch {
+        scope?.launch {
             for (msg in messageChannel) {
                 when (msg.what) {
                     IAtCmd.W_MSG_DISPLAY -> {
@@ -87,13 +87,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private fun sendMessage(msg: MCUMessage) {
-        scope.launch {
+        scope?.launch {
             messageChannel.send(msg)
         }
     }
 
     private fun startTaskProcessor() {
-        scope.launch {
+        scope?.launch {
             for (task in taskChannel) {
                 task()
             }
@@ -101,12 +101,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private fun addTask(task: suspend () -> Unit) {
-        scope.launch {
+        scope?.launch {
             taskChannel.send(task)
         }
     }
 
-    init {
+    override fun init() {
+        scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
         startTaskProcessor()
         startMessageProcessor()
         addTask {
@@ -116,6 +117,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             mBusModel?.startCommunicate()
             delay(200)
         }
+        Log.d(TAG, "MeasureBoardRepositoryImpl: init")
     }
 
     private suspend fun handleIdleHeartbeatResult(result: String) {
@@ -293,7 +295,9 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             TRIP_END_SUMMARY -> handleTripEndSummaryResult(result = result)
             PARAMETERS_ENQUIRY -> handleParametersEnquiryResult(result = result)
             ABNORMAL_PULSE -> handleAbnormalPulse(result = result)
+            else -> { Log.d(TAG, "Unknown result type: ${getResultType(result)}") }
         }
+        Log.d(TAG, "checkStatues: $result")
     }
 
     private suspend fun handleAbnormalPulse(result: String) {
@@ -442,7 +446,10 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun setReceiveEvalDataLs() {
         mBusModel?.setListener { data: String ->
             sendMessage(MCUMessage(IAtCmd.W_MSG_DISPLAY, data))
-            Log.d("setReceiveEvalDataLs", "setReceiveEvalDataLs $data")
+            Log.d(TAG, "setReceiveEvalDataLs $data")
+        }
+        if(mBusModel == null) {
+           Log.e(TAG, "setReceiveEvalDataLs: mBusModel is null")
         }
     }
 
@@ -459,7 +466,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun stopCommunication() {
         mBusModel?.stopCommunicate()
-        scope.cancel()
+        scope?.cancel()
     }
 
     companion object {

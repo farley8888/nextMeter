@@ -359,6 +359,7 @@ class MainViewModel @Inject constructor(
 
 
     init {
+        measureBoardRepository.init()
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 remoteMeterControlRepository.observeFlows()
@@ -481,12 +482,14 @@ class MainViewModel @Inject constructor(
     private fun enableADB() {
         viewModelScope.launch {
             ShellUtils.execShellCmd("setprop persist.service.adb.enable 1")
+            Log.w(TAG, "ADB enabled")
         }
     }
 
     private fun disableADB() {
         viewModelScope.launch {
             ShellUtils.execShellCmd("setprop persist.service.adb.enable 0")
+            Log.w(TAG, "ADB disabled")
         }
     }
 

@@ -2,6 +2,7 @@ package com.vismo.nextgenmeter.ui.pin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.api.NetworkResult
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
@@ -103,6 +104,10 @@ class SystemPinViewModel @Inject constructor(
             } else {
                 _totpStatus.value = "Error verifying TOTP code"
             }
+
+            if(code == PIN_OPEN_QC_APP) {
+                ShellUtils.execShellCmd("am start com.ilin.test");
+            }
         }
     }
 
@@ -113,5 +118,6 @@ class SystemPinViewModel @Inject constructor(
 
     companion object {
         private const val PIN_WITH_GOD_CODE = "191005"
+        private const val PIN_OPEN_QC_APP = "121003"
     }
 }
