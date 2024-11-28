@@ -22,6 +22,7 @@ import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import com.vismo.nxgnfirebasemodule.model.OperatingArea
 import com.vismo.nxgnfirebasemodule.model.Session
 import com.vismo.nxgnfirebasemodule.model.Settings
+import com.vismo.nxgnfirebasemodule.model.TripSession
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import com.vismo.nxgnfirebasemodule.model.shouldPrompt
@@ -350,7 +351,7 @@ class DashManager @Inject constructor(
                     tripId = tripId,
                     dashFeeRate = applicableFeeRate,
                     dashFeeConstant = applicableFeeConstant,
-                    sessionId = sessionId,
+                    session = TripSession( sessionId),
                     driver = driver,
                     creationTime = Timestamp.now()
                 )
