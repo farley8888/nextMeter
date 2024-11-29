@@ -114,7 +114,7 @@ fun MeterOpsScreen(
                 }
             }
     ) {
-        lockDialogShowState.value = lockTitle.isNotEmpty() && uiState.overSpeedDurationInSeconds < 10 // we only want to show the dialog once for the first 10 seconds
+        lockDialogShowState.value = lockTitle.isNotEmpty() && uiState.overSpeedDurationInSeconds < 10 && uiState.remainingOverSpeedTimeInSeconds != null // we only want to show the dialog once for the first 10 seconds
         NxGnMeterDialog(showDialog = lockDialogShowState, onDismiss = {}, content = { NxGnDialogContent(
             message = lockTitle,
         ) })
