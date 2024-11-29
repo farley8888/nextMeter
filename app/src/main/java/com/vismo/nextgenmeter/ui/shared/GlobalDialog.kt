@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -48,7 +49,10 @@ fun GlobalDialog(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
     isBlinking: Boolean = false, // Optional blinking effect
-    shouldAutoDismissAfter: Long = 0 // Optional auto dismiss after x milliseconds
+    shouldAutoDismissAfter: Long = 0, // Optional auto dismiss after x milliseconds
+    usePlatformDefaultWidth: Boolean = true,
+    width: Int? = null,
+    height: Int? = null,
 ) {
     if (!showDialog.value) return
     // Auto dismiss after x milliseconds
@@ -62,7 +66,7 @@ fun GlobalDialog(
     Dialog(onDismissRequest = {
         showDialog.value = false
         onDismiss()
-    }, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
+    }, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false, usePlatformDefaultWidth = usePlatformDefaultWidth)) {
         AnimatedVisibility(
             visible = showDialog.value,
             enter = fadeIn(animationSpec = tween(700)) + scaleIn(
@@ -76,7 +80,10 @@ fun GlobalDialog(
         ) {
             GlobalDialogUI(
                 content = content,
-                isBlinking = isBlinking
+                isBlinking = isBlinking,
+                usePlatformDefaultWidth = usePlatformDefaultWidth,
+                width = width,
+                height = height
             )
         }
     }
@@ -85,7 +92,10 @@ fun GlobalDialog(
 @Composable
 private fun GlobalDialogUI(
     content: @Composable () -> Unit,
-    isBlinking: Boolean = false // Optional blinking effect
+    isBlinking: Boolean = false, // Optional blinking effect
+    usePlatformDefaultWidth: Boolean = true,
+    width: Int? = null,
+    height: Int? = null,
 ) {
     var isVisible by remember { mutableStateOf(true) }
     if (isBlinking) {
@@ -98,9 +108,14 @@ private fun GlobalDialogUI(
     }
 
     BlinkingVisibility(isVisible = isVisible || !isBlinking) {
+        val modifier = if (!usePlatformDefaultWidth && width != null && height != null) {
+            Modifier.size(width.dp, height.dp)
+        } else {
+            Modifier
+        }
         Card(
             shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.padding(10.dp),
+            modifier = modifier,
             elevation = CardDefaults.cardElevation(8.dp)
         ) {
             content() // Using the passed composable content
