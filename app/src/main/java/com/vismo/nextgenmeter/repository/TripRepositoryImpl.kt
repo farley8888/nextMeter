@@ -48,9 +48,9 @@ class TripRepositoryImpl @Inject constructor(
                     trip?.let {
                         // Update trip in Firestore if required
                         if (trip.requiresUpdateOnDatabase) {
+                            localTripsRepository.updateTrip(it)
                             val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
                             dashManager.updateTripOnFirestore(tripInFirestore)
-                            localTripsRepository.updateTrip(it)
                         }
                         // Handle abnormal pulse and overspeed counters
                         val abnormalPulseChanged = it.abnormalPulseCounter != _currentAbnormalPulseCounter.value && it.abnormalPulseCounter != null && it.abnormalPulseCounter > 0
