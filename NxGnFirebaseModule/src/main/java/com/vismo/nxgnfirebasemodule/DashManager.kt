@@ -100,6 +100,7 @@ class DashManager @Inject constructor(
         }
         checkForMostRelevantUpdate()
         isInitialized = true
+        Log.d(TAG, "DashManager initialized")
     }
 
     private suspend fun observeMeterDeviceId() {
