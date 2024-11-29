@@ -135,11 +135,12 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                     }
 
                     val aValidUpdate = mainViewModel.aValidUpdate.collectAsState().value
+                    val isTripInProgress = mainViewModel.isTripInProgress.collectAsState().value
                     val showUpdateDialog = remember { mutableStateOf(false) }
                     val isDialogShown = remember {
                         mutableStateOf(false)
                     }
-                    showUpdateDialog.value = aValidUpdate != null && !isDialogShown.value
+                    showUpdateDialog.value = aValidUpdate != null && !isDialogShown.value && !isTripInProgress
                     Scaffold(
                         snackbarHost = {
                             SnackbarHost(
