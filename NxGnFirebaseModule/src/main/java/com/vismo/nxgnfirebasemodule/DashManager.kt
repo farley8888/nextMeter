@@ -97,8 +97,8 @@ class DashManager @Inject constructor(
         scope.launch {
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
-            launch { checkForMostRelevantUpdate() }
         }
+        checkForMostRelevantUpdate()
         isInitialized = true
     }
 
