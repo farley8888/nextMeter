@@ -153,8 +153,9 @@ fun MCUSummaryDashboard(
                         )
                     }
             ) {
+                val vehicle = if (uiState.vehicle == null) "" else "${uiState.vehicle.make} ${uiState.vehicle.model}"
                 Text(
-                    text = "${uiState.vehicle?.make} ${uiState.vehicle?.model}",
+                    text = vehicle,
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
