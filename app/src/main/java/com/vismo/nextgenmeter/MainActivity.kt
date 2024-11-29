@@ -192,7 +192,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                             GlobalToastHolder()
                             GlobalDialog(
                                 showDialog = showUpdateDialog,
-                                onDismiss = { /*TODO*/ },
+                                onDismiss = { /* do nothing */ },
                                 content = {
                                     GenericDialogContent(
                                         title = "設備需升級軟件",
@@ -212,7 +212,10 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                                             isDialogShown.value = true
                                         }
                                     )
-                                }
+                                },
+                                usePlatformDefaultWidth = false,
+                                width = 350,
+                                height = 200
                             )
                         }
                     }
