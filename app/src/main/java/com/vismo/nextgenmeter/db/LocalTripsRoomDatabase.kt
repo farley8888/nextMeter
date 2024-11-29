@@ -23,7 +23,8 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
                     context = context.applicationContext,
                     LocalTripsRoomDatabase::class.java,
                     DATABASE_NAME
-                ).build()
+                ).setJournalMode(JournalMode.TRUNCATE)
+                    .build()
                 INSTANCE = instance
                 instance
             }
