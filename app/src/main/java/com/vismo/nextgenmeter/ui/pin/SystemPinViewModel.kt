@@ -66,21 +66,30 @@ class SystemPinViewModel @Inject constructor(
 
     private fun encryptAndSaveSecret(secret: String?) {
         viewModelScope.launch(ioDispatcher) {
-            if (secret.isNullOrBlank()) {
-                return@launch
+            try {
+                if (secret.isNullOrBlank()) {
+                    return@launch
+                }
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                CryptoManager.encrypt(secret.toByteArray(Charsets.UTF_8), byteArrayOutputStream)
+                val encryptedData = byteArrayOutputStream.toByteArray()
+                meterPreferenceRepository.saveTotpSecret(encryptedData)
+            } catch (e: Exception) {
+                _totpStatus.value = "Error encrypting and saving TOTP secret"
             }
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            CryptoManager.encrypt(secret.toByteArray(Charsets.UTF_8), byteArrayOutputStream)
-            val encryptedData = byteArrayOutputStream.toByteArray()
-            meterPreferenceRepository.saveTotpSecret(encryptedData)
         }
     }
 
     private suspend fun getSecretAndDecrypt(): String? {
-        val encryptedData = meterPreferenceRepository.getTotpSecret().first() ?: return null
-        val byteArrayInputStream = encryptedData.inputStream()
-        val decryptedData = CryptoManager.decrypt(byteArrayInputStream)
-        return decryptedData.toString(Charsets.UTF_8)
+        try {
+            val encryptedData = meterPreferenceRepository.getTotpSecret().first() ?: return null
+            val byteArrayInputStream = encryptedData.inputStream()
+            val decryptedData = CryptoManager.decrypt(byteArrayInputStream)
+            return decryptedData.toString(Charsets.UTF_8)
+        }catch (e: Exception) {
+            _totpStatus.value = "Error decrypting TOTP secret"
+        }
+        return null
     }
 
     private fun initTotpVerifier() {
