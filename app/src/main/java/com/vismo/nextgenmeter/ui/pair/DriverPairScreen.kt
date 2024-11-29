@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,18 +32,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.lightspark.composeqr.DotShape
 import com.lightspark.composeqr.QrCodeView
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
 import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.ui.theme.blueLink
-import com.vismo.nextgenmeter.ui.theme.gold350
 import com.vismo.nextgenmeter.ui.theme.mineShaft50
 import com.vismo.nextgenmeter.ui.theme.mineShaft900
 import com.vismo.nextgenmeter.ui.theme.nobel100
@@ -80,7 +77,10 @@ fun DriverPairScreen(
                 qrLink = "suntec.app/${uiState.deviceSerialNumber}",
                 dismiss = { showDialog.value = false }
             )
-        }
+        },
+        usePlatformDefaultWidth = false,
+        width = 350,
+        height = 350
     )
 
     if (isDeviceInfoSetAfterHealthCheck) {
@@ -116,7 +116,7 @@ fun HealthCheckDialogContent(title: String, message: String, qrLink: String, dis
     Column(
         modifier = Modifier
             .padding(16.dp)
-            .fillMaxWidth()
+            .fillMaxSize()
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -133,7 +133,7 @@ fun HealthCheckDialogContent(title: String, message: String, qrLink: String, dis
             style = Typography.bodyLarge,
             textAlign = TextAlign.Center
         )
-        DashAndGoldQrCodeView(data = qrLink)
+        DashQrCodeView(data = qrLink)
         Button(
             onClick = dismiss,
             colors = ButtonDefaults.buttonColors(
@@ -145,10 +145,6 @@ fun HealthCheckDialogContent(title: String, message: String, qrLink: String, dis
                 .padding(horizontal = 16.dp)
                 .height(16.dp)
         ) {
-            Text(
-                text = "確認",
-                style = Typography.bodySmall
-            )
         }
     }
 }
@@ -257,7 +253,7 @@ fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
             contentAlignment = Alignment.Center
         ) {
             if (showQRCode && qrcodeString.isNotEmpty()) {
-                DashAndGoldQrCodeView(data = qrcodeString, size = 250)
+                DashQrCodeView(data = qrcodeString)
             } else {
                 QRCodePlaceholder()
             }
@@ -266,29 +262,12 @@ fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
 }
 
 @Composable
-fun DashAndGoldQrCodeView(primaryColor: Color = primary800, data: String, size: Int = 200) {
-    val gold = gold350
+fun DashQrCodeView(data: String, size: Int = 250) {
     QrCodeView(
         data = data,
-        modifier = Modifier.size(size.dp),
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(CircleShape)
-                .background(primaryColor)
-        ) {
-            BasicText(
-                text = "D",
-                style = Typography.bodyLarge.copy(
-                    color = gold,
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Bold
-                )
-            )
-        }
-    }
+        modifier = Modifier.size(size.dp)
+            .padding(16.dp),
+    )
 }
 
 @Composable
