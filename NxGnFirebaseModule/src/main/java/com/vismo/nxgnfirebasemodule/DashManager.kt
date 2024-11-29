@@ -409,31 +409,33 @@ class DashManager @Inject constructor(
     }
 
     private fun checkForMostRelevantUpdate() {
-        val updatesCollection = getMeterDocument()
-            .collection(UPDATES_COLLECTION)
+        scope.launch {
+            val updatesCollection = getMeterDocument()
+                .collection(UPDATES_COLLECTION)
 
-        updatesCollection
-            .orderBy(CREATED_ON, Query.Direction.DESCENDING)
-            .limit(1)
-            .get(Source.SERVER)
-            .addOnSuccessListener { snapshot ->
-                if (snapshot != null && !snapshot.isEmpty) {
-                    val latestDocument = snapshot.documents[0]
-                    var json = gson.toJson(latestDocument.data)
-                    // Manually add the document ID to the JSON string
-                    json =
-                        json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
-                    val update = gson.fromJson(json, Update::class.java)
-                    if (update.shouldPrompt()) {
-                        _mostRelevantUpdate.value = update
+            updatesCollection
+                .orderBy(CREATED_ON, Query.Direction.DESCENDING)
+                .limit(1)
+                .get(Source.SERVER)
+                .addOnSuccessListener { snapshot ->
+                    if (snapshot != null && !snapshot.isEmpty) {
+                        val latestDocument = snapshot.documents[0]
+                        var json = gson.toJson(latestDocument.data)
+                        // Manually add the document ID to the JSON string
+                        json =
+                            json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
+                        val update = gson.fromJson(json, Update::class.java)
+                        if (update.shouldPrompt()) {
+                            _mostRelevantUpdate.value = update
+                        }
+                        Log.d(TAG, "checkForUpdates $json")
                     }
-                    Log.d(TAG, "checkForUpdates $json")
+                    Log.d(TAG, "checkForUpdates addOnSuccessListener")
                 }
-                Log.d(TAG, "checkForUpdates addOnSuccessListener")
-            }
-            .addOnFailureListener {
-                Log.e(TAG, "checkForUpdates error", it)
-            }
+                .addOnFailureListener {
+                    Log.e(TAG, "checkForUpdates error", it)
+                }
+        }
     }
 
     fun writeUpdateResult(update: Update) {
