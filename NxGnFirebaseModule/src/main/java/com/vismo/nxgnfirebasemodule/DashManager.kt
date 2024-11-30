@@ -555,7 +555,7 @@ class DashManager @Inject constructor(
         return Driver(
             driverPhoneNumber = driverMap[DRIVER_ID] as String,
             driverName = driverMap[DRIVER_NAME] as String,
-            driverChineseName = driverMap[DRIVER_NAME_CH] as String,
+            driverChineseName = driverMap[DRIVER_NAME_CH] as? String ?: "",
             driverLicense = driverMap[DRIVER_LICENSE] as String
         )
     }
