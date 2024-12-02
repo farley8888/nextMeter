@@ -11,7 +11,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.util.GlobalUtils
 
@@ -31,45 +34,47 @@ fun UpdateScreen(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .padding(8.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.Start
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // details of the update
-            Text("Version: ${updateDetails?.version}", style = Typography.headlineMedium)
-            Text("Description: ${updateDetails?.description}", style = Typography.headlineMedium)
-            Text("Must Update Before:" + GlobalUtils.formatTimestamp(updateDetails?.mustUpdateBefore, showTime = false, showDate = true), style = Typography.headlineMedium)
+            Text("升級部份: \n計費軟件 ${BuildConfig.VERSION_NAME} -> ${updateDetails?.version}", style = Typography.headlineMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text("升級細節: ${updateDetails?.description}", style = Typography.headlineMedium)
+            Text("升級期限:" + GlobalUtils.formatTimestamp(updateDetails?.mustUpdateBefore, showTime = false, showDate = true), style = Typography.headlineMedium)
         }
         Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .padding(8.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             when (updateState) {
                 is UpdateState.Idle -> {
-                    Text("Checking for Updates", style = Typography.headlineMedium)
+                    Text("检查更新", style = Typography.headlineMedium)
                 }
                 is UpdateState.Downloading -> {
                     // Downloading UI
                     val progress = (updateState as UpdateState.Downloading).progress
-                    Text("Downloading: $progress%", style = Typography.headlineMedium)
+                    Text("下载: $progress%", style = Typography.headlineMedium, textAlign = TextAlign.Center)
 
                 }
                 is UpdateState.Installing -> {
-                    Text(text = "Installing", style = Typography.headlineMedium)
+                    Text(text = "安装", style = Typography.headlineMedium)
                 }
                 is UpdateState.Success -> {
-                    Text(text = "Update Successful. Restating the app. Please wait...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
+                    Text(text = "更新成功。正在重新启动应用程序。请稍候...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
                 }
                 is UpdateState.Error -> {
                     val error = (updateState as UpdateState.Error).message
-                    Text("Error: $error", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
+                    Text("误差: $error", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
                 }
 
                 is UpdateState.NoUpdateFound -> {
-                    Text("No Update Found", style = Typography.headlineMedium)
+                    Text("未找到更新", style = Typography.headlineMedium)
                     // remove this screen from the backstack
                 }
             }
