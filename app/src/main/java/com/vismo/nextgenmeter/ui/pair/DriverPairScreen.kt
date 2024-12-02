@@ -165,8 +165,10 @@ fun StartSession(
     ) {
         Button(
             onClick = {
-                navigateToMeterOps()
-                performVirtualTapFeedback(view)
+                if (driverPhoneNumber.isNotEmpty()) {
+                    navigateToMeterOps()
+                    performVirtualTapFeedback(view)
+                }
                       },
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (driverPhoneNumber.isNotEmpty()) primary600 else nobel400,
