@@ -35,6 +35,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -171,7 +172,8 @@ fun MCUSummaryDashboard(
                                 }
                             }
                         )
-                    }
+                    },
+                contentAlignment = Alignment.Center
             ) {
                 val vehicle = if (uiState.vehicle == null) "" else "${uiState.vehicle.make} ${uiState.vehicle.model}"
                 Text(
@@ -179,6 +181,8 @@ fun MCUSummaryDashboard(
                     color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }

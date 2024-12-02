@@ -98,13 +98,26 @@ class UpdateViewModel @Inject constructor(
 
                 targetFile.outputStream().use { output ->
                     val buffer = ByteArray(1024)
-                    var downloadedSize = 0
+                    var downloadedSize = 0L
                     var bytesRead: Int
-                    while (inputStream.read(buffer).also { bytesRead = it }  != -1) {
+                    var progress = 0
+
+                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
                         output.write(buffer, 0, bytesRead)
                         downloadedSize += bytesRead
-                        val progress = (downloadedSize * 100 / totalSize).toInt()
-                        _updateState.value = UpdateState.Downloading(progress)
+
+                        // Calculate progress only if totalSize is known and greater than zero
+                        if (totalSize > 0) {
+                            val newProgress = ((downloadedSize * 100) / totalSize).toInt()
+                            // Update progress only if it has changed to reduce unnecessary UI updates
+                            if (newProgress != progress) {
+                                progress = newProgress
+                                _updateState.value = UpdateState.Downloading(progress)
+                            }
+                        } else {
+                            // Handle unknown total size, e.g., show previous progress
+                            _updateState.value = UpdateState.Downloading(progress)
+                        }
                     }
                 }
                 inputStream.close()
@@ -134,8 +147,7 @@ class UpdateViewModel @Inject constructor(
                 val apkUri = FileProvider.getUriForFile(context, context.packageName + ".fileProvider", apkFile)
                 Log.d(TAG, "apkUri: ${apkUri.path}")
                 resolver.openInputStream(apkUri)?.use { apkStream ->
-                    val length =
-                        DocumentFile.fromSingleUri(context, apkUri)?.length() ?: -1
+                    val length = DocumentFile.fromSingleUri(context, apkUri)?.length() ?: -1
                     val sessionId = installer.createSession(params)
                     val session = installer.openSession(sessionId)
 
