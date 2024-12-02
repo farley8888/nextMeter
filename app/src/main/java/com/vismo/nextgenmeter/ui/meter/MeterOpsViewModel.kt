@@ -281,8 +281,8 @@ class MeterOpsViewModel @Inject constructor(
     private fun handleLongPress(code: Int, repeatCount: Int) {
         when (code) {
             252 -> {
-                if (repeatCount.mod(10) == 0) {
-                    tryToPutFlagDown()
+                if (repeatCount.mod(25) == 0) {
+                    toggleFlagWithoutTrip()
                 }
             }
 
@@ -336,9 +336,14 @@ class MeterOpsViewModel @Inject constructor(
         }
     }
 
-    private fun tryToPutFlagDown() {
+    private fun toggleFlagWithoutTrip() {
         viewModelScope.launch {
-            peripheralControlRepository.toggleForHireFlag(goDown = true)
+            if (_ongoingTrip.value == null && peripheralControlRepository.isFlagDown()) {
+                peripheralControlRepository.toggleForHireFlag(goDown = false)
+            } else {
+                peripheralControlRepository.toggleForHireFlag(goDown = true)
+            }
+            tripRepository.emitBeepSound()
         }
     }
 
