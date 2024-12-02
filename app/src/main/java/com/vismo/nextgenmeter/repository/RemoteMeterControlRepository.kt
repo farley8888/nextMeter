@@ -28,4 +28,6 @@ interface RemoteMeterControlRepository {
 
     fun writeUpdateResultToFireStore(update: Update)
 
+    fun remoteUpdateKValue()
+
 }
