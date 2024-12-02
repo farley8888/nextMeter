@@ -47,6 +47,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -358,7 +359,10 @@ class DashManager @Inject constructor(
                     session = TripSession( sessionId),
                     driver = driver,
                     creationTime = Timestamp.now(),
-                    locationStart = dashManagerConfig.meterLocation.value.geoPoint
+                    locationStart = dashManagerConfig.meterLocation.value.geoPoint,
+                    licensePlate = dashManagerConfig.meterIdentifier.first(),
+                    meterSoftwareVersion = DashManagerConfig.Companion.meterSoftwareVersion,
+                    meterId = dashManagerConfig.deviceID.first()
                 )
             )
         }
