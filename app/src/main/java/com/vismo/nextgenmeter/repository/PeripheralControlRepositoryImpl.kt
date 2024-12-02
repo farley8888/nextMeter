@@ -63,7 +63,7 @@ class PeripheralControlRepositoryImpl(
 
     override fun toggleForHireFlag(goDown: Boolean) {
         scope.launch {
-            val isCurrentlyDown = isFlagCurrentlyDown()
+            val isCurrentlyDown = isFlagDown()
             try {
                 if (goDown  && !isCurrentlyDown) {
                     ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio117/value"))
@@ -80,7 +80,7 @@ class PeripheralControlRepositoryImpl(
         }
     }
 
-    private fun isFlagCurrentlyDown(): Boolean {
+    override fun isFlagDown(): Boolean {
         val gpio117 = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio117/value")
         val gpio116 = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio116/value")
         val isCurrentlyDown = gpio117.trim() == "0" && gpio116.trim() == "1"
