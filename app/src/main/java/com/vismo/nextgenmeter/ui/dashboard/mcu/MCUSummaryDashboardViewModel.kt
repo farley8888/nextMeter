@@ -39,7 +39,6 @@ class MCUSummaryDashboardViewModel @Inject constructor(
     private val mutex = Mutex() // Mutex for synchronization
 
     init {
-        measureBoardRepository.enquireParameters()
         val romVersion = getROMVersion()
         val androidId = getAndroidId()
         viewModelScope.launch(ioDispatcher) {
@@ -86,6 +85,10 @@ class MCUSummaryDashboardViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun enquireParams() {
+        measureBoardRepository.enquireParameters()
     }
 
     private fun getOperatingAreaZH(operatingArea: OperatingArea?): String {

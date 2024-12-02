@@ -337,6 +337,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             changedStepPrice = changedStepPrice,
         )
         DeviceDataStore.setMCUFareData(mcuData)
+        Log.d(TAG, "handleParametersEnquiryResult: $result")
     }
 
     override fun enquireParameters() {
