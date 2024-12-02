@@ -357,7 +357,8 @@ class DashManager @Inject constructor(
                     dashFeeConstant = applicableFeeConstant,
                     session = TripSession( sessionId),
                     driver = driver,
-                    creationTime = Timestamp.now()
+                    creationTime = Timestamp.now(),
+                    locationStart = dashManagerConfig.meterLocation.value.geoPoint
                 )
             )
         }
@@ -376,7 +377,11 @@ class DashManager @Inject constructor(
 
     fun updateTripOnFirestore(trip: MeterTripInFirestore) {
         scope.launch {
-            val json = gson.toJson(trip)
+            val updatedTrip = trip.copy(
+                lastUpdateTime = Timestamp.now(),
+                locationEnd = if (trip.endTime != null) dashManagerConfig.meterLocation.value.geoPoint else null
+            )
+            val json = gson.toJson(updatedTrip)
             val map =
                 (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
@@ -384,7 +389,7 @@ class DashManager @Inject constructor(
                 .collection(TRIPS_COLLECTION)
 
             tripsCollection
-                .document(trip.tripId)
+                .document(updatedTrip.tripId)
                 .set(map, SetOptions.merge())
                 .addOnSuccessListener {
                     Log.d(TAG, "updateTripOnFirestore successfully")
