@@ -38,6 +38,9 @@ data class MeterTripInFirestore(
     @SerializedName("session") val session: TripSession? = null,
     @SerializedName("driver") val driver: Driver? = null,
     @SerializedName("creation_time") val creationTime: Timestamp? = null,
+    @SerializedName("license_plate") val licensePlate: String? = null,
+    @SerializedName("meter_software_version") val meterSoftwareVersion: String? = null,
+    @SerializedName("meter_id") val meterId: String? = null,
 ): Serializable
 
 data class TripSession(

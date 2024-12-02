@@ -1,10 +1,12 @@
 package com.vismo.nextgenmeter.repository
 
 import com.google.firebase.Timestamp
+import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nxgnfirebasemodule.DashManager
+import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
@@ -35,6 +37,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     override val remoteUpdateRequest = dashManager.mostRelevantUpdate
 
     override fun initDashManager() {
+        DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
         dashManager.init()
     }
 
