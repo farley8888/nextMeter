@@ -3,6 +3,7 @@ package com.vismo.nxgnfirebasemodule
 import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -93,6 +94,7 @@ class DashManager @Inject constructor(
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
 
     fun init() {
+        setMeterInfoToSettings()
         meterSdkConfigurationListener()
         scope.launch {
             launch { observeMeterLicensePlate() }
@@ -161,6 +163,22 @@ class DashManager @Inject constructor(
                 }
                 .addOnFailureListener {
                     Log.e(TAG, "performHealthCheck error", it)
+                }
+        }
+    }
+
+    private fun setMeterInfoToSettings() {
+        scope.launch {
+            getMeterDocument()
+                .update(
+                    FieldPath.of("settings", "meter_software_version"), DashManagerConfig.meterSoftwareVersion,
+                    FieldPath.of("settings", "sim_iccid"), DashManagerConfig.simIccId
+                )
+                .addOnSuccessListener {
+                    Log.d(TAG, "setMeterInfoToSettings successfully")
+                }
+                .addOnFailureListener {
+                    Log.e(TAG, "setMeterInfoToSettings error", it)
                 }
         }
     }
