@@ -25,6 +25,7 @@ import com.vismo.nxgnfirebasemodule.model.Settings
 import com.vismo.nxgnfirebasemodule.model.TripSession
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
+import com.vismo.nxgnfirebasemodule.model.isCompleted
 import com.vismo.nxgnfirebasemodule.model.shouldPrompt
 import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
@@ -92,8 +93,6 @@ class DashManager @Inject constructor(
 
     fun init() {
         meterSdkConfigurationListener()
-        //TODO: needs to be called after code 682682 is entered - not like this
-        isMCUParamsUpdateRequired()
         scope.launch {
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
@@ -212,7 +211,7 @@ class DashManager @Inject constructor(
         }
     }
 
-    private fun isMCUParamsUpdateRequired() {
+    fun isMCUParamsUpdateRequired() {
         scope.launch {
             val mcuParamsUpdateCollection = getMeterDocument()
                 .collection(UPDATE_MCU_PARAMS)
@@ -225,11 +224,14 @@ class DashManager @Inject constructor(
                     if (snapshot != null && !snapshot.isEmpty) {
                         val latestDocument = snapshot.documents[0]
                         var json = gson.toJson(latestDocument.data)
-                        // Manually add the document ID to the JSON string
                         json =
                             json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
-                        _mcuParamsUpdateRequired.value =
-                            gson.fromJson(json, UpdateMCUParamsRequest::class.java)
+                        val update = gson.fromJson(json, UpdateMCUParamsRequest::class.java)
+
+                        if (!update.isCompleted()) {
+                            _mcuParamsUpdateRequired.value = update
+                        }
+                        Log.d(TAG, "isMCUParamsUpdateRequired $json")
                     }
                 }
         }

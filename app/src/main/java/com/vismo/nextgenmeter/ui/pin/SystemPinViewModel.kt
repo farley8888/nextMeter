@@ -8,6 +8,7 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.MeterApiRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
+import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.util.CryptoManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,7 +29,8 @@ import javax.inject.Inject
 class SystemPinViewModel @Inject constructor(
     private val meterApiRepository: MeterApiRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val meterPreferenceRepository: MeterPreferenceRepository
+    private val meterPreferenceRepository: MeterPreferenceRepository,
+    private val remoteMeterControlRepository: RemoteMeterControlRepository
 ): ViewModel() {
     private lateinit var verifier: DefaultCodeVerifier
     private val _totpStatus: MutableStateFlow<String> = MutableStateFlow("")
@@ -117,6 +119,9 @@ class SystemPinViewModel @Inject constructor(
             if(code == PIN_OPEN_QC_APP) {
                 ShellUtils.execShellCmd("am start com.ilin.test");
             }
+            if (code == PIN_REMOTE_UPDATE_K_VALUE) {
+                remoteMeterControlRepository.remoteUpdateKValue()
+            }
         }
     }
 
@@ -128,5 +133,6 @@ class SystemPinViewModel @Inject constructor(
     companion object {
         private const val PIN_WITH_GOD_CODE = "191005"
         private const val PIN_OPEN_QC_APP = "121003"
+        private const val PIN_REMOTE_UPDATE_K_VALUE = "682682"
     }
 }

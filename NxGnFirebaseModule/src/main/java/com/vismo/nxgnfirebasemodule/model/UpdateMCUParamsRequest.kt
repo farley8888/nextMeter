@@ -9,3 +9,7 @@ data class UpdateMCUParamsRequest(
     @SerializedName("k_value") val kValue: Int,
     @SerializedName("completed_on") val completedOn: Timestamp? = null,
 )
+
+fun UpdateMCUParamsRequest.isCompleted(): Boolean {
+    return completedOn != null
+}
