@@ -140,7 +140,6 @@ fun EditKValueAndLicensePlateScreen(
                         snackbarDelegate.showSnackbar(SnackbarState.ERROR, "No changes made. Please check if values are correctly entered.")
                     } else {
                         snackbarDelegate.showSnackbar(SnackbarState.SUCCESS,"Values updated")
-                        viewModel.reEnquireParameters()
                     }
                     performVirtualTapFeedback(view)
                 },

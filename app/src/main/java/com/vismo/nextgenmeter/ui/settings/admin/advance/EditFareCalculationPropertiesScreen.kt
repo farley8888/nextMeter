@@ -120,7 +120,6 @@ fun EditFareCalculationPropertiesScreen(
                     stepPrice2nd = stepPrice2nd,
                     threshold = threshold
                 )
-                viewModel.reEnquireParameters()
                 snackbarDelegate.showSnackbar(SnackbarState.SUCCESS,"Fare parameters updated")
                 performVirtualTapFeedback(view)
             },

@@ -213,6 +213,7 @@ class DashManager @Inject constructor(
 
     fun isMCUParamsUpdateRequired() {
         scope.launch {
+            _mcuParamsUpdateRequired.value = null
             val mcuParamsUpdateCollection = getMeterDocument()
                 .collection(UPDATE_MCU_PARAMS)
 
@@ -412,7 +413,9 @@ class DashManager @Inject constructor(
     }
 
     private fun checkForMostRelevantUpdate() {
+        // apk or firmware updates
         scope.launch {
+            _mostRelevantUpdate.value = null
             val updatesCollection = getMeterDocument()
                 .collection(UPDATES_COLLECTION)
 

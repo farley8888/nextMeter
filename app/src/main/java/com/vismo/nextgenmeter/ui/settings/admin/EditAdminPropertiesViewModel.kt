@@ -57,10 +57,6 @@ class EditAdminPropertiesViewModel @Inject constructor(
         )
     }
 
-    fun reEnquireParameters() {
-        measureBoardRepository.enquireParameters()
-    }
-
     private fun setInitialADBStatus() {
         viewModelScope.launch {
             withContext(ioDispatcher) {
