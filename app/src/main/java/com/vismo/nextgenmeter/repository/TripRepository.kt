@@ -34,4 +34,6 @@ interface TripRepository {
 
     suspend fun getMostRecentTrip()
 
+    fun emitBeepSound()
+
 }

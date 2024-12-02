@@ -195,4 +195,8 @@ class TripRepositoryImpl @Inject constructor(
         TripDataStore.setMostRecentTripData(mostRecentTrip)
     }
 
+    override fun emitBeepSound() {
+        measureBoardRepository.emitBeepSound(5, 0, 1)
+    }
+
 }
