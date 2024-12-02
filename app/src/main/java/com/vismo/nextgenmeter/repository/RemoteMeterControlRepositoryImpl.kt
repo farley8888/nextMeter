@@ -114,6 +114,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         dashManager.onCleared()
     }
 
+    override fun remoteUpdateKValue() {
+        dashManager.isMCUParamsUpdateRequired()
+    }
+
 
     companion object {
         private const val DEFAULT_HEARTBEAT_INTERVAL = 5
