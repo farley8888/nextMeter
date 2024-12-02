@@ -1,6 +1,7 @@
 package com.vismo.nextgenmeter.repository
 
 import com.google.firebase.Timestamp
+import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.model.MeterInfo
@@ -37,8 +38,14 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     override val remoteUpdateRequest = dashManager.mostRelevantUpdate
 
     override fun initDashManager() {
+        DashManagerConfig.simIccId = getICCID() ?: ""
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
         dashManager.init()
+    }
+
+    private fun getICCID(): String? {
+        val iccid = ShellUtils.execShellCmd("getprop ril.yuga.iccid")
+        return iccid
     }
 
     override fun observeFlows() {
