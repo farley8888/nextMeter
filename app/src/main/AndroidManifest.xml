@@ -5,8 +5,6 @@
     android:sharedUserMaxSdkVersion="32"
     package="com.vismo.nextgenmeter">
 
-    <uses-permission android:name="android.permission.REBOOT"
-        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SET_TIME"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
