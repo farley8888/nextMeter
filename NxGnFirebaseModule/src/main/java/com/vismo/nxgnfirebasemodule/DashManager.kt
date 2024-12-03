@@ -527,7 +527,8 @@ class DashManager @Inject constructor(
                 deviceTime = Timestamp.now(),
                 bearing = bearing,
                 speed = speed,
-                serverTime = Timestamp.now() // Server time is actually set by the .toFirestoreFormat extension
+                serverTime = Timestamp.now(), // Server time is actually set by the .toFirestoreFormat extension
+                meterSoftwareVersion = DashManagerConfig.meterSoftwareVersion
             )
             val json = gson.toJson(heartbeat)
             val map =

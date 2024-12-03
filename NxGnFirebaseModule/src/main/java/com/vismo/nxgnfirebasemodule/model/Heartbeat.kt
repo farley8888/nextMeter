@@ -24,6 +24,7 @@ data class Heartbeat(
     @SerializedName(SERVER_TIME) @ServerTimestamp val serverTime: Timestamp? = null,
     @SerializedName("bearing") val bearing: Number?,
     @SerializedName("speed") val speed: Number?,
+    @SerializedName("meter_software_version") val meterSoftwareVersion: String? = null,
 )
 
 class HeartbeatSerializer : JsonSerializer<Heartbeat> {
