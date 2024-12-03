@@ -16,16 +16,16 @@ data class MCUFareParams(
 
 fun MCUFareParams.format() : MCUFareParams {
     fun getFormattedStartPrice(startingPrice: String): String =
-        "$${String.format(Locale.US, "%.2f", (startingPrice).toDouble() / 100)}"
+        String.format(Locale.US, "%.2f", (startingPrice).toDouble() / 100)
 
     fun getFormattedStepPrice(stepPrice: String): String =
-        "$${String.format(Locale.US, "%.2f", (stepPrice).toDouble() / 5 / 100)}"
+        String.format(Locale.US, "%.2f", (stepPrice).toDouble() / 5 / 100)
 
     fun getFormattedChangedPriceAt(changedPriceAt: String): String =
-        "$${String.format(Locale.US, "%.2f", (changedPriceAt).toDouble() / 10)}"
+        String.format(Locale.US, "%.2f", (changedPriceAt).toDouble() / 10)
 
     fun getFormattedChangedStepPrice(changedStepPrice: String): String =
-        "$${String.format(Locale.US, "%.2f", (changedStepPrice).toDouble() / 5 / 100)}"
+        String.format(Locale.US, "%.2f", (changedStepPrice).toDouble() / 5 / 100)
 
     return MCUFareParams(
         parametersVersion = this.parametersVersion,

@@ -5,6 +5,7 @@ import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.model.MeterInfo
+import com.vismo.nextgenmeter.model.format
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
@@ -53,7 +54,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
             launch {
                 DeviceDataStore.mcuPriceParams.collectLatest { mcuParams ->
                     mcuParams?.let {
-                        val mcuInfo: McuInfo = dashManager.convertToType(it)
+                        val mcuInfo: McuInfo = dashManager.convertToType(it.format())
                         dashManager.setMCUInfoOnFirestore(mcuInfo)
                     }
                 }
