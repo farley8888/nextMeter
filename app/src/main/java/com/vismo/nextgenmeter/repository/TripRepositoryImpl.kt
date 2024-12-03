@@ -16,6 +16,8 @@ import com.vismo.nxgnfirebasemodule.model.getPricingResult
 import com.vismo.nxgnfirebasemodule.model.isDashPayment
 import com.vismo.nxgnfirebasemodule.model.paidStatus
 import com.vismo.nxgnfirebasemodule.util.LogConstant
+import io.sentry.IScope
+import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -125,6 +127,9 @@ class TripRepositoryImpl @Inject constructor(
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
         dashManager.createTripAndSetDocumentListenerOnFirestore(tripId)
+        Sentry.configureScope { scope: IScope ->
+            scope.setTag("trip_id", tripId)
+        }
     }
 
     override fun resumeTrip() {
@@ -142,10 +147,16 @@ class TripRepositoryImpl @Inject constructor(
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
         dashManager.createTripAndSetDocumentListenerOnFirestore(tripId)
+        Sentry.configureScope { scope: IScope ->
+            scope.setTag("trip_id", tripId)
+        }
     }
 
     override fun endTrip() {
         measureBoardRepository.writeEndTripCommand()
+        Sentry.configureScope { scope: IScope ->
+            scope.removeTag("trip_id")
+        }
     }
 
     override fun pauseTrip() {

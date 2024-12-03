@@ -32,6 +32,8 @@ import com.vismo.nextgenmeter.util.MeasureBoardUtils.getResultType
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.getTimeInSeconds
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.sentry.IScope
+import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -61,6 +63,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
+        Sentry.captureException(throwable)
     }
     private var scope: CoroutineScope? = null
 
@@ -134,6 +137,9 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         dashManagerConfig.setDeviceIdData(deviceId = measureBoardDeviceId, licensePlate =  licensePlate)
         meterPreferenceRepository.saveDeviceId(measureBoardDeviceId)
         meterPreferenceRepository.saveLicensePlate(licensePlate)
+        Sentry.configureScope { scope: IScope ->
+            scope.setTag("license_plate", licensePlate)
+        }
         Log.d(TAG, "IDLE_HEARTBEAT: $result")
     }
 
