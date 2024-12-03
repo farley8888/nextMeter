@@ -30,6 +30,9 @@ object DeviceDataStore {
     private val _deviceGodCodeUnlockState = MutableStateFlow<DeviceGodCodeUnlockState>(DeviceGodCodeUnlockState.Locked)
     val deviceGodCodeUnlockState: StateFlow<DeviceGodCodeUnlockState> = _deviceGodCodeUnlockState
 
+    private val _clearCacheOfApplication = MutableStateFlow(false)
+    val clearCacheOfApplication: StateFlow<Boolean> = _clearCacheOfApplication
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
@@ -60,5 +63,9 @@ object DeviceDataStore {
 
     fun setDeviceGodCodeUnlockState(state: DeviceGodCodeUnlockState) {
         this._deviceGodCodeUnlockState.value = state
+    }
+
+    fun setClearCacheOfApplication(clearCache: Boolean) {
+        this._clearCacheOfApplication.value = clearCache
     }
 }
