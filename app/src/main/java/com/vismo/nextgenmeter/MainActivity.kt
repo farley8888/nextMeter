@@ -239,18 +239,13 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
 
     private fun clearApplicationCache() {
         (this.getSystemService(ACTIVITY_SERVICE) as? ActivityManager).let { activityManager ->
+            Toast.makeText(this, "Clearing cache...Please restart device after", Toast.LENGTH_LONG).show()
             if (activityManager?.clearApplicationUserData() == true) {
-                Toast.makeText(this, "Cache cleared. Restarting app", Toast.LENGTH_SHORT).show()
-                restartDevice(this)
+                Log.d( TAG, "Cache cleared. Restarting app")
             } else {
-                Toast.makeText(this, "Failed to clear cache", Toast.LENGTH_SHORT).show()
+                Log.d( TAG, "Failed to clear cache")
             }
         }
-    }
-
-    private fun restartDevice(context: Context){
-        val powerManager = this.getSystemService(PowerManager::class.java) as PowerManager
-        powerManager.reboot("Cache cleared")
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
