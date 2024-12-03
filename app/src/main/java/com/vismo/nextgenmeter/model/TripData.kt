@@ -88,3 +88,9 @@ fun TripData.shouldLockMeter(): Boolean {
     val isOverSpeed = overSpeedDurationInSeconds > 0
     return isStatusLocked && isOverSpeed
 }
+
+fun TripData.isAbnormalPulseStatus(): Boolean {
+    val currentMCUStatus = OngoingMeasureBoardStatus.fromInt(mcuStatus ?: -1)
+    val isAbnormalPulse = currentMCUStatus is OngoingMeasureBoardStatusFault || currentMCUStatus is OngoingMeasureBoardStatusFaultAndOverspeed
+    return isAbnormalPulse
+}

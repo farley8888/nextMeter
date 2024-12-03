@@ -8,6 +8,7 @@ import com.vismo.nextgenmeter.model.Quadruple
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
+import com.vismo.nextgenmeter.model.isAbnormalPulseStatus
 import com.vismo.nextgenmeter.model.shouldLockMeter
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
@@ -166,8 +167,9 @@ class MeterOpsViewModel @Inject constructor(
     }
 
     private suspend fun handleOverSpeed(trip: TripData, isAbnormalPulseTriggered: Boolean) {
-        if (trip.overSpeedDurationInSeconds > 3 && _meterLockState.value == MeterLockAction.NoAction) {
-            _meterLockState.value = MeterLockAction.Lock(isAbnormalPulseTriggered)
+        val isAbnormalPulse = isAbnormalPulseTriggered || trip.isAbnormalPulseStatus()
+        if (_meterLockState.value == MeterLockAction.NoAction) {
+            _meterLockState.value = MeterLockAction.Lock(isAbnormalPulse)
         }
         if (trip.overSpeedDurationInSeconds > LOCK_DIALOG_VISIBILITY_DURATION && uiState.value.overSpeedDurationInSeconds < LOCK_DIALOG_VISIBILITY_DURATION) {
             updateUIStateForTrip(trip, Hired)
@@ -231,7 +233,7 @@ class MeterOpsViewModel @Inject constructor(
                     val savedStartPrice = meterPreferenceRepository.getMcuStartPrice().first()?.replace("$", "") ?: DEFAULT_STARTING_PRICE
                     val startPrice = MeasureBoardUtils.formatStartingPrice(savedStartPrice)
                     if (startPrice.isNotEmpty()) startPrice else DEFAULT_STARTING_PRICE
-                } else ""
+                } else "",
             )
         }
     }
