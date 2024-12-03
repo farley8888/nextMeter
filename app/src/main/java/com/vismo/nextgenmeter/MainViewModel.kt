@@ -100,6 +100,9 @@ class MainViewModel @Inject constructor(
     private val _snackBarContent = MutableStateFlow<Pair<String, SnackbarState>?>(null)
     val snackBarContent: StateFlow<Pair<String, SnackbarState>?> = _snackBarContent
 
+    private val _clearApplicationCache = MutableStateFlow(false)
+    val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
+
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest.stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
 
     private fun observeFlows() {
@@ -112,6 +115,18 @@ class MainViewModel @Inject constructor(
             launch { observeShowLoginToggle() }
             launch { observeShowConnectionIconsToggle() }
             launch { observeStorageReceiverStatus() }
+            launch { observeClearCacheOfApplication() }
+        }
+    }
+
+    private fun observeClearCacheOfApplication() {
+        viewModelScope.launch {
+            DeviceDataStore.clearCacheOfApplication.collectLatest { clearCache ->
+                if (clearCache) {
+                    _clearApplicationCache.value = true
+                    DeviceDataStore.setClearCacheOfApplication(false)
+                }
+            }
         }
     }
 
@@ -139,6 +154,10 @@ class MainViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun setClearApplicationCache(boolean: Boolean) {
+        _clearApplicationCache.value = boolean
     }
 
     fun snoozeUpdate(update: Update?) {
