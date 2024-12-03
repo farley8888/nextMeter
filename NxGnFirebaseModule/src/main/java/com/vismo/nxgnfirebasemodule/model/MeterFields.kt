@@ -27,7 +27,6 @@ data class Settings(
     @SerializedName("dash_fee_rate") val dashFeeRate: Double,
     @SerializedName("heartbeat_interval") val heartbeatInterval: Int,
     @SerializedName("meter_software_version") val meterSoftwareVersion: String,
-    @SerializedName("sdk_version") val sdkVersion: String,
     @SerializedName("show_login_toggle") val showLoginToggle: Boolean = false,
     @SerializedName("sim_iccid") val simIccid: String,
     @SerializedName("vehicle") val vehicle: Vehicle,
