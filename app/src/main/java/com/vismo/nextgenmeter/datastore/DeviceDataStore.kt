@@ -34,7 +34,7 @@ object DeviceDataStore {
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
         mutex.withLock {
-            this._mcuFareParams.value = mcuData.format()
+            this._mcuFareParams.value = mcuData
         }
     }
 
