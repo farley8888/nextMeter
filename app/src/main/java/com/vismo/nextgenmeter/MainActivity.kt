@@ -60,6 +60,7 @@ import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.canBeSnoozed
 import com.vismo.nxgnfirebasemodule.util.DashUtil
 import dagger.hilt.android.AndroidEntryPoint
+import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -105,6 +106,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         setWifiStatus()
         registerStorageReceiver()
         registerUsbReceiver()
+        SentryAndroid.init(this) { options ->
+            options.environment = BuildConfig.FLAVOR.uppercase()
+        }
         setContent {
             CableMeterTheme {
                 // A surface container using the 'background' color from the theme

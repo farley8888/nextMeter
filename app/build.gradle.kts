@@ -9,6 +9,8 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.googleServices)
     alias(libs.plugins.crashlyticsGradle)
+
+    id("io.sentry.android.gradle") version "4.14.1"
 }
 
 fun getVersionName(): String {
@@ -165,4 +167,14 @@ dependencies {
     implementation(libs.preferences.datastore)
     implementation(libs.floating.bubble.view)
     implementation(libs.proto.datastore)
+}
+
+
+sentry {
+    org.set("vis-mobility-limited")
+    projectName.set("cable-meter")
+
+    // this will upload your source code to Sentry to show it as part of the stack traces
+    // disable if you don't want to expose your sources
+    includeSourceContext.set(true)
 }
