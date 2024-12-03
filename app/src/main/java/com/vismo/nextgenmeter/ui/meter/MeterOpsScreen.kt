@@ -114,7 +114,7 @@ fun MeterOpsScreen(
                 }
             }
     ) {
-        lockDialogShowState.value = lockTitle.isNotEmpty() && uiState.overSpeedDurationInSeconds < 10 && uiState.remainingOverSpeedTimeInSeconds != null // we only want to show the dialog once for the first 10 seconds
+        lockDialogShowState.value = lockTitle.isNotEmpty() && uiState.overSpeedDurationInSeconds < 10 && meterLockState is MeterLockAction.Lock // we only want to show the dialog once for the first 10 seconds
         NxGnMeterDialog(showDialog = lockDialogShowState, onDismiss = {}, content = { NxGnDialogContent(
             message = lockTitle,
         ) })
@@ -172,7 +172,7 @@ fun ColumnScope.TaxiMeterUI(uiState: MeterOpsUiData, meterLockState: MeterLockAc
         modifier = Modifier.weight(2f)
     ) {
         DetailsBox(uiState)
-        TotalBox(uiState)
+        TotalBox(uiState, meterLockState)
     }
 
     Spacer(modifier = Modifier.height(8.dp))
@@ -302,7 +302,10 @@ fun FareOrExtraRow(label: String, value: String, showZero: Boolean, color: Color
 
 
 @Composable
-fun RowScope.TotalBox(uiState: MeterOpsUiData) {
+fun RowScope.TotalBox(
+    uiState: MeterOpsUiData,
+    meterLockState: MeterLockAction
+) {
     Column(
         modifier = Modifier
             .weight(2.2f)
@@ -337,11 +340,10 @@ fun RowScope.TotalBox(uiState: MeterOpsUiData) {
             // if status = hired, show fare
             // if status = paused, show total
             val numberToShow = if(uiState.status == Hired || uiState.status == PastTrip) uiState.fare else if (uiState.status == Paused) uiState.totalFare else ""
-            val startingPrice = if(uiState.mcuStartingPrice.isNotEmpty()) "c${uiState.mcuStartingPrice}" else "27.00"
-            val totalFare = if(uiState.remainingOverSpeedTimeInSeconds != null && uiState.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) "c${uiState.mcuStartingPrice}" else numberToShow
+            val totalFare = if(meterLockState is MeterLockAction.Lock && uiState.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) "c${uiState.mcuStartingPrice}" else numberToShow
             val totalFareDouble = uiState.totalFare.toDoubleOrNull()
             var isVisible by remember { mutableStateOf(true) }
-            val isBlinking = uiState.overSpeedDurationInSeconds in 1..TOTAL_LOCK_BEEP_COUNTER
+            val isBlinking = uiState.overSpeedDurationInSeconds < TOTAL_LOCK_BEEP_COUNTER && meterLockState is MeterLockAction.Lock
             LaunchedEffect(isBlinking) {
                 if (isBlinking) {
                     while (true) {
