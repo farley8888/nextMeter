@@ -40,6 +40,8 @@ import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.sentry.IScope
+import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -254,8 +256,14 @@ class MainViewModel @Inject constructor(
                 if (driverPreferenceRepository.getDriverOnce().driverPhoneNumber != it.session?.driver?.driverPhoneNumber) {
                     if (it.session?.driver?.driverPhoneNumber != null) {
                         driverPreferenceRepository.saveDriver(it.session.driver)
+                        Sentry.configureScope { scope: IScope ->
+                            scope.setTag("driver_phone_number", it.session.driver.driverPhoneNumber )
+                        }
                     } else {
                         driverPreferenceRepository.resetDriver()
+                        Sentry.configureScope { scope: IScope ->
+                            scope.removeTag("driver_phone_number")
+                        }
                     }
                 }
             }
