@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter
 
+import android.app.ActivityManager
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
@@ -7,11 +8,13 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbManager
 import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.os.PowerManager
 import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.KeyEvent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -145,6 +148,11 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                         mutableStateOf(false)
                     }
                     showUpdateDialog.value = aValidUpdate != null && !isDialogShown.value && !isTripInProgress
+                    val clearAppCache = mainViewModel.clearApplicationCache.collectAsState().value
+                    if (clearAppCache) {
+                        clearApplicationCache()
+                        mainViewModel.setClearApplicationCache(false)
+                    }
                     Scaffold(
                         snackbarHost = {
                             SnackbarHost(
@@ -227,6 +235,22 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                 }
             }
         }
+    }
+
+    private fun clearApplicationCache() {
+        (this.getSystemService(ACTIVITY_SERVICE) as? ActivityManager).let { activityManager ->
+            if (activityManager?.clearApplicationUserData() == true) {
+                Toast.makeText(this, "Cache cleared. Restarting app", Toast.LENGTH_SHORT).show()
+                restartDevice(this)
+            } else {
+                Toast.makeText(this, "Failed to clear cache", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun restartDevice(context: Context){
+        val powerManager = this.getSystemService(PowerManager::class.java) as PowerManager
+        powerManager.reboot("Cache cleared")
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

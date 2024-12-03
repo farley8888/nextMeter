@@ -122,6 +122,9 @@ class SystemPinViewModel @Inject constructor(
             if (code == PIN_REMOTE_UPDATE_K_VALUE) {
                 remoteMeterControlRepository.remoteUpdateKValue()
             }
+            if (code == PIN_CLEAR_CACHE) {
+                DeviceDataStore.setClearCacheOfApplication(true)
+            }
         }
     }
 
@@ -134,5 +137,6 @@ class SystemPinViewModel @Inject constructor(
         private const val PIN_WITH_GOD_CODE = "191005"
         private const val PIN_OPEN_QC_APP = "121003"
         private const val PIN_REMOTE_UPDATE_K_VALUE = "682682"
+        private const val PIN_CLEAR_CACHE = "130398"
     }
 }
