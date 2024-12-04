@@ -192,7 +192,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 deviceId = deviceId,
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
-                mcuStatus = heartbeatData.mcuStatus
+                mcuStatus = heartbeatData.mcuStatus,
+                wasTripJustStarted = true
             )
 
             TripDataStore.setFallbackTripDataToStartNewTrip(newTrip)
@@ -202,8 +203,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         else {
             val requiresUpdate = currentOngoingLocalTrip.fare != heartbeatData.fare ||
                     currentOngoingLocalTrip.tripStatus != heartbeatData.tripStatus ||
-                    currentOngoingLocalTrip.extra != heartbeatData.extras ||
-                    heartbeatData.lockedDurationDecimal > 0
+                    currentOngoingLocalTrip.extra != heartbeatData.extras
 
             val overSpeedDurationInSeconds = if (currentOngoingLocalTrip.overSpeedDurationInSeconds > heartbeatData.lockedDurationDecimal) {
                 currentOngoingLocalTrip.overSpeedDurationInSeconds + heartbeatData.lockedDurationDecimal
@@ -223,7 +223,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 requiresUpdateOnDatabase = requiresUpdate,
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
-                mcuStatus = heartbeatData.mcuStatus
+                mcuStatus = heartbeatData.mcuStatus,
+                wasTripJustStarted = false
             )
 
             TripDataStore.updateTripDataValue(updatedTrip)
