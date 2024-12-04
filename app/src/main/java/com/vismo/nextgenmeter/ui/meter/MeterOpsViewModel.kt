@@ -209,10 +209,10 @@ class MeterOpsViewModel @Inject constructor(
     }
 
     private suspend fun updateUIStateForTrip(trip: TripData, status: TripStateInMeterOpsUI) {
-        val savedStartPrice = meterPreferenceRepository.getMcuStartPrice().first()?.replace("$", "") ?: "0.0"
-        val startPrice = MeasureBoardUtils.formatStartingPrice(savedStartPrice).toDouble()
-        val fareIfZero = if (trip.fare == 0.0) startPrice else trip.fare
-        val totalFareIfZero = if (trip.totalFare == 0.0) startPrice else trip.totalFare
+//        val savedStartPrice = meterPreferenceRepository.getMcuStartPrice().first()?.replace("$", "") ?: "0.0"
+//        val startPrice = MeasureBoardUtils.formatStartingPrice(savedStartPrice).toDouble()
+        val fareIfZero = trip.fare // if (trip.fare == 0.0) startPrice else trip.fare
+        val totalFareIfZero = trip.totalFare // if (trip.totalFare == 0.0) startPrice else trip.totalFare
 
         uiUpdateMutex.withLock {
             val isLocked = trip.shouldLockMeter()
