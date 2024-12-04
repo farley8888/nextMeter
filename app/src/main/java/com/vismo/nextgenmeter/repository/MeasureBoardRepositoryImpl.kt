@@ -118,6 +118,10 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             delay(200)
             setReceiveEvalDataLs()
             mBusModel?.startCommunicate()
+            if (mBusModel == null) {
+                Log.e(TAG, "init: mBusModel is null")
+                Sentry.captureMessage("init: mBusModel is null")
+            }
             delay(200)
         }
         Log.d(TAG, "MeasureBoardRepositoryImpl: init")
@@ -193,6 +197,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
             TripDataStore.setFallbackTripDataToStartNewTrip(newTrip)
             Log.d(TAG, "handleOngoingHeartbeatResult: currentOngoingLocalTrip is null")
+            Sentry.captureMessage("handleOngoingHeartbeatResult: currentOngoingLocalTrip is null")
         }
         else {
             val requiresUpdate = currentOngoingLocalTrip.fare != heartbeatData.fare ||
@@ -287,6 +292,10 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             )
             TripDataStore.updateTripDataValue(currentOngoingTrip)
         }
+        if(currentOngoingTripInDB == null) {
+            Log.d(TAG, "handleTripEndSummaryResult: currentOngoingTripInDB is null")
+            Sentry.captureMessage("handleTripEndSummaryResult: currentOngoingTripInDB is null")
+        }
 
         addTask {
             // after a trip ends, MCU will only continue sending IDLE heartbeats after it receives this response
@@ -301,7 +310,10 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             TRIP_END_SUMMARY -> handleTripEndSummaryResult(result = result)
             PARAMETERS_ENQUIRY -> handleParametersEnquiryResult(result = result)
             ABNORMAL_PULSE -> handleAbnormalPulse(result = result)
-            else -> { Log.d(TAG, "Unknown result type: ${getResultType(result)}") }
+            else -> {
+                Log.d(TAG, "Unknown result type: ${getResultType(result)}")
+                Sentry.captureMessage("Unknown result: $result")
+            }
         }
         Log.d(TAG, "checkStatues: $result")
     }
@@ -457,6 +469,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
         if(mBusModel == null) {
            Log.e(TAG, "setReceiveEvalDataLs: mBusModel is null")
+            Sentry.captureMessage("setReceiveEvalDataLs: mBusModel is null")
         }
     }
 
