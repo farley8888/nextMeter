@@ -49,10 +49,15 @@ class TripRepositoryImpl @Inject constructor(
                 TripDataStore.ongoingTripData.collect { trip ->
                     trip?.let {
                         // Update trip in Firestore if required
-                        if (trip.requiresUpdateOnDatabase) {
+                        if (trip.requiresUpdateOnDatabase || trip.wasTripJustStarted) {
                             localTripsRepository.updateTrip(it)
                             val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
-                            dashManager.updateTripOnFirestore(tripInFirestore)
+                            if (trip.wasTripJustStarted) {
+                                dashManager.setFirestoreTripDocumentListener(trip.tripId)
+                                dashManager.createTripOnFirestore(tripInFirestore)
+                            } else {
+                                dashManager.updateTripOnFirestore(tripInFirestore)
+                            }
                         }
                         // Handle abnormal pulse and overspeed counters
                         val abnormalPulseChanged = it.abnormalPulseCounter != _currentAbnormalPulseCounter.value && it.abnormalPulseCounter != null && it.abnormalPulseCounter > 0
@@ -86,7 +91,6 @@ class TripRepositoryImpl @Inject constructor(
             launch {
                 TripDataStore.fallbackTripDataToStartNewTrip.collectLatest {
                     it?.let {
-                        dashManager.createTripAndSetDocumentListenerOnFirestore(it.tripId)
                         localTripsRepository.addTrip(it)
                         TripDataStore.setTripData(it)
                         TripDataStore.clearFallbackTripDataToStartNewTrip()
@@ -122,11 +126,10 @@ class TripRepositoryImpl @Inject constructor(
         val tripId = MeasureBoardUtils.generateTripId()
         val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
         val deviceId = DeviceDataStore.deviceIdData.first()?.deviceId ?: ""
-        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED, licensePlate = licensePlate, deviceId = deviceId)
+        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED, licensePlate = licensePlate, deviceId = deviceId, wasTripJustStarted = true)
         TripDataStore.setTripData(tripData)
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
-        dashManager.createTripAndSetDocumentListenerOnFirestore(tripId)
         Sentry.configureScope { scope: IScope ->
             scope.setTag("trip_id", tripId)
         }
@@ -142,11 +145,10 @@ class TripRepositoryImpl @Inject constructor(
         val tripId = MeasureBoardUtils.generateTripId()
         val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
         val deviceId = DeviceDataStore.deviceIdData.first()?.deviceId ?: ""
-        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.STOP, licensePlate = licensePlate, deviceId = deviceId)
+        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.STOP, licensePlate = licensePlate, deviceId = deviceId, wasTripJustStarted = true)
         TripDataStore.setTripData(tripData)
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
-        dashManager.createTripAndSetDocumentListenerOnFirestore(tripId)
         Sentry.configureScope { scope: IScope ->
             scope.setTag("trip_id", tripId)
         }
