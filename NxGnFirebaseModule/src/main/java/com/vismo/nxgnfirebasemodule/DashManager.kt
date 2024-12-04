@@ -311,7 +311,7 @@ class DashManager @Inject constructor(
         }
     }
 
-    fun createTripAndSetDocumentListenerOnFirestore(tripId: String) {
+    fun setFirestoreTripDocumentListener(tripId: String) {
         scope.launch {
             tripDocumentListener?.remove() // Remove the previous listener
 
@@ -330,8 +330,6 @@ class DashManager @Inject constructor(
 
                     }
                 }
-            // should only run once when trip is created
-            writeTripFeeInFirestore(tripId)
         }
     }
 
@@ -349,7 +347,7 @@ class DashManager @Inject constructor(
         _tripInFirestore.value = null
     }
 
-    private fun writeTripFeeInFirestore(tripId: String) {
+    fun createTripOnFirestore(trip: MeterTripInFirestore) {
         scope.launch {
             // check in meter settings by default
             val settingsFeeRate = _meterFields.value?.settings?.dashFeeRate
@@ -369,20 +367,18 @@ class DashManager @Inject constructor(
             val sessionId = _meterFields.value?.session?.sessionId
             val driver = _meterFields.value?.session?.driver
 
-            updateTripOnFirestore(
-                MeterTripInFirestore(
-                    tripId = tripId,
-                    dashFeeRate = applicableFeeRate,
-                    dashFeeConstant = applicableFeeConstant,
-                    session = TripSession( sessionId),
-                    driver = driver,
-                    creationTime = Timestamp.now(),
-                    locationStart = dashManagerConfig.meterLocation.value.geoPoint,
-                    licensePlate = dashManagerConfig.meterIdentifier.first(),
-                    meterSoftwareVersion = DashManagerConfig.Companion.meterSoftwareVersion,
-                    meterId = dashManagerConfig.deviceID.first()
-                )
+            val updatedTrip = trip.copy(
+                dashFeeRate = applicableFeeRate,
+                dashFeeConstant = applicableFeeConstant,
+                session = TripSession( sessionId),
+                driver = driver,
+                creationTime = Timestamp.now(),
+                locationStart = dashManagerConfig.meterLocation.value.geoPoint,
+                licensePlate = dashManagerConfig.meterIdentifier.first(),
+                meterSoftwareVersion = DashManagerConfig.Companion.meterSoftwareVersion,
+                meterId = dashManagerConfig.deviceID.first()
             )
+            updateTripOnFirestore(updatedTrip)
         }
     }
 
