@@ -31,7 +31,6 @@ data class MeterTripInFirestore(
     @SerializedName("dash_fee_rate") val dashFeeRate: Double? = null,
     @SerializedName("dash_fee_constant") val dashFeeConstant: Double? = null,
     @SerializedName("user") val user: PairedUserInformation? = null,
-    @SerializedName("discount_rules") val discountRules: List<DiscountRule?>? = null,
     @SerializedName("applicable_payment_method_for_discount") val applicablePaymentMethodForDiscount: List<String>? = null,
     @SerializedName("payment_method_selected") val paymentMethodSelectedOnPOS: String? = null,
     @SerializedName("payment_information") val paymentInformation: List<Map<String, *>>? = null,
@@ -111,14 +110,15 @@ fun MeterTripInFirestore.getPricingResult(asDashTransaction: Boolean): PricingRe
     val feeConstant = dashFeeConstant ?: 0.0
     val applicableTip = tips ?: 0.0
 
-    val validDiscountPair = if (tripTotal != null && paymentMethodSelectedOnPOS != null) {
-        getValidDashDiscountRule(
-            tripTotal = tripTotal,
-            selectedPaymentMethod =  paymentMethodSelectedOnPOS,
-            applicablePaymentMethodsForDiscount = applicablePaymentMethodForDiscount ?: listOf(),
-            discountRules = discountRules?.filterNotNull() ?: listOf()
-        )
-    } else null
+//    val validDiscountPair =
+//        if (tripTotal != null && paymentMethodSelectedOnPOS != null) {
+//        getValidDashDiscountRule(
+//            tripTotal = tripTotal,
+//            selectedPaymentMethod =  paymentMethodSelectedOnPOS,
+//            applicablePaymentMethodsForDiscount = applicablePaymentMethodForDiscount ?: listOf(),
+//            discountRules = discountRules?.filterNotNull() ?: listOf()
+//        )
+//    } else null
 
     val applicableFee = if (asDashTransaction) {
         ((feeAndExtra + applicableTip) * feeRate).roundTo(2) + feeConstant
@@ -126,46 +126,46 @@ fun MeterTripInFirestore.getPricingResult(asDashTransaction: Boolean): PricingRe
         0.0
     }
 
-    val applicableDiscount = validDiscountPair?.let {
-        val (discountConstant, discountRate) = it
-        val discountAmount = (feeAndExtra * discountRate).roundTo(2) + discountConstant
-        discountAmount
-    } ?: 0.0
+//    val applicableDiscount = validDiscountPair?.let {
+//        val (discountConstant, discountRate) = it
+//        val discountAmount = (feeAndExtra * discountRate).roundTo(2) + discountConstant
+//        discountAmount
+//    } ?: 0.0
 
-    val applicableTotal = feeAndExtra + applicableTip + applicableFee - applicableDiscount
+    val applicableTotal = feeAndExtra + applicableTip + applicableFee // - applicableDiscount
 
     return PricingResult(
         applicableFee = applicableFee,
-        applicableDiscount = applicableDiscount,
+//        applicableDiscount = applicableDiscount,
         applicableTotal = applicableTotal
     )
 }
 
-private fun getValidDashDiscountRule(
-    tripTotal: Double,
-    selectedPaymentMethod: String,
-    applicablePaymentMethodsForDiscount: List<String>,
-    discountRules:List<DiscountRule>
-): Pair<Int, Double>? {
-    if (discountRules.isEmpty()) {
-        return null
-    }
-
-    if (!applicablePaymentMethodsForDiscount.contains(selectedPaymentMethod)) {
-        return null
-    }
-
-    for (discountRuleCandidate in discountRules) {
-        if (
-            tripTotal >= discountRuleCandidate.from
-            && tripTotal < discountRuleCandidate.to
-        ){
-            return Pair(
-                discountRuleCandidate.discountFix.toInt(),
-                discountRuleCandidate.discountRate
-            )
-        }
-    }
-
-    return null
-}
+//private fun getValidDashDiscountRule(
+//    tripTotal: Double,
+//    selectedPaymentMethod: String,
+//    applicablePaymentMethodsForDiscount: List<String>,
+//    discountRules:List<DiscountRule>
+//): Pair<Int, Double>? {
+//    if (discountRules.isEmpty()) {
+//        return null
+//    }
+//
+//    if (!applicablePaymentMethodsForDiscount.contains(selectedPaymentMethod)) {
+//        return null
+//    }
+//
+//    for (discountRuleCandidate in discountRules) {
+//        if (
+//            tripTotal >= discountRuleCandidate.from
+//            && tripTotal < discountRuleCandidate.to
+//        ){
+//            return Pair(
+//                discountRuleCandidate.discountFix.toInt(),
+//                discountRuleCandidate.discountRate
+//            )
+//        }
+//    }
+//
+//    return null
+//}
