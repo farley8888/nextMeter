@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.repository
 
+import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
@@ -49,12 +50,14 @@ class TripRepositoryImpl @Inject constructor(
                 TripDataStore.ongoingTripData.collect { trip ->
                     trip?.let {
                         // Update trip in Firestore if required
-                        if (trip.requiresUpdateOnDatabase || trip.wasTripJustStarted) {
+                        if (trip.requiresUpdateOnDatabase || trip.wasTripJustStarted || dashManager.tripDocumentListener == null) { // trip document listener null case is when the meter is reset / restarts after payment is complete
                             localTripsRepository.updateTrip(it)
                             val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
-                            if (trip.wasTripJustStarted) {
+                            if (dashManager.tripDocumentListener == null) {
+                                if (trip.wasTripJustStarted) {
+                                    dashManager.createTripOnFirestore(tripInFirestore)
+                                }
                                 dashManager.setFirestoreTripDocumentListener(trip.tripId)
-                                dashManager.createTripOnFirestore(tripInFirestore)
                             } else {
                                 dashManager.updateTripOnFirestore(tripInFirestore)
                             }
@@ -116,6 +119,7 @@ class TripRepositoryImpl @Inject constructor(
                             localTripsRepository.setDashPaymentStatus(tripInFirestore.tripId, tripInFirestore.isDashPayment())
                             _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
                         }
+                        Log.i(TAG, "Trip Paid Status: ${_currentTripPaidStatus.value}")
                     }
                 }
             }
@@ -208,4 +212,8 @@ class TripRepositoryImpl @Inject constructor(
         measureBoardRepository.emitBeepSound(5, 0, 1)
     }
 
+
+    companion object {
+        private const val TAG = "TripRepositoryImpl"
+    }
 }
