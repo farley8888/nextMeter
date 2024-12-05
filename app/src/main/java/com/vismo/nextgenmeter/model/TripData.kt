@@ -7,7 +7,6 @@ import androidx.room.TypeConverters
 import com.google.firebase.Timestamp
 import com.google.gson.annotations.SerializedName
 import com.vismo.nextgenmeter.db.Converters
-import com.vismo.nextgenmeter.ui.meter.MeterOpsViewModel
 import javax.annotation.Nonnull
 
 @Entity(tableName = "trips")
@@ -94,4 +93,18 @@ fun TripData.isAbnormalPulseStatus(): Boolean {
     val currentMCUStatus = OngoingMeasureBoardStatus.fromInt(mcuStatus ?: -1)
     val isAbnormalPulse = currentMCUStatus is OngoingMeasureBoardStatusFault || currentMCUStatus is OngoingMeasureBoardStatusFaultAndOverspeed
     return isAbnormalPulse
+}
+
+fun TripData.getRemainingLockTimeInSeconds(maxLockDurationInSeconds: Long, minTimeAfter: Long = 30): Long? {
+    val shouldLockMeter = shouldLockMeter()
+    return if (!shouldLockMeter) {
+        null
+    } else {
+        val remainingLockTime = maxLockDurationInSeconds - overSpeedDurationInSeconds
+        if (remainingLockTime <= 0 || overSpeedDurationInSeconds < minTimeAfter) {
+            null
+        } else {
+            remainingLockTime
+        }
+    }
 }
