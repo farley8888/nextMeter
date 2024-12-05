@@ -1,3 +1,4 @@
+import io.sentry.android.gradle.instrumentation.logcat.LogcatLevel
 import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
 import java.util.Properties
 
@@ -177,4 +178,13 @@ sentry {
     // this will upload your source code to Sentry to show it as part of the stack traces
     // disable if you don't want to expose your sources
     includeSourceContext.set(true)
+
+    tracingInstrumentation {
+        enabled.set(true)
+
+        logcat {
+            enabled.set(true)
+            minLevel.set(LogcatLevel.VERBOSE) // change later when it is past the testing phase
+        }
+    }
 }

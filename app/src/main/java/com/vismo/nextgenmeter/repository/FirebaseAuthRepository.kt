@@ -10,6 +10,7 @@ import com.vismo.nextgenmeter.util.Constant.PRIVATE_KEY
 import com.vismo.nextgenmeter.util.Constant.PUBLIC_KEY
 import com.vismo.nextgenmeter.util.GlobalUtils
 import io.sentry.Sentry
+import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +38,10 @@ class FirebaseAuthRepository @Inject constructor(
 ){
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Coroutine exception", throwable)
-        Sentry.captureException(throwable)
+        Sentry.addBreadcrumb("FirebaseAuthRepository Scope exception", "FirebaseAuthRepository Scope exception")
+        Sentry.captureException(throwable) { scope ->
+            scope.level = SentryLevel.ERROR
+        }
     }
 
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
