@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import com.vismo.nextgenmeter.dao.TripsDao
 import com.vismo.nextgenmeter.model.TripData
 
-@Database(entities = [TripData::class], version = 1, exportSchema = false)
+@Database(entities = [TripData::class], version = 2, exportSchema = false)
 abstract class LocalTripsRoomDatabase: RoomDatabase() {
     abstract fun tripsDao(): TripsDao
 
@@ -24,6 +24,7 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
                     LocalTripsRoomDatabase::class.java,
                     DATABASE_NAME
                 ).setJournalMode(JournalMode.TRUNCATE)
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance
