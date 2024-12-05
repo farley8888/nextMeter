@@ -98,25 +98,19 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-//            applicationIdSuffix = ".dev"
-            versionNameSuffix = "-dev"
-            archivesName = "cablemeter-$${getVersionName()}(${getVersionCode()})"
+            archivesName = "CM-$${getVersionName()}.${getVersionCode()}"
         }
         create("dev2") {
             dimension = "env"
-//            applicationIdSuffix = ".dev2"
-            versionNameSuffix = "-dev2"
-            archivesName = "cablemeter-$${getVersionName()}(${getVersionCode()})"
+            archivesName = "CM-$${getVersionName()}.${getVersionCode()}"
         }
         create("qa") {
             dimension = "env"
-//            applicationIdSuffix = ".qa"
-            versionNameSuffix = "-qa"
-            archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
+            archivesName = "CM-${getVersionName()}.${getVersionCode()}"
         }
         create("prd") {
             dimension = "env"
-            archivesName = "cablemeter-${getVersionName()}(${getVersionCode()})"
+            archivesName = "CM-${getVersionName()}.${getVersionCode()}"
         }
     }
 }
