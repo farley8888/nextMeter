@@ -159,7 +159,7 @@ class MeterOpsViewModel @Inject constructor(
                 }
             }
         }
-        tripRepository.initObservers()
+        tripRepository.initObservers(viewModelScope)
     }
 
     fun isTTSPlaying(): Boolean {
@@ -443,11 +443,6 @@ class MeterOpsViewModel @Inject constructor(
         if (_ongoingTrip.value?.tripStatus == TripStatus.STOP) {
             tripRepository.endTrip()
         }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        tripRepository.close()
     }
 
     companion object {
