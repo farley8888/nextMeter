@@ -8,6 +8,7 @@ import com.vismo.nextgenmeter.model.Quadruple
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
+import com.vismo.nextgenmeter.model.getRemainingLockTimeInSeconds
 import com.vismo.nextgenmeter.model.isAbnormalPulseStatus
 import com.vismo.nextgenmeter.model.shouldLockMeter
 import com.vismo.nextgenmeter.module.IoDispatcher
@@ -27,6 +28,7 @@ import com.vismo.nextgenmeter.util.TtsUtil
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -126,6 +128,7 @@ class MeterOpsViewModel @Inject constructor(
                             }
                             MeterLockAction.Unlock -> {
                                 tripRepository.unlockMeter()
+                                delay(1000)
                                 tripRepository.endTrip()
                             }
 
@@ -171,15 +174,10 @@ class MeterOpsViewModel @Inject constructor(
         if (_meterLockState.value == MeterLockAction.NoAction) {
             _meterLockState.value = MeterLockAction.Lock(isAbnormalPulse)
         }
-        if (trip.overSpeedDurationInSeconds > LOCK_DIALOG_VISIBILITY_DURATION && uiState.value.overSpeedDurationInSeconds < LOCK_DIALOG_VISIBILITY_DURATION) {
-            updateUIStateForTrip(trip, Hired)
-        }
-        if (trip.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) {
-            updateUIStateForTrip(trip, Hired)
-        }
-        if (trip.overSpeedDurationInSeconds > TOTAL_LOCK_DURATION && !isUnlockRun) {
+        if (trip.getRemainingLockTimeInSeconds(TOTAL_COUNTDOWN_DURATION.toLong()) == null && trip.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER && !isUnlockRun) {
             unlockMeterInMCU(isAbnormalPulseTriggered)
         }
+        updateUIStateForTrip(trip, Hired)
     }
 
     private suspend fun unlockMeterInMCU(isAbnormalPulse: Boolean) {
@@ -216,6 +214,7 @@ class MeterOpsViewModel @Inject constructor(
 
         uiUpdateMutex.withLock {
             val isLocked = trip.shouldLockMeter()
+            val remainingLockTimeInSeconds = trip.getRemainingLockTimeInSeconds(TOTAL_COUNTDOWN_DURATION.toLong())
             _uiState.value = _uiState.value.copy(
                 status = status,
                 extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
@@ -225,10 +224,7 @@ class MeterOpsViewModel @Inject constructor(
                 totalFare = MeterOpsUtil.formatToNDecimalPlace(totalFareIfZero, 2),
                 languagePref = _uiState.value.languagePref,
                 overSpeedDurationInSeconds = if (isLocked) trip.overSpeedDurationInSeconds else 0,
-                remainingOverSpeedTimeInSeconds = if(isLocked && trip.overSpeedDurationInSeconds > TOTAL_LOCK_BEEP_COUNTER) {
-                    val remainingOverDuration = TOTAL_LOCK_DURATION  - trip.overSpeedDurationInSeconds
-                    MeterOpsUtil.getFormattedDurationFromSeconds((if (remainingOverDuration > 0)remainingOverDuration else 0).toLong())
-                } else null,
+                remainingOverSpeedTimeInSeconds = if(remainingLockTimeInSeconds != null) MeterOpsUtil.getFormattedDurationFromSeconds(remainingLockTimeInSeconds) else null,
                 mcuStartingPrice = if (isLocked) {
                     val savedStartPrice = meterPreferenceRepository.getMcuStartPrice().first()?.replace("$", "") ?: DEFAULT_STARTING_PRICE
                     val startPrice = MeasureBoardUtils.formatStartingPrice(savedStartPrice)
