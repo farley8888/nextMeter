@@ -34,10 +34,10 @@ import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.IScope
 import io.sentry.Sentry
+import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
@@ -63,7 +63,9 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
         Sentry.addBreadcrumb("MeasureBoardRepositoryImpl Scope exception", "MeasureBoardRepositoryImpl Scope exception")
-        Sentry.captureException(throwable)
+        Sentry.captureException(throwable) { scope ->
+            scope.level = SentryLevel.ERROR
+        }
     }
     private var externalScope: CoroutineScope? = null
 
