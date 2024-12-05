@@ -9,7 +9,7 @@ import com.vismo.nextgenmeter.util.Constant.ENV_PRD
 import com.vismo.nextgenmeter.util.Constant.ENV_QA
 
 data class TopAppBarUiState (
-    val title: String = "SUNTEC",
+    val title: String = "SUNTEC+",
     val dateTime: String = "",
     val isBackButtonVisible: Boolean = false,
     val isLocationIconVisible: Boolean = false,
