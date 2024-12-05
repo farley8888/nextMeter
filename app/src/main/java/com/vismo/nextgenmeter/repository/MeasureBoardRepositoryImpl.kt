@@ -37,7 +37,6 @@ import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -63,14 +62,15 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
+        Sentry.addBreadcrumb("MeasureBoardRepositoryImpl Scope exception", "MeasureBoardRepositoryImpl Scope exception")
         Sentry.captureException(throwable)
     }
-    private var scope: CoroutineScope? = null
+    private var externalScope: CoroutineScope? = null
 
     override val meterIdentifierInRemote: StateFlow<String> = dashManagerConfig.meterIdentifier
 
     private fun startMessageProcessor() {
-        scope?.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             for (msg in messageChannel) {
                 when (msg.what) {
                     IAtCmd.W_MSG_DISPLAY -> {
@@ -90,13 +90,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private fun sendMessage(msg: MCUMessage) {
-        scope?.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             messageChannel.send(msg)
         }
     }
 
     private fun startTaskProcessor() {
-        scope?.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             for (task in taskChannel) {
                 task()
             }
@@ -104,13 +104,13 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private fun addTask(task: suspend () -> Unit) {
-        scope?.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             taskChannel.send(task)
         }
     }
 
-    override fun init() {
-        scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
+    override fun init(scope: CoroutineScope) {
+        externalScope = scope
         startTaskProcessor()
         startMessageProcessor()
         addTask {
@@ -487,7 +487,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun stopCommunication() {
         mBusModel?.stopCommunicate()
-        scope?.cancel()
+        Log.d(TAG, "stopCommunication")
     }
 
     companion object {

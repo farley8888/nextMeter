@@ -43,8 +43,6 @@ import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -91,9 +89,10 @@ class DashManager @Inject constructor(
         Log.e(TAG, "Coroutine exception", throwable)
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
+    private var externalScope: CoroutineScope? = null
 
-    fun init() {
+    fun init(scope: CoroutineScope) {
+        externalScope = scope
         setMeterInfoToSettings()
         meterSdkConfigurationListener()
         scope.launch {
@@ -141,7 +140,7 @@ class DashManager @Inject constructor(
     }
 
     fun performHealthCheck() {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val env = when(env) {
                 "dev" -> "DEV"
                 "qa" -> "QA"
@@ -168,7 +167,7 @@ class DashManager @Inject constructor(
     }
 
     private fun setMeterInfoToSettings() {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             getMeterDocument()
                 .update(
                     FieldPath.of("settings", "meter_software_version"), DashManagerConfig.meterSoftwareVersion,
@@ -221,7 +220,7 @@ class DashManager @Inject constructor(
     }
 
     fun clearDriverSession() {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val currentSessionId = _meterFields.value?.session?.sessionId
             if (currentSessionId != null) {
                 val deleteSessionMap = mapOf(SESSION to FieldValue.delete())
@@ -231,7 +230,7 @@ class DashManager @Inject constructor(
     }
 
     fun isMCUParamsUpdateRequired() {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             _mcuParamsUpdateRequired.value = null
             val mcuParamsUpdateCollection = getMeterDocument()
                 .collection(UPDATE_MCU_PARAMS)
@@ -258,7 +257,7 @@ class DashManager @Inject constructor(
     }
 
     fun setMCUParamsUpdateComplete(updateRequest: UpdateMCUParamsRequest) {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val json = gson.toJson(updateRequest)
             val map =
                 (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
@@ -273,7 +272,7 @@ class DashManager @Inject constructor(
     }
 
     private fun meterSdkConfigurationListener() {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             firestore.collection(CONFIGURATIONS_COLLECTION)
                 .document(METER_SDK_DOCUMENT)
                 .addSnapshotListener { snapshot, e ->
@@ -291,7 +290,7 @@ class DashManager @Inject constructor(
     }
 
     fun resetUnlockMeterStatusInRemote() {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             // remove the unlock meter flag
             getMeterDocument()
                 .set(mapOf(LOCKED_AT to FieldValue.delete()), SetOptions.merge())
@@ -300,7 +299,7 @@ class DashManager @Inject constructor(
     }
 
     fun updateFirestoreTripTotalAndFee(tripId: String, total: Double, fee: Double) {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             updateTripOnFirestore(
                 MeterTripInFirestore(
                     tripId = tripId,
@@ -312,7 +311,7 @@ class DashManager @Inject constructor(
     }
 
     fun setFirestoreTripDocumentListener(tripId: String) {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             tripDocumentListener?.remove() // Remove the previous listener
 
             tripDocumentListener = getMeterDocument()
@@ -334,7 +333,7 @@ class DashManager @Inject constructor(
     }
 
     fun writeLockMeter() {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val lockedAt = Timestamp.now()
             getMeterDocument()
                 .set(mapOf(LOCKED_AT to lockedAt), SetOptions.merge())
@@ -348,7 +347,7 @@ class DashManager @Inject constructor(
     }
 
     fun createTripOnFirestore(trip: MeterTripInFirestore) {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             // check in meter settings by default
             val settingsFeeRate = _meterFields.value?.settings?.dashFeeRate
             val settingsFeeConstant = _meterFields.value?.settings?.dashFeeConstant
@@ -370,7 +369,7 @@ class DashManager @Inject constructor(
             val updatedTrip = trip.copy(
                 dashFeeRate = applicableFeeRate,
                 dashFeeConstant = applicableFeeConstant,
-                session = TripSession( sessionId),
+                session = if (!sessionId.isNullOrBlank()) TripSession(sessionId) else null,
                 driver = driver,
                 creationTime = Timestamp.now(),
                 locationStart = dashManagerConfig.meterLocation.value.geoPoint,
@@ -383,7 +382,7 @@ class DashManager @Inject constructor(
     }
 
     fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val json = gson.toJson(mcuInfo)
             val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>)
 
@@ -394,7 +393,7 @@ class DashManager @Inject constructor(
 
 
     fun updateTripOnFirestore(trip: MeterTripInFirestore) {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val updatedTrip = trip.copy(
                 lastUpdateTime = Timestamp.now(),
                 locationEnd = if (trip.endTime != null) dashManagerConfig.meterLocation.value.geoPoint else null
@@ -420,7 +419,7 @@ class DashManager @Inject constructor(
 
     fun writeToLoggingCollection(log: Map<String, Any?>) {
         val map =  log.toFirestoreFormat()
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val loggingCollection = getMeterDocument()
                 .collection(LOGGING_COLLECTION)
 
@@ -437,7 +436,7 @@ class DashManager @Inject constructor(
 
     private fun checkForMostRelevantUpdate() {
         // apk or firmware updates
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             _mostRelevantUpdate.value = null
             val updatesCollection = getMeterDocument()
                 .collection(UPDATES_COLLECTION)
@@ -468,7 +467,7 @@ class DashManager @Inject constructor(
     }
 
     fun writeUpdateResult(update: Update) {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val json = gson.toJson(update)
             val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
@@ -489,7 +488,7 @@ class DashManager @Inject constructor(
 
 
     fun sendHeartbeat() {
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             val meterLocation = dashManagerConfig.meterLocation.value
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
@@ -591,7 +590,6 @@ class DashManager @Inject constructor(
 
     fun onCleared() {
         meterDocumentListener?.remove()
-        scope.cancel()
     }
 
     companion object {

@@ -211,7 +211,7 @@ class MainViewModel @Inject constructor(
             }
             Log.d(TAG, "FirebaseAuth initToken called")
         } else if (!DashManager.Companion.isInitialized) {
-            remoteMeterControlRepository.initDashManager()
+            remoteMeterControlRepository.initDashManager(viewModelScope)
             Log.d(TAG, "FirebaseAuth headers already present - calling dashManager.init()")
         }
     }
@@ -219,7 +219,7 @@ class MainViewModel @Inject constructor(
     private suspend fun observeFirebaseAuthSuccess() {
         firebaseAuthRepository.isFirebaseAuthSuccess.collectLatest { isFirebaseAuthSuccess ->
             if (isFirebaseAuthSuccess) {
-                remoteMeterControlRepository.initDashManager()
+                remoteMeterControlRepository.initDashManager(viewModelScope)
                 Log.d(TAG, "Firebase auth success - calling dashManager.init()")
             }
         }
@@ -386,7 +386,7 @@ class MainViewModel @Inject constructor(
 
 
     init {
-        measureBoardRepository.init()
+        measureBoardRepository.init(viewModelScope)
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 remoteMeterControlRepository.observeFlows()

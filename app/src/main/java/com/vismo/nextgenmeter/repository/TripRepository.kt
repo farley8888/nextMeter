@@ -1,7 +1,7 @@
 package com.vismo.nextgenmeter.repository
 
-import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
 interface TripRepository {
@@ -22,9 +22,7 @@ interface TripRepository {
 
     fun subtractExtras(extrasAmount: Int)
 
-    fun initObservers()
-
-    fun close()
+    fun initObservers(scope: CoroutineScope)
 
     fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int)
 
