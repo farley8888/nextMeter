@@ -40,11 +40,11 @@ class TripRepositoryImpl @Inject constructor(
     override val remoteUnlockMeter = dashManager.remoteUnlockMeter
     private val _currentAbnormalPulseCounter = MutableStateFlow<Int?>(null)
     private val _currentOverSpeedCounter = MutableStateFlow<Int?>(null)
-    private var repositoryScope: CoroutineScope? = null
+    private var externalScope: CoroutineScope? = null
 
-    override fun initObservers() {
-        repositoryScope = CoroutineScope(SupervisorJob() + ioDispatcher)
-        repositoryScope?.launch {
+    override fun initObservers(scope: CoroutineScope) {
+        externalScope = scope
+        externalScope?.launch(ioDispatcher) {
             launch {
                 TripDataStore.ongoingTripData.collect { trip ->
                     trip?.let {
@@ -183,10 +183,6 @@ class TripRepositoryImpl @Inject constructor(
             // we want the beep sound to be played when the extras total is 0
             measureBoardRepository.writeAddExtrasCommand(finalTotal)
         }
-    }
-
-    override fun close() {
-        repositoryScope?.cancel()
     }
 
     override fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int) {

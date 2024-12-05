@@ -3,6 +3,7 @@ package com.vismo.nextgenmeter.repository
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nxgnfirebasemodule.model.MeterDeviceProperties
 import com.vismo.nxgnfirebasemodule.model.Update
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
 interface RemoteMeterControlRepository {
@@ -12,7 +13,7 @@ interface RemoteMeterControlRepository {
     val meterIdentifier: StateFlow<String>
     val remoteUpdateRequest: StateFlow<Update?>
 
-    fun initDashManager()
+    fun initDashManager(scope: CoroutineScope)
 
     fun observeFlows()
 

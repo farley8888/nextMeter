@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.repository
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 
 
@@ -7,7 +8,7 @@ interface MeasureBoardRepository {
 
     val meterIdentifierInRemote: StateFlow<String>
 
-    fun init()
+    fun init(scope: CoroutineScope)
 
     fun writeStartTripCommand(tripId: String)
 

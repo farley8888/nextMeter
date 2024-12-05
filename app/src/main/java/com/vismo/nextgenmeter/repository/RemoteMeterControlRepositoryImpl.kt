@@ -38,10 +38,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     override val remoteUpdateRequest = dashManager.mostRelevantUpdate
 
-    override fun initDashManager() {
+    override fun initDashManager(scope: CoroutineScope) {
         DashManagerConfig.simIccId = getICCID() ?: ""
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
-        dashManager.init()
+        dashManager.init(scope)
     }
 
     private fun getICCID(): String? {
