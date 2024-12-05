@@ -233,6 +233,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
             if(currentOngoingLocalTrip.fare != heartbeatData.fare && currentOngoingLocalTrip.fare != 0.0) {
                 emitBeepSound(5, 0, 1)
+                Log.d(TAG, "handleOngoingHeartbeatResult: fare changed - beep sound emitted")
             }
         }
 

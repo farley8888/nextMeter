@@ -23,6 +23,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
@@ -190,8 +191,11 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     override fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int) {
-        measureBoardRepository.emitBeepSound(beepDuration, beepInterval, beepRepeatCount)
-        dashManager.writeLockMeter()
+        externalScope?.launch(ioDispatcher) {
+            measureBoardRepository.emitBeepSound(beepDuration, beepInterval, beepRepeatCount)
+            delay(1000)
+            dashManager.writeLockMeter()
+        }
     }
 
     override fun unlockMeter() {
@@ -210,6 +214,7 @@ class TripRepositoryImpl @Inject constructor(
 
     override fun emitBeepSound() {
         measureBoardRepository.emitBeepSound(5, 0, 1)
+        Log.d(TAG, "Beep sound emitted")
     }
 
 
