@@ -61,7 +61,7 @@ class DashManager @Inject constructor(
     private val meterDevicesCollection = firestore.collection(METER_DEVICES_COLLECTION)
     private val metersCollection = firestore.collection(METERS_COLLECTION)
     private var meterDocumentListener: ListenerRegistration? = null
-    private var tripDocumentListener: ListenerRegistration? = null
+    var tripDocumentListener: ListenerRegistration? = null
     private var meterDevicesDocumentListener: ListenerRegistration? = null
 
     private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)
@@ -343,7 +343,9 @@ class DashManager @Inject constructor(
 
     fun endTripDocumentListener() {
         tripDocumentListener?.remove()
+        tripDocumentListener = null
         _tripInFirestore.value = null
+        Log.i(TAG, "endTripDocumentListener")
     }
 
     fun createTripOnFirestore(trip: MeterTripInFirestore) {
