@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -112,7 +113,7 @@ private fun GlobalDialogUI(
         val modifier = if (!usePlatformDefaultWidth && width != null && height != null) {
             Modifier.size(width.dp, height.dp)
         } else {
-            Modifier
+            Modifier.padding(16.dp)
         }
         Card(
             shape = RoundedCornerShape(10.dp),
@@ -195,6 +196,8 @@ fun GenericDialogContent(
             }
             // Render the cancel button only if cancelButtonText and onCancel are provided
             if (cancelButtonText != null && onCancel != null) {
+                // add some space
+                Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = {
                         onCancel()
