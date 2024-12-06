@@ -8,6 +8,8 @@ interface MeasureBoardRepository {
 
     val meterIdentifierInRemote: StateFlow<String>
 
+    fun startCommunicate()
+
     fun init(scope: CoroutineScope)
 
     fun writeStartTripCommand(tripId: String)

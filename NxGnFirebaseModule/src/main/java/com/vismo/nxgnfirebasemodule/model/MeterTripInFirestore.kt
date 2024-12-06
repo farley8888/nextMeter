@@ -1,11 +1,13 @@
 package com.vismo.nxgnfirebasemodule.model
 
+import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.GeoPoint
 import com.google.gson.annotations.SerializedName
 import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import org.json.JSONObject
 import java.io.Serializable
+import java.math.BigDecimal
 
 
 data class MeterTripInFirestore(
@@ -74,7 +76,7 @@ enum class TripPaidStatus {
 fun MeterTripInFirestore.paidStatus(): TripPaidStatus {
     val amountPaid = amountPaid()
     val pricingResult = getPricingResult(amountPaid > 0)
-
+    Log.d("MeterTripInFirestore", "amountPaid: $amountPaid, pricingResult - applicableTotal: ${pricingResult.applicableTotal}")
     return when {
         // if user is not null - it means the user's card is already processed by the user app
         (pricingResult.applicableTotal > 0 && amountPaid >= pricingResult.applicableTotal) || user != null -> TripPaidStatus.COMPLETELY_PAID
@@ -121,7 +123,7 @@ fun MeterTripInFirestore.getPricingResult(asDashTransaction: Boolean): PricingRe
 //    } else null
 
     val applicableFee = if (asDashTransaction) {
-        ((feeAndExtra + applicableTip) * feeRate).roundTo(2) + feeConstant
+        ((feeAndExtra + applicableTip) * feeRate).roundTo(2) + BigDecimal(feeConstant)
     } else {
         0.0
     }
@@ -132,12 +134,12 @@ fun MeterTripInFirestore.getPricingResult(asDashTransaction: Boolean): PricingRe
 //        discountAmount
 //    } ?: 0.0
 
-    val applicableTotal = feeAndExtra + applicableTip + applicableFee // - applicableDiscount
+    val applicableTotal = (feeAndExtra + applicableTip + applicableFee.toDouble()).roundTo(2) // - applicableDiscount
 
     return PricingResult(
-        applicableFee = applicableFee,
+        applicableFee = applicableFee.toDouble(),
 //        applicableDiscount = applicableDiscount,
-        applicableTotal = applicableTotal
+        applicableTotal = applicableTotal.toDouble()
     )
 }
 

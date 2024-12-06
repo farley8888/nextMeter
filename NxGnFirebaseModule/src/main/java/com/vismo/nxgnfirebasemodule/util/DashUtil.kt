@@ -6,6 +6,8 @@ import com.google.firebase.firestore.GeoPoint
 import com.vismo.nxgnfirebasemodule.util.Constant.NANOSECONDS
 import com.vismo.nxgnfirebasemodule.util.Constant.SECONDS
 import com.vismo.nxgnfirebasemodule.util.Constant.SERVER_TIME
+import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -89,7 +91,7 @@ object DashUtil {
         return Pair(gcjLat * 2 - mgLat, gcjLon * 2 - mgLon)
     }
 
-    fun Double.roundTo(decimals: Int): Double {
-        return "%.${decimals}f".format(this).toDouble()
+    fun Double.roundTo(decimals: Int): BigDecimal {
+        return BigDecimal(this).setScale(decimals, RoundingMode.HALF_UP)
     }
 }

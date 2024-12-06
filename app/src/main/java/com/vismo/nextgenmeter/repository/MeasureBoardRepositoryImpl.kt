@@ -111,6 +111,10 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun startCommunicate() {
+        mBusModel?.startCommunicate()
+    }
+
     override fun init(scope: CoroutineScope) {
         externalScope = scope
         startTaskProcessor()
@@ -119,7 +123,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             openCommonUart()
             delay(200)
             setReceiveEvalDataLs()
-            mBusModel?.startCommunicate()
+            startCommunicate()
             if (mBusModel == null) {
                 Log.e(TAG, "init: mBusModel is null")
                 Sentry.captureMessage("init: mBusModel is null")
