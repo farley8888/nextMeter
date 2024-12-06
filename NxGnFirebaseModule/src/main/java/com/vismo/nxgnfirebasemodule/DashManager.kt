@@ -303,8 +303,8 @@ class DashManager @Inject constructor(
             updateTripOnFirestore(
                 MeterTripInFirestore(
                     tripId = tripId,
-                    total = total.roundTo(2),
-                    dashFee = fee.roundTo(2)
+                    total = total.roundTo(2).toDouble(),
+                    dashFee = fee.roundTo(2).toDouble()
                 )
             )
         }
