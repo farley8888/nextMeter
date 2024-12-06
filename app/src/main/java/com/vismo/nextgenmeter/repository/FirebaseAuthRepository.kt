@@ -14,7 +14,6 @@ import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,14 +43,15 @@ class FirebaseAuthRepository @Inject constructor(
         }
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
+    private var externalScope: CoroutineScope? = null
 
     private val _isFirebaseAuthSuccess: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val isFirebaseAuthSuccess: StateFlow<Boolean> = _isFirebaseAuthSuccess
 
-    fun initToken() {
+    fun initToken(scope: CoroutineScope) {
+        externalScope = scope
         Log.d(TAG, "FirebaseRepositoryImpl: initToken")
-        scope.launch {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
             Log.d(TAG, "FirebaseRepositoryImpl: scope.launch")
             val user = auth.currentUser
             if(user != null && !user.isAnonymous) {
@@ -65,7 +65,7 @@ class FirebaseAuthRepository @Inject constructor(
                     onError = {
                         Log.w(TAG, "refreshIdToken:error")
                         _isFirebaseAuthSuccess.value = false
-                        scope.launch {
+                        externalScope?.launch(ioDispatcher + exceptionHandler) {
                             renewCustomToken()
                         }
                     })
@@ -196,10 +196,6 @@ class FirebaseAuthRepository @Inject constructor(
                 }
             )
         }
-    }
-
-    fun cancel() {
-        scope.cancel()
     }
 
     companion object {

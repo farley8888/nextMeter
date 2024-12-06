@@ -10,7 +10,6 @@ import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
 import com.vismo.nextgenmeter.util.GlobalUtils.formatSecondsToHHMMSS
-import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -101,6 +101,19 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
 
         registerReceiver(usbBroadcastReceiver, filter)
     }
+
+    override fun onResume() {
+        super.onResume()
+        mainViewModel.startCommunicate()
+        Log.d(TAG, "onResume: start communicating")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mainViewModel.stopCommunicate()
+        Log.d(TAG, "onPause: stop communicating")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initObservers()
