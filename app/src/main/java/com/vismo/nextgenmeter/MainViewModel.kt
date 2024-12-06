@@ -204,7 +204,7 @@ class MainViewModel @Inject constructor(
         Log.d(TAG, "Trying internet tasks")
         val headers = firebaseAuthRepository.getHeaders()
         if (!headers.containsKey(AUTHORIZATION_HEADER)) {
-            firebaseAuthRepository.initToken()
+            firebaseAuthRepository.initToken(viewModelScope)
             networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
                 measureBoardRepository.updateMeasureBoardTime(networkTime)
                 Log.d(TAG, "Network time: $networkTime")
@@ -384,6 +384,14 @@ class MainViewModel @Inject constructor(
         updateLocationIconVisibility()
     }
 
+    fun startCommunicate() {
+        measureBoardRepository.startCommunicate()
+    }
+
+    fun stopCommunicate() {
+        measureBoardRepository.stopCommunication()
+    }
+
 
     init {
         measureBoardRepository.init(viewModelScope)
@@ -530,11 +538,9 @@ class MainViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        measureBoardRepository.stopCommunication()
         remoteMeterControlRepository.onCleared()
         peripheralControlRepository.close()
         accEnquiryJob?.cancel()
-        firebaseAuthRepository.cancel()
     }
 
     companion object {
