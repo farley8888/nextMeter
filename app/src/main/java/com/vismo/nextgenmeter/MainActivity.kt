@@ -116,6 +116,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "onCreate: ")
         initObservers()
         startAMapLocation()
         listenToSignalStrength()
@@ -447,6 +448,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
     override fun onDestroy() {
         super.onDestroy()
         storageReceiver?.let {
+            unregisterReceiver(it)
+        }
+        usbBroadcastReceiver?.let {
             unregisterReceiver(it)
         }
     }
