@@ -1,6 +1,7 @@
 package com.vismo.nextgenmeter.db
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -27,6 +28,7 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
+                Log.d("LocalTripsRoomDatabase", "getInstance - instance created: $instance - context ${context.applicationContext}")
                 instance
             }
         }
