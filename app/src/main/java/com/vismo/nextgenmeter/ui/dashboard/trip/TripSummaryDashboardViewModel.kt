@@ -140,6 +140,7 @@ class TripSummaryDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 localTripsRepository.clearAllTrips()
+                getTrips()
             }
         }
     }
