@@ -104,6 +104,24 @@ class DashManager @Inject constructor(
         Log.d(TAG, "DashManager initialized")
     }
 
+    fun getTripFromFirestore(tripId: String, onFinish: (MeterTripInFirestore?) -> Unit) {
+        val trip = getMeterDocument()
+            .collection(TRIPS_COLLECTION)
+            .document(tripId)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot != null && snapshot.exists()) {
+                    val tripJson = gson.toJson(snapshot.data)
+                    val trip = gson.fromJson(tripJson, MeterTripInFirestore::class.java)
+                    onFinish(trip)
+                }
+            }
+            .addOnFailureListener {
+                Log.e(TAG, "getTripFromFirestore error", it)
+                onFinish(null)
+            }
+    }
+
     private suspend fun observeMeterDeviceId() {
         var isFirstFetch = true
         /*

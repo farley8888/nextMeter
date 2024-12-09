@@ -2,7 +2,6 @@ package com.vismo.nextgenmeter.repository
 
 import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import android_serialport_api.Command
 import com.google.firebase.Timestamp
 import com.ilin.atelec.BusModel
@@ -44,7 +43,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.logging.Logger
 import javax.inject.Inject
 
@@ -189,12 +187,10 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
         if (currentOngoingLocalTrip == null) {
             // edge case: happens on some devices when device is reset while trip is ongoing
-            withContext(mainDispatcher) {
-                Toast.makeText(context, "Ongoing local trip not found. Creating a new trip.", Toast.LENGTH_SHORT).show()
-            }
-
+            val ongoingTripId = meterPreferenceRepository.getOngoingTripId().firstOrNull()
+            Log.d(TAG, "currentOngoingLocalTrip = null: savedTripId: $ongoingTripId")
             val newTrip = TripData(
-                tripId = MeasureBoardUtils.generateTripId(),
+                tripId = if(ongoingTripId.isNullOrBlank()) MeasureBoardUtils.generateTripId() else ongoingTripId,
                 startTime = Timestamp.now(),
                 tripStatus = heartbeatData.tripStatus,
                 pauseTime = if (heartbeatData.tripStatus == TripStatus.STOP) Timestamp.now() else null,
@@ -311,6 +307,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             )
             TripDataStore.updateTripDataValue(currentOngoingTrip)
         }
+        meterPreferenceRepository.saveOngoingTripId("")
         if(currentOngoingTripInDB == null) {
             Log.d(TAG, "handleTripEndSummaryResult: currentOngoingTripInDB is null")
             Sentry.captureMessage("handleTripEndSummaryResult: currentOngoingTripInDB is null")
