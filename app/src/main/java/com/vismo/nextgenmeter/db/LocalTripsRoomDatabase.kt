@@ -7,6 +7,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.vismo.nextgenmeter.dao.TripsDao
 import com.vismo.nextgenmeter.model.TripData
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
 
 @Database(entities = [TripData::class], version = 2, exportSchema = false)
 abstract class LocalTripsRoomDatabase: RoomDatabase() {
@@ -26,6 +28,9 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
                     DATABASE_NAME
                 ).setJournalMode(JournalMode.TRUNCATE)
                     .fallbackToDestructiveMigration()
+                    .setQueryCallback({ sqlQuery, bindArgs ->
+                        Log.d("LocalTripsRoomDatabase", "Query: $sqlQuery - Args: $bindArgs")
+                    }, Dispatchers.IO.asExecutor())
                     .build()
                 INSTANCE = instance
                 Log.d("LocalTripsRoomDatabase", "getInstance - instance created: $instance - context ${context.applicationContext}")

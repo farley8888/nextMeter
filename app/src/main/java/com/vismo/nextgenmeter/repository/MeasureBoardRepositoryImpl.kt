@@ -40,6 +40,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -59,6 +60,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private var mBusModel: BusModel? = null
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
+    private val _latestOngoingTripInDb: MutableStateFlow<TripData?> = MutableStateFlow(null)
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
@@ -130,7 +132,16 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             }
             delay(200)
         }
+        observeOngoingTripInDb()
         Log.d(TAG, "MeasureBoardRepositoryImpl: init")
+    }
+
+    private fun observeOngoingTripInDb() {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
+            localTripsRepository.getLatestOnGoingTripFlow().collect {
+                _latestOngoingTripInDb.value = it
+            }
+        }
     }
 
     private suspend fun handleIdleHeartbeatResult(result: String) {
@@ -162,7 +173,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         DeviceDataStore.setMCUTime(heartbeatData.currentTime)
 
         // Retrieve the current ongoing local trip
-        val currentOngoingLocalTrip = localTripsRepository.getLatestOnGoingTrip()
+        val currentOngoingLocalTrip = _latestOngoingTripInDb.value
 
         // Retrieve saved device ID and license plate
         val savedDeviceId = meterPreferenceRepository.getDeviceId().firstOrNull() ?: ""
@@ -281,7 +292,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
         Log.d(TAG, "TRIP_END_SUMMARY: $distance, ${getTimeInSeconds(duration)}, $fare, $extras, $totalFare")
 
-        val currentOngoingTripInDB = localTripsRepository.getLatestOnGoingTrip()
+        val currentOngoingTripInDB = _latestOngoingTripInDb.value
 
         currentOngoingTripInDB?.let {
             val currentOngoingTrip = TripData(

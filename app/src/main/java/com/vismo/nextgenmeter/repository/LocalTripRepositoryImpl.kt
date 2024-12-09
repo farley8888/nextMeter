@@ -53,8 +53,8 @@ class LocalTripsRepositoryImpl @Inject constructor(
         return tripsDao.getTrip(tripId)
     }
 
-    override suspend fun getLatestOnGoingTrip(): TripData? {
-        return tripsDao.getLatestOnGoingTrip()
+    override suspend fun getLatestOnGoingTripFlow(): Flow<TripData?> {
+        return tripsDao.getLatestOnGoingTripFlow()
     }
 
     override suspend fun clearAllTrips() {
