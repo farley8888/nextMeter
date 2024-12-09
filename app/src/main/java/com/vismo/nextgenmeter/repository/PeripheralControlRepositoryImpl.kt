@@ -10,10 +10,14 @@ import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.model.TripSummary
 import com.vismo.nextgenmeter.module.IoDispatcher
+import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl.Companion
 import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
 import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.getDistanceInKm
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
+import io.sentry.Sentry
+import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -28,7 +32,14 @@ class PeripheralControlRepositoryImpl(
     private val measureBoardRepository: MeasureBoardRepository
 ) : PeripheralControlRepository{
     private var mWorkCh3: UartWorkerCH? = null
-    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        Log.e(TAG, "Scope exception", throwable)
+        Sentry.addBreadcrumb("PeripheralControlRepositoryImpl Scope exception", "PeripheralControlRepositoryImpl Scope exception")
+        Sentry.captureException(throwable) { scope ->
+            scope.level = SentryLevel.ERROR
+        }
+    }
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher + exceptionHandler)
 
     init {
         scope.launch {
