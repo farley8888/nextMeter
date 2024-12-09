@@ -37,7 +37,7 @@ interface TripsDao {
     suspend fun getTrip(tripId: String): TripData?
 
     @Query("SELECT * FROM trips WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1")
-    suspend fun getLatestOnGoingTrip(): TripData?
+    fun getLatestOnGoingTripFlow(): Flow<TripData?>
 
     @Query("DELETE FROM trips")
     suspend fun clearAllTrips()
