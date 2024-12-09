@@ -50,7 +50,9 @@ class TripRepositoryImpl @Inject constructor(
                     trip?.let {
                         // Update trip in Firestore if required
                         if (trip.requiresUpdateOnDatabase || trip.wasTripJustStarted || dashManager.tripDocumentListener == null) { // trip document listener null case is when the meter is reset / restarts after payment is complete
-                            localTripsRepository.updateTrip(it)
+                            if (trip.requiresUpdateOnDatabase) {
+                                localTripsRepository.updateTrip(it)
+                            }
                             val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
                             if (dashManager.tripDocumentListener == null) {
                                 if (trip.wasTripJustStarted) {
