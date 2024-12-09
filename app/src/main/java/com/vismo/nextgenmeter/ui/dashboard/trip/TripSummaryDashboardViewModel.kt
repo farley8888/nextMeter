@@ -100,6 +100,16 @@ class TripSummaryDashboardViewModel @Inject constructor(
                             totalExtras = "$$sumExtrasDash",
                         )
 
+                    } else {
+                        _allTripsSummary.value = TripSummaryDashboardUiData(
+                            type = TripSummaryDashboardType.ALL,
+                        )
+                        _cashTripsSummary.value = TripSummaryDashboardUiData(
+                            type = TripSummaryDashboardType.NON_DASH,
+                        )
+                        _dashTripsSummary.value = TripSummaryDashboardUiData(
+                            type = TripSummaryDashboardType.DASH,
+                        )
                     }
                 }
             }
@@ -140,7 +150,6 @@ class TripSummaryDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 localTripsRepository.clearAllTrips()
-                getTrips()
             }
         }
     }
