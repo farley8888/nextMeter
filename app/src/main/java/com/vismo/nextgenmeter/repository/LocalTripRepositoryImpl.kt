@@ -37,7 +37,7 @@ class LocalTripsRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getMostRecentTrip(): TripData {
+    override suspend fun getMostRecentCompletedTrip(): TripData {
         return tripsDao.getMostRecentTrip() ?: throw Exception("No trips found")
     }
 

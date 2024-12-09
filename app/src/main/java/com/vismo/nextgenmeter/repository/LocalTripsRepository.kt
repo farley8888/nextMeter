@@ -13,7 +13,7 @@ interface LocalTripsRepository {
 
     fun deleteTrip(tripData: TripData)
 
-    suspend fun getMostRecentTrip() : TripData
+    suspend fun getMostRecentCompletedTrip() : TripData
 
     suspend fun getAllTrips() : List<TripData>
 
