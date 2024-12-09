@@ -434,6 +434,7 @@ class MainViewModel @Inject constructor(
                 _isScreenOff.value = true
                 toggleBackLight(false)
                 switchToLowPowerMode()
+                Log.d(TAG, "sleepDevice: Device is in sleep mode")
             }
         }
     }
@@ -444,6 +445,7 @@ class MainViewModel @Inject constructor(
 
         toggleBackLight(true)
         _isScreenOff.value = false
+        Log.d(TAG, "wakeUpDevice: Device is in wake up mode")
     }
 
     private fun toggleBackLight(turnOn: Boolean) {
