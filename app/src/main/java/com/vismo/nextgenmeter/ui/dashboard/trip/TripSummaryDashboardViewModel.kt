@@ -110,6 +110,7 @@ class TripSummaryDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 val sortedTrips = localTripsRepository.getAllTrips().sortedBy { it.startTime }
+                if (sortedTrips.isEmpty()) return@withContext
                 val tripSummary = TripSummary(
                     licensePlate = meterPreferenceRepository.getLicensePlate().first() ?: "",
                     firstStartTime = sortedTrips.first().startTime,
