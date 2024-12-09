@@ -1,6 +1,8 @@
 package com.vismo.nextgenmeter.repository
 
+import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
@@ -17,6 +19,7 @@ import com.vismo.nxgnfirebasemodule.model.getPricingResult
 import com.vismo.nxgnfirebasemodule.model.isDashPayment
 import com.vismo.nxgnfirebasemodule.model.paidStatus
 import com.vismo.nxgnfirebasemodule.util.LogConstant
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.IScope
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
@@ -26,13 +29,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class TripRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
+    @IoDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val measureBoardRepository: MeasureBoardRepository,
     private val dashManager: DashManager,
-    private val localTripsRepository: LocalTripsRepository
+    private val localTripsRepository: LocalTripsRepository,
+    private val meterPreferenceRepository: MeterPreferenceRepository
 ) : TripRepository {
     private val _currentTripPaidStatus: MutableStateFlow<TripPaidStatus> = MutableStateFlow(TripPaidStatus.NOT_PAID)
     override val currentTripPaidStatus = _currentTripPaidStatus
@@ -42,6 +49,36 @@ class TripRepositoryImpl @Inject constructor(
     private val _currentOverSpeedCounter = MutableStateFlow<Int?>(null)
     private var externalScope: CoroutineScope? = null
 
+    private fun shouldUpdateTrip(trip: TripData): Boolean {
+        return trip.requiresUpdateOnDatabase || trip.wasTripJustStarted || dashManager.tripDocumentListener == null
+    }
+
+    private fun handleLocalTripUpdateIfNeeded(trip: TripData) {
+        if (trip.requiresUpdateOnDatabase) {
+            localTripsRepository.updateTrip(trip)
+        }
+    }
+
+    private suspend fun handleFirestoreTripUpdate(trip: TripData) {
+        val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(trip)
+        if (dashManager.tripDocumentListener == null) {
+            handleTripStart(trip, tripInFirestore)
+        } else {
+            dashManager.updateTripOnFirestore(tripInFirestore)
+        }
+    }
+
+    private suspend fun handleTripStart(trip: TripData, tripInFirestore: MeterTripInFirestore) {
+        if (trip.wasTripJustStarted) {
+            dashManager.createTripOnFirestore(tripInFirestore)
+            if (meterPreferenceRepository.getOngoingTripId().first() != trip.tripId) {
+                meterPreferenceRepository.saveOngoingTripId(trip.tripId)
+            }
+        }
+        dashManager.setFirestoreTripDocumentListener(trip.tripId)
+    }
+
+
     override fun initObservers(scope: CoroutineScope) {
         externalScope = scope
         externalScope?.launch(ioDispatcher) {
@@ -49,19 +86,9 @@ class TripRepositoryImpl @Inject constructor(
                 TripDataStore.ongoingTripData.collect { trip ->
                     trip?.let {
                         // Update trip in Firestore if required
-                        if (trip.requiresUpdateOnDatabase || trip.wasTripJustStarted || dashManager.tripDocumentListener == null) { // trip document listener null case is when the meter is reset / restarts after payment is complete
-                            if (trip.requiresUpdateOnDatabase) {
-                                localTripsRepository.updateTrip(it)
-                            }
-                            val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(it)
-                            if (dashManager.tripDocumentListener == null) {
-                                if (trip.wasTripJustStarted) {
-                                    dashManager.createTripOnFirestore(tripInFirestore)
-                                }
-                                dashManager.setFirestoreTripDocumentListener(trip.tripId)
-                            } else {
-                                dashManager.updateTripOnFirestore(tripInFirestore)
-                            }
+                        if (shouldUpdateTrip(trip)) {
+                            handleLocalTripUpdateIfNeeded(trip)
+                            handleFirestoreTripUpdate(trip)
                         }
                         // Handle abnormal pulse and overspeed counters
                         val abnormalPulseChanged = it.abnormalPulseCounter != _currentAbnormalPulseCounter.value && it.abnormalPulseCounter != null && it.abnormalPulseCounter > 0
@@ -94,10 +121,11 @@ class TripRepositoryImpl @Inject constructor(
 
             launch {
                 TripDataStore.fallbackTripDataToStartNewTrip.collectLatest {
-                    it?.let {
-                        localTripsRepository.addTrip(it)
-                        TripDataStore.setTripData(it)
-                        TripDataStore.clearFallbackTripDataToStartNewTrip()
+                    val tripId = it?.tripId
+                    if (!tripId.isNullOrBlank()) {
+                        dashManager.getTripFromFirestore(tripId) { tripInFirestore ->
+                            handleOngoingLostTrip(tripInFirestore, newTrip = it)
+                        }
                     }
                 }
             }
@@ -124,6 +152,27 @@ class TripRepositoryImpl @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private fun handleOngoingLostTrip(tripInFirestore: MeterTripInFirestore?, newTrip: TripData) {
+        externalScope?.launch {
+            if (tripInFirestore == null) {
+                // cloud not find trip in firestore
+                withContext(mainDispatcher) {
+                    Toast.makeText(context, "Ongoing local trip not found. Creating a new trip.", Toast.LENGTH_SHORT).show()
+                    TripDataStore.setTripData(newTrip)
+                }
+            } else {
+                val tripData: TripData = dashManager.convertToType(tripInFirestore)
+                TripDataStore.setTripData(
+                    tripData.copy(
+                        wasTripJustStarted = true, // so that the trip listener is set
+                        requiresUpdateOnDatabase = false
+                    )
+                )
+            }
+            TripDataStore.clearFallbackTripDataToStartNewTrip()
         }
     }
 
@@ -208,7 +257,7 @@ class TripRepositoryImpl @Inject constructor(
 
     override suspend fun getMostRecentTrip() {
         measureBoardRepository.emitBeepSound(5, 0, 1)
-        val mostRecentTrip = localTripsRepository.getMostRecentTrip()
+        val mostRecentTrip = localTripsRepository.getMostRecentCompletedTrip()
         TripDataStore.setMostRecentTripData(mostRecentTrip)
     }
 

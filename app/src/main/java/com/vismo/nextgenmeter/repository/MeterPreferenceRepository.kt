@@ -107,6 +107,19 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveOngoingTripId(ongoingTripId: String) {
+        context.dataStore.edit { settings ->
+            settings[KEY_ONGOING_TRIP_ID] = ongoingTripId
+        }
+    }
+
+    suspend fun getOngoingTripId(): Flow<String?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_ONGOING_TRIP_ID]
+            }
+    }
+
 
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
@@ -117,6 +130,7 @@ class MeterPreferenceRepository(
         private val KEY_DEVICE_ID = stringPreferencesKey("device_id")
         private val KEY_LOCALE = stringPreferencesKey("selected_language")
         private val KEY_MCU_START_PRICE = stringPreferencesKey("mcu_start_price")
+        private val KEY_ONGOING_TRIP_ID = stringPreferencesKey("ongoing_trip_id")
     }
 
 }
