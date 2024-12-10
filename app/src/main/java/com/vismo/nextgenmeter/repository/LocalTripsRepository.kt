@@ -5,17 +5,17 @@ import kotlinx.coroutines.flow.Flow
 
 interface LocalTripsRepository {
 
-    fun addTrip(tripData: TripData)
+    suspend fun addTrip(tripData: TripData)
 
-    fun updateTrip(tripData: TripData)
+    suspend fun updateTrip(tripData: TripData)
 
-    fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean)
+    suspend fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean)
 
-    fun deleteTrip(tripData: TripData)
+    suspend fun deleteTrip(tripData: TripData)
 
     suspend fun getMostRecentCompletedTrip() : TripData
 
-    suspend fun getAllTrips() : List<TripData>
+    suspend fun getDescendingSortedTrips() : List<TripData>
 
     fun getAllTripsFlow() : Flow<List<TripData>>
 
