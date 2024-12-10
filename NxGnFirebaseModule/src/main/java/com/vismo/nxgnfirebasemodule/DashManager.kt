@@ -610,6 +610,11 @@ class DashManager @Inject constructor(
 
     fun onCleared() {
         meterDocumentListener?.remove()
+        tripDocumentListener?.remove()
+        meterDevicesDocumentListener?.remove()
+        meterDevicesDocumentListener = null
+        meterDocumentListener = null
+        tripDocumentListener = null
     }
 
     companion object {
