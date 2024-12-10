@@ -3,6 +3,7 @@ package com.vismo.nextgenmeter.ui.pin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
+import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.api.NetworkResult
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
@@ -124,6 +125,11 @@ class SystemPinViewModel @Inject constructor(
             }
             if (code == PIN_CLEAR_CACHE) {
                 DeviceDataStore.setClearCacheOfApplication(true)
+            }
+            if (BuildConfig.FLAVOR != "prd") {
+                if (code == PIN_WITH_GOD_CODE) {
+                    _navigationToNextScreen.value = true
+                }
             }
         }
     }

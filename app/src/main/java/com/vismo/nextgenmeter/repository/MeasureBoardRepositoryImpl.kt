@@ -304,6 +304,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 endTime = Timestamp.now(),
                 requiresUpdateOnDatabase = true,
                 licensePlate = it.licensePlate,
+                deviceId = it.deviceId
             )
             TripDataStore.updateTripDataValue(currentOngoingTrip)
         }
