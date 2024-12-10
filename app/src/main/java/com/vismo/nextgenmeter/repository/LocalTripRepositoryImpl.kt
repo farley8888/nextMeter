@@ -7,32 +7,33 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class LocalTripsRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val tripsDao: TripsDao
 ) : LocalTripsRepository {
-    override fun addTrip(tripData: TripData) {
-        CoroutineScope(ioDispatcher).launch {
+    override suspend fun addTrip(tripData: TripData) {
+        withContext(ioDispatcher)  {
             tripsDao.addTrip(tripData)
         }
     }
 
-    override fun updateTrip(tripData: TripData) {
-        CoroutineScope(ioDispatcher).launch {
+    override suspend fun updateTrip(tripData: TripData) {
+        withContext(ioDispatcher) {
             tripsDao.updateTrip(tripData)
         }
     }
 
-    override fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean) {
-        CoroutineScope(ioDispatcher).launch {
+    override suspend fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean) {
+        withContext(ioDispatcher)  {
             tripsDao.setDashPaymentStatus(tripId, isDashPayment)
         }
     }
 
-    override fun deleteTrip(tripData: TripData) {
-        CoroutineScope(ioDispatcher).launch {
+    override suspend fun deleteTrip(tripData: TripData) {
+        withContext(ioDispatcher)  {
             tripsDao.deleteTrip(tripData)
         }
     }
@@ -41,8 +42,8 @@ class LocalTripsRepositoryImpl @Inject constructor(
         return tripsDao.getMostRecentTrip() ?: throw Exception("No trips found")
     }
 
-    override suspend fun getAllTrips(): List<TripData> {
-        return tripsDao.getAllTrips()
+    override suspend fun getDescendingSortedTrips(): List<TripData> {
+        return tripsDao.getDescendingSortedTrips()
     }
 
     override fun getAllTripsFlow(): Flow<List<TripData>> {

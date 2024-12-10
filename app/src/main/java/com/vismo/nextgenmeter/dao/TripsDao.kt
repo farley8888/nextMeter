@@ -27,8 +27,8 @@ interface TripsDao {
     @Query("SELECT * FROM trips ORDER BY start_time DESC LIMIT 1")
     suspend fun getMostRecentTrip(): TripData?
 
-    @Query("SELECT * FROM trips")
-    suspend fun getAllTrips(): List<TripData>
+    @Query("SELECT * FROM trips ORDER BY start_time DESC")
+    suspend fun getDescendingSortedTrips(): List<TripData>
 
     @Query("SELECT * FROM trips")
     fun getAllTripsFlow(): Flow<List<TripData>>
