@@ -54,8 +54,10 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     private fun handleLocalTripUpdateIfNeeded(trip: TripData) {
-        if (trip.requiresUpdateOnDatabase) {
-            localTripsRepository.updateTrip(trip)
+        externalScope?.launch(ioDispatcher) {
+            if (trip.requiresUpdateOnDatabase) {
+                localTripsRepository.updateTrip(trip)
+            }
         }
     }
 
