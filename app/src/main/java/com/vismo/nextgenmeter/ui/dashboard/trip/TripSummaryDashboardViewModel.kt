@@ -119,12 +119,12 @@ class TripSummaryDashboardViewModel @Inject constructor(
     fun printSummary() {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                val sortedTrips = localTripsRepository.getAllTrips().sortedBy { it.startTime }
+                val sortedTrips = localTripsRepository.getDescendingSortedTrips()
                 if (sortedTrips.isEmpty()) return@withContext
                 val tripSummary = TripSummary(
                     licensePlate = meterPreferenceRepository.getLicensePlate().first() ?: "",
-                    firstStartTime = sortedTrips.first().startTime,
-                    lastEndTime = sortedTrips.last().endTime ?: Timestamp.now(),
+                    firstStartTime = sortedTrips.last().startTime,
+                    lastEndTime = sortedTrips.first().endTime ?: Timestamp.now(),
                     allTripsCount = sortedTrips.size,
                     cashTripsCount = sortedTrips.count { !it.isDash },
                     dashTripsCount = sortedTrips.count { it.isDash },
