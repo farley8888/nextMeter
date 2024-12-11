@@ -30,8 +30,8 @@ interface TripsDao {
     @Query("SELECT * FROM trips ORDER BY start_time DESC")
     suspend fun getDescendingSortedTrips(): List<TripData>
 
-    @Query("SELECT * FROM trips")
-    fun getAllTripsFlow(): Flow<List<TripData>>
+    @Query("SELECT * FROM trips ORDER BY start_time DESC")
+    fun getDescendingSortedTripsFlow(): Flow<List<TripData>>
 
     @Query("SELECT * FROM trips WHERE tripId = :tripId")
     suspend fun getTrip(tripId: String): TripData?

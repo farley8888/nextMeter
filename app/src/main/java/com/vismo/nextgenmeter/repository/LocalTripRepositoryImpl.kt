@@ -46,8 +46,8 @@ class LocalTripsRepositoryImpl @Inject constructor(
         return tripsDao.getDescendingSortedTrips()
     }
 
-    override fun getAllTripsFlow(): Flow<List<TripData>> {
-        return tripsDao.getAllTripsFlow()
+    override fun getDescendingSortedTripsFlow(): Flow<List<TripData>> {
+        return tripsDao.getDescendingSortedTripsFlow()
     }
 
     override suspend fun getTrip(tripId: String): TripData? {

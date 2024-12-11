@@ -49,7 +49,7 @@ class TripSummaryDashboardViewModel @Inject constructor(
     private fun getTrips() {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                localTripsRepository.getAllTripsFlow().collect { allTrips ->
+                localTripsRepository.getDescendingSortedTripsFlow().collect { allTrips ->
                     if (allTrips.isNotEmpty()) {
                         val currentLicensePlate = meterPreferenceRepository.getLicensePlate().first()
                         val tripsWithLicensePlate = allTrips.filter { it.licensePlate == currentLicensePlate }

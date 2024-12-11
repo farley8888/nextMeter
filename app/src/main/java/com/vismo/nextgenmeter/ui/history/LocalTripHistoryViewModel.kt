@@ -25,10 +25,11 @@ class LocalTripHistoryViewModel @Inject constructor(
     val trips: StateFlow<List<TripData>> = _trips
 
     init {
-        viewModelScope.launch {
-            withContext(ioDispatcher) {
-                val trips = localTripsRepository.getDescendingSortedTrips()
-                _trips.value = trips
+        viewModelScope.launch(ioDispatcher) {
+            localTripsRepository.getDescendingSortedTripsFlow().collect { latestTrips ->
+                if (latestTrips.isNotEmpty()) {
+                    _trips.value = latestTrips
+                }
             }
         }
     }
