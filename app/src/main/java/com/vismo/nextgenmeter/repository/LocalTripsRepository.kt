@@ -17,7 +17,7 @@ interface LocalTripsRepository {
 
     suspend fun getDescendingSortedTrips() : List<TripData>
 
-    fun getAllTripsFlow() : Flow<List<TripData>>
+    fun getDescendingSortedTripsFlow() : Flow<List<TripData>>
 
     suspend fun getTrip(tripId: String) : TripData?
 
