@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.vismo.nextgenmeter.model.TripData
 import kotlinx.coroutines.flow.Flow
 
@@ -14,6 +15,9 @@ interface TripsDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addTrip(trip: TripData)
+
+    @Upsert
+    suspend fun upsertTrip(trip: TripData)
 
     @Update
     suspend fun updateTrip(trip: TripData)
