@@ -105,7 +105,7 @@ class DashManager @Inject constructor(
     }
 
     fun getTripFromFirestore(tripId: String, onFinish: (MeterTripInFirestore?) -> Unit) {
-        val trip = getMeterDocument()
+        getMeterDocument()
             .collection(TRIPS_COLLECTION)
             .document(tripId)
             .get()

@@ -7,6 +7,8 @@ interface LocalTripsRepository {
 
     suspend fun addTrip(tripData: TripData)
 
+    suspend fun upsertTrip(tripData: TripData)
+
     suspend fun updateTrip(tripData: TripData)
 
     suspend fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean)

@@ -20,6 +20,12 @@ class LocalTripsRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun upsertTrip(tripData: TripData) {
+        withContext(ioDispatcher) {
+            tripsDao.upsertTrip(tripData)
+        }
+    }
+
     override suspend fun updateTrip(tripData: TripData) {
         withContext(ioDispatcher) {
             tripsDao.updateTrip(tripData)

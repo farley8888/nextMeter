@@ -48,6 +48,7 @@ class TripRepositoryImpl @Inject constructor(
     private val _currentAbnormalPulseCounter = MutableStateFlow<Int?>(null)
     private val _currentOverSpeedCounter = MutableStateFlow<Int?>(null)
     private var externalScope: CoroutineScope? = null
+    private var isGetTripFromFirestoreInProgress = false
 
     private fun shouldUpdateTrip(trip: TripData): Boolean {
         return trip.requiresUpdateOnDatabase || trip.wasTripJustStarted || dashManager.tripDocumentListener == null
@@ -124,9 +125,11 @@ class TripRepositoryImpl @Inject constructor(
             launch {
                 TripDataStore.fallbackTripDataToStartNewTrip.collectLatest {
                     val tripId = it?.tripId
-                    if (!tripId.isNullOrBlank()) {
+                    if (!tripId.isNullOrBlank() && !isGetTripFromFirestoreInProgress) {
+                        isGetTripFromFirestoreInProgress = true
                         dashManager.getTripFromFirestore(tripId) { tripInFirestore ->
                             handleOngoingLostTrip(tripInFirestore, newTrip = it)
+                            isGetTripFromFirestoreInProgress = false
                         }
                     }
                 }
@@ -164,6 +167,8 @@ class TripRepositoryImpl @Inject constructor(
                 withContext(mainDispatcher) {
                     Toast.makeText(context, "Ongoing local trip not found. Creating a new trip.", Toast.LENGTH_SHORT).show()
                     TripDataStore.setTripData(newTrip)
+                    localTripsRepository.upsertTrip(newTrip)
+                    handleFirestoreTripUpdate(newTrip)
                 }
             } else {
                 val tripData: TripData = dashManager.convertToType(tripInFirestore)

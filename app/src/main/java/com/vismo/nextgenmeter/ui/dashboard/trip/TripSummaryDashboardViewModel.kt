@@ -52,25 +52,24 @@ class TripSummaryDashboardViewModel @Inject constructor(
                 localTripsRepository.getDescendingSortedTripsFlow().collect { allTrips ->
                     if (allTrips.isNotEmpty()) {
                         val currentLicensePlate = meterPreferenceRepository.getLicensePlate().first()
-                        val tripsWithLicensePlate = allTrips.filter { it.licensePlate == currentLicensePlate }
 
                         val sumTotalFare = formatToNDecimalPlace(allTrips.sumOf { it.fare }, 2)
                         val sumExtras = formatToNDecimalPlace(allTrips.sumOf { it.extra }, 2)
                         val sumWaitingTime =
-                            formatSecondsToHHMMSS(tripsWithLicensePlate.sumOf { it.waitDurationInSeconds })
+                            formatSecondsToHHMMSS(allTrips.sumOf { it.waitDurationInSeconds })
                         val sumOfDistanceInKm =
-                            (tripsWithLicensePlate.sumOf { it.distanceInMeter } / 1000).toString()
+                            (allTrips.sumOf { it.distanceInMeter } / 1000).toString()
 
                         _allTripsSummary.value = TripSummaryDashboardUiData(
                             type = TripSummaryDashboardType.ALL,
-                            totalTrips = tripsWithLicensePlate.size.toString(),
+                            totalTrips = allTrips.size.toString(),
                             totalWaitTime = sumWaitingTime,
                             totalDistanceInKM = sumOfDistanceInKm,
                             totalFare = "$$sumTotalFare",
                             totalExtras = "$$sumExtras",
                         )
 
-                        val cashOnlyTrips = tripsWithLicensePlate.filter { !it.isDash  }
+                        val cashOnlyTrips = allTrips.filter { !it.isDash  }
                         val sumTotalFareCash = formatToNDecimalPlace(cashOnlyTrips.sumOf { it.fare }, 2)
                         val sumExtrasCash = formatToNDecimalPlace(cashOnlyTrips.sumOf { it.extra }, 2)
                         val sumWaitingTimeCash =
@@ -85,7 +84,7 @@ class TripSummaryDashboardViewModel @Inject constructor(
                             totalExtras = "$$sumExtrasCash",
                         )
 
-                        val dashOnlyTrips = tripsWithLicensePlate.filter { it.isDash }
+                        val dashOnlyTrips = allTrips.filter { it.isDash }
                         val sumTotalFareDash = formatToNDecimalPlace(dashOnlyTrips.sumOf { it.fare }, 2)
                         val sumExtrasDash = formatToNDecimalPlace(dashOnlyTrips.sumOf { it.extra }, 2)
                         val sumWaitingTimeDash =
