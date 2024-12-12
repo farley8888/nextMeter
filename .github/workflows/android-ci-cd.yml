@@ -14,6 +14,7 @@ jobs:
 
     outputs:
       commits: ${{ steps.last-commits.outputs.commits }}
+      filename: ${{ steps.set-env.outputs.filename }}
 
     strategy:
       matrix:
@@ -69,6 +70,7 @@ jobs:
           bash ./gradlew assemble${{ matrix.env }}${{ env.build_type }} --stacktrace
 
       - name: Set env variables
+        id: set-env
         run: |
             apk_path=$(find . -name "*.apk" | head -n 1)
             apk_filename=$(basename $apk_path)
@@ -76,6 +78,7 @@ jobs:
             echo "apk_path=${apk_path}" >> "$GITHUB_ENV"
             echo "apk_filename=${apk_filename}" >> "$GITHUB_ENV"
             echo "build_filename=${build_filename}" >> "$GITHUB_ENV"
+            echo "filename=${build_filename}" >> $GITHUB_OUTPUT
 
       - name: Set Hong Kong date
         run: echo "TODAY=$(TZ='Asia/Hong_Kong' date +%Y-%m-%d)" >> $GITHUB_ENV
@@ -140,15 +143,15 @@ jobs:
         run: |
           jq -s '.' all_links/*/build_links.json > combined_links.json
           pipeline_action=$(jq -n --arg title "View GitHub Pipeline" --arg url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{type: "Action.OpenUrl", title: $title, url: $url}')
+          # Add pipeline action to the links array
           links=$(jq ". += [$pipeline_action]" combined_links.json | jq -c .)
-          # Escape newlines and quotes for GitHub Actions output
-          links=$(echo $links | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          # Output the compact JSON
           echo "links=$links" >> $GITHUB_OUTPUT
-      
 
       - name: Debug Variables
         run: |
           echo "COMMITS=${{ needs.build-android.outputs.commits }}"
+          echo "BUILD_FILENAME=${{ needs.build-android.outputs.filename }}"
 
       - name: Send Teams Notification
         run: |
@@ -165,7 +168,7 @@ jobs:
                   "body": [
                     {
                       "type": "TextBlock",
-                      "text": "🆕 Builds Available",
+                      "text": "🆕 Builds Available 🚢🚀",
                       "weight": "Bolder",
                       "size": "ExtraLarge",
                       "wrap": true
@@ -176,6 +179,10 @@ jobs:
                         {
                           "title": "Pipeline ID:",
                           "value": "#${{ github.run_id }}"
+                        }
+                        {
+                          "title": "Version:",
+                          "value": "${{ needs.build-android.outputs.filename }}"
                         }
                       ]
                     },
