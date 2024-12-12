@@ -396,11 +396,8 @@ class MainViewModel @Inject constructor(
 
     init {
         measureBoardRepository.init(viewModelScope)
-        viewModelScope.launch {
-            withContext(ioDispatcher) {
-                remoteMeterControlRepository.observeFlows()
-            }
-        }
+        remoteMeterControlRepository.observeFlows(viewModelScope)
+        tripRepository.initObservers(viewModelScope)
         observeFlows()
         startACCStatusInquiries()
         observeInternetStatus()

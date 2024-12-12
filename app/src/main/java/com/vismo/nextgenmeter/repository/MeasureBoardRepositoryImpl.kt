@@ -59,7 +59,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private var mBusModel: BusModel? = null
     private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
     private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
-    private val _latestOngoingTripInDb: MutableStateFlow<TripData?> = MutableStateFlow(null)
+    private val _latestOngoingTripFromDataStore: MutableStateFlow<TripData?> = MutableStateFlow(null)
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
@@ -138,8 +138,10 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private fun observeOngoingTripInDb() {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
-            localTripsRepository.getLatestOnGoingTripFlow().collect {
-                _latestOngoingTripInDb.value = it
+            launch {
+                TripDataStore.ongoingTripData.collect {
+                    _latestOngoingTripFromDataStore.value = it
+                }
             }
         }
     }
@@ -182,62 +184,57 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         // Update the MCU time
         DeviceDataStore.setMCUTime(heartbeatData.currentTime)
 
-        // Retrieve the current ongoing local trip
-        val currentOngoingLocalTrip = _latestOngoingTripInDb.value
-
         // Retrieve saved device ID and license plate
         val savedDeviceId = meterPreferenceRepository.getDeviceId().firstOrNull() ?: ""
         val savedLicensePlate = meterPreferenceRepository.getLicensePlate().firstOrNull() ?: ""
 
-        // Use the device ID and license plate from the current trip or saved preferences
-        val deviceId = currentOngoingLocalTrip?.deviceId ?: savedDeviceId
-        val licensePlate = currentOngoingLocalTrip?.licensePlate ?: savedLicensePlate
-
         // Update device ID data
-        dashManagerConfig.setDeviceIdData(deviceId = deviceId, licensePlate = licensePlate)
-        DeviceDataStore.setDeviceIdData(DeviceIdData(deviceId, licensePlate))
+        dashManagerConfig.setDeviceIdData(deviceId = savedDeviceId, licensePlate = savedLicensePlate)
+        DeviceDataStore.setDeviceIdData(DeviceIdData(savedLicensePlate, savedLicensePlate))
 
-        if (currentOngoingLocalTrip == null) {
-            // edge case: happens on some devices when device is reset while trip is ongoing
-            val ongoingTripId = meterPreferenceRepository.getOngoingTripId().firstOrNull()
-            Log.d(TAG, "currentOngoingLocalTrip = null: savedTripId: $ongoingTripId")
-            val newTrip = TripData(
-                tripId = if(ongoingTripId.isNullOrBlank()) MeasureBoardUtils.generateTripId() else ongoingTripId,
+        val ongoingTrip = _latestOngoingTripFromDataStore.value
+
+        val requiresUpdate = ongoingTrip?.fare != heartbeatData.fare ||
+                ongoingTrip.tripStatus != heartbeatData.tripStatus ||
+                ongoingTrip.extra != heartbeatData.extras
+
+        val ongoingTripOverSpeedDurationInSeconds = ongoingTrip?.overSpeedDurationInSeconds ?: 0
+        val overSpeedDurationInSeconds = if (ongoingTripOverSpeedDurationInSeconds > heartbeatData.lockedDurationDecimal
+        ) {
+            ongoingTripOverSpeedDurationInSeconds  + heartbeatData.lockedDurationDecimal
+        } else {
+            heartbeatData.lockedDurationDecimal
+        }
+        val savedOngoingTripId = meterPreferenceRepository.getOngoingTripId().firstOrNull() ?: ""
+
+        val newTrip = if (ongoingTrip == null) {
+            // start Trip
+            TripData(
+                tripId = savedOngoingTripId,
                 startTime = Timestamp.now(),
                 tripStatus = heartbeatData.tripStatus,
-                pauseTime = if (heartbeatData.tripStatus == TripStatus.STOP) Timestamp.now() else null,
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
                 totalFare = heartbeatData.totalFare,
                 distanceInMeter = heartbeatData.distance,
                 waitDurationInSeconds = getTimeInSeconds(heartbeatData.duration),
-                overSpeedDurationInSeconds = heartbeatData.lockedDurationDecimal,
+                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = null),
+                endTime = null,
                 requiresUpdateOnDatabase = true,
-                licensePlate = licensePlate,
-                deviceId = deviceId,
+                licensePlate = savedLicensePlate,
+                deviceId = savedDeviceId,
+                overSpeedDurationInSeconds = overSpeedDurationInSeconds,
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
                 mcuStatus = heartbeatData.mcuStatus,
+                isNewTrip = true
             )
-
-            TripDataStore.setFallbackTripDataToStartNewTrip(newTrip)
-            Log.d(TAG, "handleOngoingHeartbeatResult: currentOngoingLocalTrip is null")
-            Sentry.captureMessage("handleOngoingHeartbeatResult: currentOngoingLocalTrip is null")
-        }
-        else {
-            val requiresUpdate = currentOngoingLocalTrip.fare != heartbeatData.fare ||
-                    currentOngoingLocalTrip.tripStatus != heartbeatData.tripStatus ||
-                    currentOngoingLocalTrip.extra != heartbeatData.extras
-
-            val overSpeedDurationInSeconds = if (currentOngoingLocalTrip.overSpeedDurationInSeconds > heartbeatData.lockedDurationDecimal) {
-                currentOngoingLocalTrip.overSpeedDurationInSeconds + heartbeatData.lockedDurationDecimal
-            } else {
-                heartbeatData.lockedDurationDecimal
-            }
-
-            val updatedTrip = currentOngoingLocalTrip.copy(
+        } else {
+            // update Trip
+            ongoingTrip.copy(
+                tripId = savedOngoingTripId,
                 tripStatus = heartbeatData.tripStatus,
-                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = currentOngoingLocalTrip.pauseTime),
+                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = ongoingTrip.pauseTime),
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
                 totalFare = heartbeatData.totalFare,
@@ -248,15 +245,16 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
                 mcuStatus = heartbeatData.mcuStatus,
+                isNewTrip = false
             )
-
-            TripDataStore.updateTripDataValue(updatedTrip)
-
-            if(currentOngoingLocalTrip.fare != heartbeatData.fare && currentOngoingLocalTrip.fare != 0.0) {
-                emitBeepSound(5, 0, 1)
-                Log.d(TAG, "handleOngoingHeartbeatResult: fare changed - beep sound emitted")
-            }
         }
+
+        if(newTrip.fare != heartbeatData.fare && ongoingTrip?.fare != 0.0) {
+            emitBeepSound(5, 0, 1)
+            Log.d(TAG, "handleOngoingHeartbeatResult: fare changed - beep sound emitted")
+        }
+
+        TripDataStore.updateTripDataValue(newTrip)
 
     }
 
@@ -303,43 +301,30 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
         Log.d(TAG, "TRIP_END_SUMMARY: $distance, ${getTimeInSeconds(duration)}, $fare, $extras, $totalFare")
 
-        val currentOngoingTripInDB = _latestOngoingTripInDb.value
+        val currentOngoingTrip = _latestOngoingTripFromDataStore.value
 
-        val currentOngoingTrip = if(currentOngoingTripInDB != null) {
-            TripData(
-                tripId = currentOngoingTripInDB.tripId,
-                startTime = currentOngoingTripInDB.startTime,
+        if(currentOngoingTrip != null) {
+            val newTrip = TripData(
+                tripId = currentOngoingTrip.tripId,
+                startTime = currentOngoingTrip.startTime,
                 tripStatus = TripStatus.ENDED,
                 fare = fare,
                 extra = extras,
                 totalFare = totalFare,
                 distanceInMeter = distance,
                 waitDurationInSeconds = getTimeInSeconds(duration),
-                pauseTime = currentOngoingTripInDB.pauseTime,
+                pauseTime = currentOngoingTrip.pauseTime,
                 endTime = Timestamp.now(),
                 requiresUpdateOnDatabase = true,
-                licensePlate = currentOngoingTripInDB.licensePlate,
-                deviceId = currentOngoingTripInDB.deviceId
+                licensePlate = currentOngoingTrip.licensePlate,
+                deviceId = currentOngoingTrip.deviceId
             )
+            TripDataStore.updateTripDataValue(newTrip)
         } else {
-            TripDataStore.ongoingTripData.firstOrNull()?.copy(
-                tripStatus = TripStatus.ENDED,
-                fare = fare,
-                extra = extras,
-                totalFare = totalFare,
-                distanceInMeter = distance,
-                waitDurationInSeconds = getTimeInSeconds(duration),
-                endTime = Timestamp.now(),
-                requiresUpdateOnDatabase = true,
-            )
-        }
-        TripDataStore.updateTripDataValue(currentOngoingTrip!!)
-        meterPreferenceRepository.saveOngoingTripId("")
-        if(currentOngoingTripInDB == null) {
             Log.d(TAG, "handleTripEndSummaryResult: currentOngoingTripInDB is null")
             Sentry.captureMessage("handleTripEndSummaryResult: currentOngoingTripInDB is null")
         }
-
+        meterPreferenceRepository.saveOngoingTripId("")
         addTask {
             // after a trip ends, MCU will only continue sending IDLE heartbeats after it receives this response
             mBusModel?.write(Command.CMD_END_RESPONSE)

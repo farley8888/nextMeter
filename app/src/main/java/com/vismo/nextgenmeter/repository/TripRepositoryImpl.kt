@@ -2,10 +2,8 @@ package com.vismo.nextgenmeter.repository
 
 import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
-import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.model.OngoingMeasureBoardStatus
 import com.vismo.nextgenmeter.model.TripData
@@ -29,7 +27,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class TripRepositoryImpl @Inject constructor(
@@ -48,16 +45,11 @@ class TripRepositoryImpl @Inject constructor(
     private val _currentAbnormalPulseCounter = MutableStateFlow<Int?>(null)
     private val _currentOverSpeedCounter = MutableStateFlow<Int?>(null)
     private var externalScope: CoroutineScope? = null
-    private var isGetTripFromFirestoreInProgress = false
-    private var isStartTripFlowAlreadyRun = false
+    private var isLostTripBeingSearched = false
 
-    private fun shouldUpdateTrip(trip: TripData): Boolean {
-        return trip.requiresUpdateOnDatabase
-    }
-
-    private suspend fun handleFirestoreTripUpdate(trip: TripData, shouldRunTripStartFlow: Boolean) {
+    private suspend fun handleFirestoreTripUpdate(trip: TripData) {
         val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(trip)
-        if (shouldRunTripStartFlow) {
+        if (trip.isNewTrip) {
             handleTripStart(trip, tripInFirestore)
         } else {
             dashManager.updateTripOnFirestore(tripInFirestore)
@@ -70,7 +62,6 @@ class TripRepositoryImpl @Inject constructor(
             meterPreferenceRepository.saveOngoingTripId(trip.tripId)
         }
         dashManager.setFirestoreTripDocumentListener(trip.tripId)
-        isStartTripFlowAlreadyRun = true
     }
 
 
@@ -82,13 +73,27 @@ class TripRepositoryImpl @Inject constructor(
                 TripDataStore.ongoingTripData.collect { trip ->
                     trip?.let {
                         // Update trip in Firestore if required
-                        if (shouldUpdateTrip(trip)) {
-                            localTripsRepository.updateTrip(trip)
-                            handleFirestoreTripUpdate(trip, shouldRunTripStartFlow = !isStartTripFlowAlreadyRun)
+                        if (trip.requiresUpdateOnDatabase && trip.tripId.isNotBlank()) {
+                            localTripsRepository.upsertTrip(trip)
+                            handleFirestoreTripUpdate(trip)
                             if (trip.tripStatus == TripStatus.ENDED) {
                                 dashManager.endTripDocumentListener()
+                                meterPreferenceRepository.saveOngoingTripId("")
                                 _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
-                                isStartTripFlowAlreadyRun = false
+                            }
+                        } else if (trip.tripId.isBlank() && !isLostTripBeingSearched) {
+                            // Handle trip id not found in saved preferences
+                            Log.e(TAG, "Trip ID not found in saved preferences")
+                            isLostTripBeingSearched = true
+                            val timeoutJob = launch {
+                                delay(10_000) // 10 seconds
+                                isLostTripBeingSearched = false
+                                Log.d(TAG, "Timeout reached, resetting isLostTripBeingSearched to false.")
+                            }
+                            dashManager.getLastUnEndedTrip() { latestTripInFirestore ->
+                                timeoutJob.cancel()
+                                handleOngoingLostTrip(latestTripInFirestore, newTrip = it)
+                                isLostTripBeingSearched = false
                             }
                         }
                         // Handle abnormal pulse and overspeed counters
@@ -121,19 +126,6 @@ class TripRepositoryImpl @Inject constructor(
             }
 
             launch {
-                TripDataStore.fallbackTripDataToStartNewTrip.collectLatest {
-                    val tripId = it?.tripId
-                    if (!tripId.isNullOrBlank() && !isGetTripFromFirestoreInProgress) {
-                        isGetTripFromFirestoreInProgress = true
-                        dashManager.getTripFromFirestore(tripId) { tripInFirestore ->
-                            handleOngoingLostTrip(tripInFirestore, newTrip = it)
-                            isGetTripFromFirestoreInProgress = false
-                        }
-                    }
-                }
-            }
-
-            launch {
                 dashManager.tripInFirestore.collectLatest { tripInFirestore ->
                     tripInFirestore?.let {
                         val pricingResult = tripInFirestore.getPricingResult(tripInFirestore.isDashPayment())
@@ -159,31 +151,30 @@ class TripRepositoryImpl @Inject constructor(
 
     private fun handleOngoingLostTrip(tripInFirestore: MeterTripInFirestore?, newTrip: TripData) {
         externalScope?.launch {
+            localTripsRepository.upsertTrip(newTrip)
             if (tripInFirestore == null) {
-                // cloud not find trip in firestore
-                withContext(mainDispatcher) {
-                    Toast.makeText(context, "Ongoing local trip not found. Creating a new trip.", Toast.LENGTH_SHORT).show()
-                    TripDataStore.updateTripDataValue(newTrip)
-                    localTripsRepository.upsertTrip(newTrip)
-                    handleFirestoreTripUpdate(newTrip, shouldRunTripStartFlow = true)
-                }
+                // cloud not find trip in firestore - make sure to create a new trip
+                val newTripId = MeasureBoardUtils.generateTripId()
+                handleFirestoreTripUpdate(newTrip.copy(
+                    tripId = newTripId,
+                    isNewTrip = true,
+                    requiresUpdateOnDatabase = true
+                ))
+                meterPreferenceRepository.saveOngoingTripId(newTripId)
+                Log.i(TAG, "Ongoing lost trip not found in Firestore - creating a new trip: ${newTrip.tripId}")
             } else {
                 val tripData: TripData = dashManager.convertToType(tripInFirestore)
-                TripDataStore.updateTripDataValue(tripData)
                 meterPreferenceRepository.saveOngoingTripId(tripData.tripId)
                 dashManager.setFirestoreTripDocumentListener(tripData.tripId)
+                Log.i(TAG, "Ongoing lost trip found in Firestore - using latest un-ended trip: ${tripData.tripId}")
             }
-            TripDataStore.clearFallbackTripDataToStartNewTrip()
         }
     }
 
     override suspend fun startTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
-        val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
-        val deviceId = DeviceDataStore.deviceIdData.first()?.deviceId ?: ""
-        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED, licensePlate = licensePlate, deviceId = deviceId)
-        localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
+        meterPreferenceRepository.saveOngoingTripId(tripId)
         Sentry.configureScope { scope: IScope ->
             scope.setTag("trip_id", tripId)
         }
@@ -197,11 +188,8 @@ class TripRepositoryImpl @Inject constructor(
 
     override suspend fun startAndPauseTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
-        val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
-        val deviceId = DeviceDataStore.deviceIdData.first()?.deviceId ?: ""
-        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.STOP, licensePlate = licensePlate, deviceId = deviceId)
-        localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
+        meterPreferenceRepository.saveOngoingTripId(tripId)
         Sentry.configureScope { scope: IScope ->
             scope.setTag("trip_id", tripId)
         }

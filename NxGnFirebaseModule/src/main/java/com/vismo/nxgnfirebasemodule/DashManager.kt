@@ -104,20 +104,23 @@ class DashManager @Inject constructor(
         Log.d(TAG, "DashManager initialized")
     }
 
-    fun getTripFromFirestore(tripId: String, onFinish: (MeterTripInFirestore?) -> Unit) {
+    fun getLastUnEndedTrip(onFinish: (MeterTripInFirestore?) -> Unit) {
         getMeterDocument()
             .collection(TRIPS_COLLECTION)
-            .document(tripId)
+            .whereIn("trip_status", listOf("HIRED", "STOP"))
+            .orderBy("creation_time", Query.Direction.DESCENDING)
+            .limit(1)
             .get()
             .addOnSuccessListener { snapshot ->
-                if (snapshot != null && snapshot.exists()) {
-                    val tripJson = gson.toJson(snapshot.data)
-                    val trip = gson.fromJson(tripJson, MeterTripInFirestore::class.java)
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val latestDocument = snapshot.documents[0]
+                    val json = gson.toJson(latestDocument.data)
+                    val trip = gson.fromJson(json, MeterTripInFirestore::class.java)
                     onFinish(trip)
                 }
             }
-            .addOnFailureListener {
-                Log.e(TAG, "getTripFromFirestore error", it)
+            .addOnFailureListener { e ->
+                Log.e(TAG, "getLostTripHandling - no trips found", e)
                 onFinish(null)
             }
     }
