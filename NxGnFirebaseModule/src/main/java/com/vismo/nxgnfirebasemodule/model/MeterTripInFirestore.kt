@@ -42,6 +42,7 @@ data class MeterTripInFirestore(
     @SerializedName("license_plate") val licensePlate: String? = null,
     @SerializedName("meter_software_version") val meterSoftwareVersion: String? = null,
     @SerializedName("meter_id") val meterId: String? = null,
+    @SerializedName("discount_amount") val discountAmountNegative: Double? = null,
 ): Serializable
 
 data class TripSession(
@@ -111,16 +112,8 @@ fun MeterTripInFirestore.getPricingResult(asDashTransaction: Boolean): PricingRe
     val feeRate = dashFeeRate ?: 0.0
     val feeConstant = dashFeeConstant ?: 0.0
     val applicableTip = tips ?: 0.0
+    val discountAmount = discountAmountNegative ?: 0.0
 
-//    val validDiscountPair =
-//        if (tripTotal != null && paymentMethodSelectedOnPOS != null) {
-//        getValidDashDiscountRule(
-//            tripTotal = tripTotal,
-//            selectedPaymentMethod =  paymentMethodSelectedOnPOS,
-//            applicablePaymentMethodsForDiscount = applicablePaymentMethodForDiscount ?: listOf(),
-//            discountRules = discountRules?.filterNotNull() ?: listOf()
-//        )
-//    } else null
 
     val applicableFee = if (asDashTransaction) {
         ((feeAndExtra + applicableTip) * feeRate).roundTo(2) + BigDecimal(feeConstant)
@@ -128,46 +121,11 @@ fun MeterTripInFirestore.getPricingResult(asDashTransaction: Boolean): PricingRe
         0.0
     }
 
-//    val applicableDiscount = validDiscountPair?.let {
-//        val (discountConstant, discountRate) = it
-//        val discountAmount = (feeAndExtra * discountRate).roundTo(2) + discountConstant
-//        discountAmount
-//    } ?: 0.0
-
-    val applicableTotal = (feeAndExtra + applicableTip + applicableFee.toDouble()).roundTo(2) // - applicableDiscount
+    val applicableTotal = (feeAndExtra + applicableTip + applicableFee.toDouble() + discountAmount).roundTo(2)
 
     return PricingResult(
         applicableFee = applicableFee.toDouble(),
-//        applicableDiscount = applicableDiscount,
+        applicableDiscount = discountAmount,
         applicableTotal = applicableTotal.toDouble()
     )
 }
-
-//private fun getValidDashDiscountRule(
-//    tripTotal: Double,
-//    selectedPaymentMethod: String,
-//    applicablePaymentMethodsForDiscount: List<String>,
-//    discountRules:List<DiscountRule>
-//): Pair<Int, Double>? {
-//    if (discountRules.isEmpty()) {
-//        return null
-//    }
-//
-//    if (!applicablePaymentMethodsForDiscount.contains(selectedPaymentMethod)) {
-//        return null
-//    }
-//
-//    for (discountRuleCandidate in discountRules) {
-//        if (
-//            tripTotal >= discountRuleCandidate.from
-//            && tripTotal < discountRuleCandidate.to
-//        ){
-//            return Pair(
-//                discountRuleCandidate.discountFix.toInt(),
-//                discountRuleCandidate.discountRate
-//            )
-//        }
-//    }
-//
-//    return null
-//}
