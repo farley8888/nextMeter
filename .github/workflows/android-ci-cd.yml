@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get build type
         id: build-type
@@ -96,18 +98,18 @@ jobs:
       - name: Get Last Commits
         id: last-commits
         run: |
-          git fetch --depth=6
-          commits=$(git log --no-merges -n 6 --oneline --pretty=format:"- %h %s" | sed ':a;N;$!ba;s/\n/\\n/g')
+          git fetch --prune --unshallow
+          commits=$(git log --no-merges -n 6 --oneline --pretty=format:"- %h %s" | sed 's/^.*: //')
           echo "commits=$commits" >> $GITHUB_OUTPUT
 
-      - name: Clean and Shorten Links
-        run: |
-          short_link=$(curl -s "https://tinyurl.com/api-create.php?url=${ONEDRIVE_LINK}")
-          echo "ONEDRIVE_LINK_SHORT=$short_link" >> $GITHUB_ENV
+#      - name: Clean and Shorten Links
+#        run: |
+#          short_link=$(curl -s "https://tinyurl.com/api-create.php?url=${ONEDRIVE_LINK}")
+#          echo "ONEDRIVE_LINK_SHORT=$short_link" >> $GITHUB_ENV
 
       - name: Collect Build Links
         run: |
-          apk_link="{ \"type\": \"Action.OpenUrl\", \"title\": \"Download APK (${{ matrix.env }})\", \"url\": \"${{ env.ONEDRIVE_LINK_SHORT }}\" }"
+          apk_link="{ \"type\": \"Action.OpenUrl\", \"title\": \"Download APK (${{ matrix.env }})\", \"url\": \"${{ env.ONEDRIVE_LINK }}\" }"
           echo "${apk_link}" >> build_links.json
 
       - name: Upload Environment Links
