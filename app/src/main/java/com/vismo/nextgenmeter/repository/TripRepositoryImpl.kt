@@ -49,22 +49,15 @@ class TripRepositoryImpl @Inject constructor(
     private val _currentOverSpeedCounter = MutableStateFlow<Int?>(null)
     private var externalScope: CoroutineScope? = null
     private var isGetTripFromFirestoreInProgress = false
+    private var isStartTripFlowAlreadyRun = false
 
     private fun shouldUpdateTrip(trip: TripData): Boolean {
-        return trip.requiresUpdateOnDatabase || trip.wasTripJustStarted || dashManager.tripDocumentListener == null
+        return trip.requiresUpdateOnDatabase
     }
 
-    private fun handleLocalTripUpdateIfNeeded(trip: TripData) {
-        externalScope?.launch(ioDispatcher) {
-            if (trip.requiresUpdateOnDatabase) {
-                localTripsRepository.updateTrip(trip)
-            }
-        }
-    }
-
-    private suspend fun handleFirestoreTripUpdate(trip: TripData) {
+    private suspend fun handleFirestoreTripUpdate(trip: TripData, shouldRunTripStartFlow: Boolean) {
         val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(trip)
-        if (dashManager.tripDocumentListener == null) {
+        if (shouldRunTripStartFlow) {
             handleTripStart(trip, tripInFirestore)
         } else {
             dashManager.updateTripOnFirestore(tripInFirestore)
@@ -72,17 +65,17 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleTripStart(trip: TripData, tripInFirestore: MeterTripInFirestore) {
-        if (trip.wasTripJustStarted) {
-            dashManager.createTripOnFirestore(tripInFirestore)
-            if (meterPreferenceRepository.getOngoingTripId().first() != trip.tripId) {
-                meterPreferenceRepository.saveOngoingTripId(trip.tripId)
-            }
+        dashManager.createTripOnFirestore(tripInFirestore)
+        if (meterPreferenceRepository.getOngoingTripId().first() != trip.tripId) {
+            meterPreferenceRepository.saveOngoingTripId(trip.tripId)
         }
         dashManager.setFirestoreTripDocumentListener(trip.tripId)
+        isStartTripFlowAlreadyRun = true
     }
 
 
     override fun initObservers(scope: CoroutineScope) {
+        Log.d(TAG, "initObservers")
         externalScope = scope
         externalScope?.launch(ioDispatcher) {
             launch {
@@ -90,11 +83,12 @@ class TripRepositoryImpl @Inject constructor(
                     trip?.let {
                         // Update trip in Firestore if required
                         if (shouldUpdateTrip(trip)) {
-                            handleLocalTripUpdateIfNeeded(trip)
-                            handleFirestoreTripUpdate(trip)
+                            localTripsRepository.updateTrip(trip)
+                            handleFirestoreTripUpdate(trip, shouldRunTripStartFlow = !isStartTripFlowAlreadyRun)
                             if (trip.tripStatus == TripStatus.ENDED) {
                                 dashManager.endTripDocumentListener()
                                 _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
+                                isStartTripFlowAlreadyRun = false
                             }
                         }
                         // Handle abnormal pulse and overspeed counters
@@ -169,18 +163,15 @@ class TripRepositoryImpl @Inject constructor(
                 // cloud not find trip in firestore
                 withContext(mainDispatcher) {
                     Toast.makeText(context, "Ongoing local trip not found. Creating a new trip.", Toast.LENGTH_SHORT).show()
-                    TripDataStore.setTripData(newTrip)
+                    TripDataStore.updateTripDataValue(newTrip)
                     localTripsRepository.upsertTrip(newTrip)
-                    handleFirestoreTripUpdate(newTrip)
+                    handleFirestoreTripUpdate(newTrip, shouldRunTripStartFlow = true)
                 }
             } else {
                 val tripData: TripData = dashManager.convertToType(tripInFirestore)
-                TripDataStore.setTripData(
-                    tripData.copy(
-                        wasTripJustStarted = true, // so that the trip listener is set
-                        requiresUpdateOnDatabase = false
-                    )
-                )
+                TripDataStore.updateTripDataValue(tripData)
+                meterPreferenceRepository.saveOngoingTripId(tripData.tripId)
+                dashManager.setFirestoreTripDocumentListener(tripData.tripId)
             }
             TripDataStore.clearFallbackTripDataToStartNewTrip()
         }
@@ -190,8 +181,7 @@ class TripRepositoryImpl @Inject constructor(
         val tripId = MeasureBoardUtils.generateTripId()
         val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
         val deviceId = DeviceDataStore.deviceIdData.first()?.deviceId ?: ""
-        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED, licensePlate = licensePlate, deviceId = deviceId, wasTripJustStarted = true)
-        TripDataStore.setTripData(tripData)
+        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.HIRED, licensePlate = licensePlate, deviceId = deviceId)
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
         Sentry.configureScope { scope: IScope ->
@@ -209,8 +199,7 @@ class TripRepositoryImpl @Inject constructor(
         val tripId = MeasureBoardUtils.generateTripId()
         val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
         val deviceId = DeviceDataStore.deviceIdData.first()?.deviceId ?: ""
-        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.STOP, licensePlate = licensePlate, deviceId = deviceId, wasTripJustStarted = true)
-        TripDataStore.setTripData(tripData)
+        val tripData = TripData(tripId = tripId, startTime = Timestamp.now(), tripStatus = TripStatus.STOP, licensePlate = licensePlate, deviceId = deviceId)
         localTripsRepository.addTrip(tripData)
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
         Sentry.configureScope { scope: IScope ->

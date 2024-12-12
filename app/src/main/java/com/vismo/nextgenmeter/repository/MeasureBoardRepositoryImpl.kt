@@ -41,6 +41,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.logging.Logger
@@ -113,6 +114,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun startCommunicate() {
         mBusModel?.startCommunicate()
+        Log.d(TAG, "startCommunicate")
     }
 
     override fun init(scope: CoroutineScope) {
@@ -143,6 +145,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleIdleHeartbeatResult(result: String) {
+        if (result.length < 125 || !result.startsWith(CHECKSUM)) {
+            Log.d(TAG, "handleIdleHeartbeatResult: Invalid result length: ${result.length}")
+            Sentry.captureMessage("handleIdleHeartbeatResult: Invalid result length: ${result.length}")
+            return
+        }
         val measureBoardDeviceId = result.substring(52, 52 + 10)
         val licensePlateHex = result.substring(110, 110 + 16)
         val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
@@ -164,6 +171,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private suspend  fun handleOngoingHeartbearResult(result: String) {
         Log.d(TAG, "ONGOING_HEARTBEAT: $result")
+        if (result.length < 70 || !result.startsWith(CHECKSUM)) {
+            Log.d(TAG, "parseHeartbeatResult: Invalid result length: ${result.length}")
+            Sentry.captureMessage("parseHeartbeatResult: Invalid result length: ${result.length}")
+            return
+        }
         // Parse the heartbeat result into a data class for better organization
         val heartbeatData = parseHeartbeatResult(result)
 
@@ -206,7 +218,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
                 mcuStatus = heartbeatData.mcuStatus,
-                wasTripJustStarted = true
             )
 
             TripDataStore.setFallbackTripDataToStartNewTrip(newTrip)
@@ -237,7 +248,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
                 mcuStatus = heartbeatData.mcuStatus,
-                wasTripJustStarted = false
             )
 
             TripDataStore.updateTripDataValue(updatedTrip)
@@ -280,6 +290,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleTripEndSummaryResult(result: String) {
+        if (result.length < 147 || !result.startsWith(CHECKSUM)) {
+            Log.d(TAG, "handleTripEndSummaryResult: Invalid result length: ${result.length}")
+            Sentry.captureMessage("handleTripEndSummaryResult: Invalid result length: ${result.length}")
+            return
+        }
         val distance = result.substring(118, 118 + 6).multiplyBy10AndConvertToDouble()
         val duration = result.substring(124, 124 + 6)
         val fare = result.substring(130, 130 + 6).divideBy100AndConvertToDouble()
@@ -290,24 +305,35 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
         val currentOngoingTripInDB = _latestOngoingTripInDb.value
 
-        currentOngoingTripInDB?.let {
-            val currentOngoingTrip = TripData(
-                tripId = it.tripId,
-                startTime = it.startTime,
+        val currentOngoingTrip = if(currentOngoingTripInDB != null) {
+            TripData(
+                tripId = currentOngoingTripInDB.tripId,
+                startTime = currentOngoingTripInDB.startTime,
                 tripStatus = TripStatus.ENDED,
                 fare = fare,
                 extra = extras,
                 totalFare = totalFare,
                 distanceInMeter = distance,
                 waitDurationInSeconds = getTimeInSeconds(duration),
-                pauseTime = it.pauseTime,
+                pauseTime = currentOngoingTripInDB.pauseTime,
                 endTime = Timestamp.now(),
                 requiresUpdateOnDatabase = true,
-                licensePlate = it.licensePlate,
-                deviceId = it.deviceId
+                licensePlate = currentOngoingTripInDB.licensePlate,
+                deviceId = currentOngoingTripInDB.deviceId
             )
-            TripDataStore.updateTripDataValue(currentOngoingTrip)
+        } else {
+            TripDataStore.ongoingTripData.firstOrNull()?.copy(
+                tripStatus = TripStatus.ENDED,
+                fare = fare,
+                extra = extras,
+                totalFare = totalFare,
+                distanceInMeter = distance,
+                waitDurationInSeconds = getTimeInSeconds(duration),
+                endTime = Timestamp.now(),
+                requiresUpdateOnDatabase = true,
+            )
         }
+        TripDataStore.updateTripDataValue(currentOngoingTrip!!)
         meterPreferenceRepository.saveOngoingTripId("")
         if(currentOngoingTripInDB == null) {
             Log.d(TAG, "handleTripEndSummaryResult: currentOngoingTripInDB is null")
@@ -321,6 +347,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private suspend fun checkStatues(result: String) {
+        Log.d(TAG, "checkStatues: $result")
         when (getResultType(result)) {
             IDLE_HEARTBEAT -> handleIdleHeartbeatResult(result = result)
             ONGOING_HEARTBEAT -> handleOngoingHeartbearResult(result = result)
@@ -332,7 +359,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 Sentry.captureMessage("Unknown result: $result")
             }
         }
-        Log.d(TAG, "checkStatues: $result")
     }
 
     private suspend fun handleAbnormalPulse(result: String) {
@@ -341,6 +367,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleParametersEnquiryResult(result: String) {
+        if (result.length < 97 || !result.startsWith(CHECKSUM)) {
+            Log.d(TAG, "handleParametersEnquiryResult: Invalid result length: ${result.length}")
+            Sentry.captureMessage("handleParametersEnquiryResult: Invalid result length: ${result.length}")
+            return
+        }
         //parameters enquiry
         val firmwareVersion = result.substring(18, 18 + 8)
         val parametersVersion = result.substring(26, 26 + 8)
@@ -509,5 +540,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     companion object {
         private const val WHAT_PRINT_STATUS: Int = 110
         private const val TAG = "MeasureBoardRepository"
+        private const val CHECKSUM = "55AA"
     }
 }
