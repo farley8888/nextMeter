@@ -1,0 +1,204 @@
+name: android-ci-cd
+
+on:
+  workflow_dispatch:
+
+  pull_request:
+    branches: ["main" , "develop"]
+
+
+jobs:
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+
+    outputs:
+      commits: ${{ steps.last-commits.outputs.commits }}
+      filename: ${{ steps.set-env.outputs.filename }}
+
+    strategy:
+      matrix:
+        env: ["dev", "dev2", "qa", "prd"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get build type
+        id: build-type
+        run: |
+          if [ "${{ matrix.env }}" = "prd" ]; then
+            build_type="Release"
+          else
+            build_type="Debug"
+          fi
+          echo "build_type=${build_type}" >> "$GITHUB_ENV"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Install Sentry CLI
+        if: ${{ env.build_type == 'Release' }}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          export PATH="$HOME/.local/bin:$PATH"
+          sentry-cli --version
+
+      - name: Sentry Login (Release)
+        if: ${{ env.build_type == 'Release' }}
+        run: sentry-cli login --auth-token ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      - name: Set up Signing Files
+        run: |
+         echo "${{ secrets.ANDROID_KEYSTORE}}" | base64 -d > $GITHUB_WORKSPACE/my.keystore
+         echo "storeFile=$GITHUB_WORKSPACE/my.keystore" > $GITHUB_WORKSPACE/keystore.properties
+         echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_WORKSPACE/keystore.properties
+         echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> $GITHUB_WORKSPACE/keystore.properties
+         echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_WORKSPACE/keystore.properties
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build APK
+        run: |
+          bash ./gradlew assemble${{ matrix.env }}${{ env.build_type }} --stacktrace
+
+      - name: Set env variables
+        id: set-env
+        run: |
+            apk_path=$(find . -name "*.apk" | head -n 1)
+            apk_filename=$(basename $apk_path)
+            build_filename=$(echo $apk_filename | cut -d"-" -f1)
+            echo "apk_path=${apk_path}" >> "$GITHUB_ENV"
+            echo "apk_filename=${apk_filename}" >> "$GITHUB_ENV"
+            echo "build_filename=${build_filename}" >> "$GITHUB_ENV"
+            echo "filename=${apk_filename}" >> $GITHUB_OUTPUT
+
+      - name: Set Hong Kong date
+        run: echo "TODAY=$(TZ='Asia/Hong_Kong' date +%Y-%m-%d)" >> $GITHUB_ENV
+
+      - name: Upload to OneDrive (APK)
+        run: sh ./.github/scripts/uploadToOneDrive.sh
+        env:
+          GRAPH_CLIENT_SECRET: ${{ secrets.GRAPH_CLIENT_SECRET }}
+          BUILD_FILENAME: ${{ env.build_filename }}
+          FILEPATH: ${{ env.apk_path }}
+          FILENAME: ${{ env.apk_filename }}.apk
+          ONEDRIVE_DIR: /apps_archive/app-cable-meter/${{ env.TODAY }}
+          ONEDRIVE_BASE_DIR: /apps_archive/app-cable-meter
+          GRAPH_CLIENT_ID: 09f052b7-2f8f-49c9-8970-9f0d21aeef9e
+          GRAPH_TENANT_ID: 42553b9c-b625-4c8d-9139-fa1af19f40fb
+          GRAPH_DRIVE_ID: dc66c4fd-2f68-422f-a176-1ab3a6666e7f
+          LATEST_PREFIX: cm-${{ matrix.env }}-${{ env.build_type }}
+          EXTENSION: .apk
+
+      - name: Get Last Commits
+        id: last-commits
+        run: |
+          git fetch --prune
+          commits=$(git log --no-merges -n 8 --oneline --pretty=format:"- %h\t%s\t(%an)" | sed ':a;N;$!ba;s/\n/\\\\n/g')
+          echo "commits=$commits" >> $GITHUB_OUTPUT
+
+      - name: Collect Build Links
+        run: |
+          apk_link="{ \"type\": \"Action.OpenUrl\", \"title\": \"Download APK (${{ matrix.env }})\", \"url\": \"${{ env.ONEDRIVE_LINK }}\" }"
+          echo "${apk_link}" >> build_links.json
+
+      - name: Upload Environment Links
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-links-${{ matrix.env }}
+          path: build_links.json
+
+      - name: Annotation
+        run: |
+          echo '::notice title=${{matrix.env}} APK LINK (${{ env.build_name }}),file=${{ env.apk_filename }}:: ${{ env.ONEDRIVE_LINK }}'
+          echo '::notice title=${{matrix.env}} APK LINK (LATEST),file=${{ env.apk_filename }}:: ${{ env.ONEDRIVE_LINK_LATEST }}'
+          echo '::warning title=Installation Command (${{matrix.env}}):: wget -O ${{ env.apk_filename }} "${{ env.ONEDRIVE_LINK_LATEST }}" && adb install -r ${{ env.apk_filename }}.apk && rm ${{ env.apk_filename }}.apk'
+
+
+  notify-teams:
+    name: Notify Teams
+    runs-on: ubuntu-latest
+    needs: build-android
+    steps:
+      - name: Download All Links
+        uses: actions/download-artifact@v3
+        with:
+          path: all_links
+
+      - name: Aggregate All Links
+        id: aggregate-all-links
+        run: |
+          jq -s '.' all_links/*/build_links.json > combined_links.json
+          pipeline_action=$(jq -n --arg title "View GitHub Pipeline" --arg url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{type: "Action.OpenUrl", title: $title, url: $url}')
+          # Add pipeline action to the links array
+          links=$(jq ". += [$pipeline_action]" combined_links.json | jq -c .)
+          # Output the compact JSON
+          echo "links=$links" >> $GITHUB_OUTPUT
+
+      - name: Debug Variables
+        run: |
+          echo "COMMITS=${{ needs.build-android.outputs.commits }}"
+          echo "BUILD_FILENAME=${{ needs.build-android.outputs.filename }}"
+
+      - name: Send Teams Notification
+        run: |
+          teams_payload=$(cat <<EOF
+          {
+            "type": "message",
+            "attachments": [
+              {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                  "type": "AdaptiveCard",
+                  "version": "1.2",
+                  "body": [
+                    {
+                      "type": "TextBlock",
+                      "text": "🆕 Builds Available 🚀🚀",
+                      "weight": "Bolder",
+                      "size": "ExtraLarge",
+                      "wrap": true
+                    },
+                    {
+                      "type": "FactSet",
+                      "facts": [
+                        {
+                          "title": "Pipeline ID:",
+                          "value": "#${{ github.run_id }}"
+                        },
+                        {
+                          "title": "Version:",
+                          "value": "${{ needs.build-android.outputs.filename }}"
+                        },
+                      ]
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "**Latest Changes:**\n\n${{ needs.build-android.outputs.commits }}",
+                      "wrap": true
+                    } 
+                  ],
+                  "actions": ${{ steps.aggregate-all-links.outputs.links }},
+                }
+              }
+            ]
+          }
+          EOF
+          )
+          curl --location --request POST '${{ secrets.TEAMS_WEBHOOK_URL }}' \
+          --header 'Content-Type: application/json' \
+          --data-raw "${teams_payload}"
+
+      - name: Cleanup Artifacts
+        run: |
+          rm -rf all_links
+          rm -f combined_links.json
