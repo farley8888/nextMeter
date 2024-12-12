@@ -137,7 +137,9 @@ jobs:
         id: aggregate-all-links
         run: |
           jq -s '.' all_links/*/build_links.json > combined_links.json
-          echo "links=$(cat combined_links.json)" >> $GITHUB_OUTPUT
+          # Escape newlines and quotes for GitHub Actions output
+          links=$(cat combined_links.json | jq -c .)
+          echo "links=$links" >> $GITHUB_OUTPUT
       
 
       - name: Debug Variables
