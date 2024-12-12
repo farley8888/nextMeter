@@ -78,7 +78,7 @@ jobs:
             echo "apk_path=${apk_path}" >> "$GITHUB_ENV"
             echo "apk_filename=${apk_filename}" >> "$GITHUB_ENV"
             echo "build_filename=${build_filename}" >> "$GITHUB_ENV"
-            echo "filename=${build_filename}" >> $GITHUB_OUTPUT
+            echo "filename=${apk_filename}" >> $GITHUB_OUTPUT
 
       - name: Set Hong Kong date
         run: echo "TODAY=$(TZ='Asia/Hong_Kong' date +%Y-%m-%d)" >> $GITHUB_ENV
@@ -102,13 +102,8 @@ jobs:
         id: last-commits
         run: |
           git fetch --prune
-          commits=$(git log --no-merges -n 6 --oneline --pretty=format:"- %h %s" | sed ':a;N;$!ba;s/\n/\\\\n/g')
+          commits=$(git log --no-merges -n 8 --oneline --pretty=format:"- %h\t%s\t(%an)" | sed ':a;N;$!ba;s/\n/\\\\n/g')
           echo "commits=$commits" >> $GITHUB_OUTPUT
-
-#      - name: Clean and Shorten Links
-#        run: |
-#          short_link=$(curl -s "https://tinyurl.com/api-create.php?url=${ONEDRIVE_LINK}")
-#          echo "ONEDRIVE_LINK_SHORT=$short_link" >> $GITHUB_ENV
 
       - name: Collect Build Links
         run: |
@@ -168,7 +163,7 @@ jobs:
                   "body": [
                     {
                       "type": "TextBlock",
-                      "text": "🆕 Builds Available 🚢🚀",
+                      "text": "🆕 Builds Available 🚀🚀",
                       "weight": "Bolder",
                       "size": "ExtraLarge",
                       "wrap": true
@@ -185,11 +180,6 @@ jobs:
                           "value": "${{ needs.build-android.outputs.filename }}"
                         },
                       ]
-                    },
-                    {
-                      "type": "TextBlock",
-                      "text": "Download the latest APKs",
-                      "wrap": true
                     },
                     {
                       "type": "TextBlock",
