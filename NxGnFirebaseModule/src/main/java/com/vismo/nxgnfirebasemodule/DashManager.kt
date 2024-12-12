@@ -61,7 +61,7 @@ class DashManager @Inject constructor(
     private val meterDevicesCollection = firestore.collection(METER_DEVICES_COLLECTION)
     private val metersCollection = firestore.collection(METERS_COLLECTION)
     private var meterDocumentListener: ListenerRegistration? = null
-    var tripDocumentListener: ListenerRegistration? = null
+    private var tripDocumentListener: ListenerRegistration? = null
     private var meterDevicesDocumentListener: ListenerRegistration? = null
 
     private val _meterFields: MutableStateFlow<MeterFields?> = MutableStateFlow(null)

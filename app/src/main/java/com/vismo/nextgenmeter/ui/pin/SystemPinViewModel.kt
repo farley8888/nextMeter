@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.ui.pin
 
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
@@ -13,11 +14,13 @@ import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.util.CryptoManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.samstevens.totp.code.DefaultCodeGenerator
 import dev.samstevens.totp.code.DefaultCodeVerifier
 import dev.samstevens.totp.code.HashingAlgorithm
 import dev.samstevens.totp.time.SystemTimeProvider
 import dev.samstevens.totp.time.TimeProvider
+import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +31,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SystemPinViewModel @Inject constructor(
+    @ApplicationContext private val context: android.content.Context,
     private val meterApiRepository: MeterApiRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val meterPreferenceRepository: MeterPreferenceRepository,
@@ -122,9 +126,11 @@ class SystemPinViewModel @Inject constructor(
             }
             if (code == PIN_REMOTE_UPDATE_K_VALUE) {
                 remoteMeterControlRepository.remoteUpdateKValue()
+                Toast.makeText(context, "Remote update K value triggered", Toast.LENGTH_SHORT).show()
             }
             if (code == PIN_CLEAR_CACHE) {
                 DeviceDataStore.setClearCacheOfApplication(true)
+                Toast.makeText(context, "Clearing cache", Toast.LENGTH_SHORT).show()
             }
             if (BuildConfig.FLAVOR != "prd") {
                 if (code == PIN_WITH_GOD_CODE) {
