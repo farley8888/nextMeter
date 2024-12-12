@@ -38,6 +38,8 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     override val remoteUpdateRequest = dashManager.mostRelevantUpdate
 
+    private var externalScope: CoroutineScope? = null
+
     override fun initDashManager(scope: CoroutineScope) {
         DashManagerConfig.simIccId = getICCID() ?: ""
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
@@ -49,8 +51,9 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         return iccid
     }
 
-    override fun observeFlows() {
-        CoroutineScope(ioDispatcher).launch {
+    override fun observeFlows(scope: CoroutineScope) {
+        externalScope = scope
+        externalScope?.launch {
             launch {
                 DeviceDataStore.mcuPriceParams.collectLatest { mcuParams ->
                     mcuParams?.let {
@@ -92,7 +95,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     }
 
     override fun updateLicensePlateAndKValue(licensePlate: String, kValue: String) {
-        CoroutineScope(ioDispatcher).launch {
+        externalScope?.launch {
             measureBoardRepository.updateKValue(kValue.toInt())
             delay(3000L) // seems like this delay is necessary for the measure board to process the kValue update
             measureBoardRepository.updateLicensePlate(licensePlate)

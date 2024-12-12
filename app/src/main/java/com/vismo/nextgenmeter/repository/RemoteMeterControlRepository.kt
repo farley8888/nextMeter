@@ -15,7 +15,7 @@ interface RemoteMeterControlRepository {
 
     fun initDashManager(scope: CoroutineScope)
 
-    fun observeFlows()
+    fun observeFlows(scope: CoroutineScope)
 
     fun sendHeartBeat()
 

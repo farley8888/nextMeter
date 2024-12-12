@@ -72,6 +72,7 @@ data class TripData (
     val abnormalPulseCounter: Int? = null,
     val overSpeedCounter: Int? = null,
     val mcuStatus: Int? = null,
+    val isNewTrip: Boolean = false,
 )
 
 enum class TripStatus {

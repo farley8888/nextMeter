@@ -162,7 +162,6 @@ class MeterOpsViewModel @Inject constructor(
                 }
             }
         }
-        tripRepository.initObservers(viewModelScope)
     }
 
     fun isTTSPlaying(): Boolean {
