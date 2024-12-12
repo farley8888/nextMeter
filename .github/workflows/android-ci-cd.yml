@@ -78,7 +78,8 @@ jobs:
             echo "apk_path=${apk_path}" >> "$GITHUB_ENV"
             echo "apk_filename=${apk_filename}" >> "$GITHUB_ENV"
             echo "build_filename=${build_filename}" >> "$GITHUB_ENV"
-            echo "filename=${apk_filename}" >> $GITHUB_OUTPUT
+            filename=$(echo "${apk_filename}" | cut -d'-' -f1-3)
+            echo "filename=${filename}" >> $GITHUB_OUTPUT
 
       - name: Set Hong Kong date
         run: echo "TODAY=$(TZ='Asia/Hong_Kong' date +%Y-%m-%d)" >> $GITHUB_ENV
@@ -102,7 +103,7 @@ jobs:
         id: last-commits
         run: |
           git fetch --prune
-          commits=$(git log --no-merges -n 8 --oneline --pretty=format:"- %h\t%s\t(%an)" | sed ':a;N;$!ba;s/\n/\\\\n/g')
+          commits=$(git log --no-merges -n 7 --oneline --pretty=format:"- %h\t%s\t(%an)" | sed ':a;N;$!ba;s/\n/\\\\n/g')
           echo "commits=$commits" >> $GITHUB_OUTPUT
 
       - name: Collect Build Links
