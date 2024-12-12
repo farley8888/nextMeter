@@ -21,12 +21,6 @@ object TripDataStore {
 
     private val mutex = Mutex() // Mutex for synchronization
 
-    suspend fun setTripData(tripData: TripData) {
-        mutex.withLock {
-            this._ongoingTripData.value = tripData
-        }
-    }
-
     suspend fun clearTripData() {
         mutex.withLock {
             this._ongoingTripData.value = null

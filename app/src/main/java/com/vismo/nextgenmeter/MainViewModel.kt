@@ -124,6 +124,7 @@ class MainViewModel @Inject constructor(
             DeviceDataStore.clearCacheOfApplication.collectLatest { clearCache ->
                 if (clearCache) {
                     _clearApplicationCache.value = true
+                    Sentry.captureMessage("Clearing cache of application")
                     DeviceDataStore.setClearCacheOfApplication(false)
                 }
             }
