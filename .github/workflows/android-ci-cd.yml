@@ -179,11 +179,11 @@ jobs:
                         {
                           "title": "Pipeline ID:",
                           "value": "#${{ github.run_id }}"
-                        }
+                        },
                         {
                           "title": "Version:",
                           "value": "${{ needs.build-android.outputs.filename }}"
-                        }
+                        },
                       ]
                     },
                     {
