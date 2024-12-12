@@ -92,6 +92,10 @@ class TripRepositoryImpl @Inject constructor(
                         if (shouldUpdateTrip(trip)) {
                             handleLocalTripUpdateIfNeeded(trip)
                             handleFirestoreTripUpdate(trip)
+                            if (trip.tripStatus == TripStatus.ENDED) {
+                                dashManager.endTripDocumentListener()
+                                _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
+                            }
                         }
                         // Handle abnormal pulse and overspeed counters
                         val abnormalPulseChanged = it.abnormalPulseCounter != _currentAbnormalPulseCounter.value && it.abnormalPulseCounter != null && it.abnormalPulseCounter > 0
@@ -149,9 +153,8 @@ class TripRepositoryImpl @Inject constructor(
                         }
                         _currentTripPaidStatus.value = tripInFirestore.paidStatus()
                         if (tripInFirestore.tripStatus == com.vismo.nxgnfirebasemodule.model.TripStatus.ENDED) {
-                            dashManager.endTripDocumentListener()
+                            // Update trip paid status in local database
                             localTripsRepository.setDashPaymentStatus(tripInFirestore.tripId, tripInFirestore.isDashPayment())
-                            _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
                         }
                         Log.i(TAG, "Trip Paid Status: ${_currentTripPaidStatus.value}")
                     }
