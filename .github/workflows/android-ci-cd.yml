@@ -98,8 +98,8 @@ jobs:
       - name: Get Last Commits
         id: last-commits
         run: |
-          git fetch --prune --unshallow
-          commits=$(git log --no-merges -n 6 --oneline --pretty=format:"- %h %s" | sed 's/^.*: //')
+          git fetch --prune
+          commits=$(git log --no-merges -n 6 --oneline --pretty=format:"- %h %s" | sed ':a;N;$!ba;s/\n/\\\\n/g')
           echo "commits=$commits" >> $GITHUB_OUTPUT
 
 #      - name: Clean and Shorten Links
@@ -139,8 +139,10 @@ jobs:
         id: aggregate-all-links
         run: |
           jq -s '.' all_links/*/build_links.json > combined_links.json
+          pipeline_action=$(jq -n --arg title "View GitHub Pipeline" --arg url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{type: "Action.OpenUrl", title: $title, url: $url}')
+          links=$(jq ". += [$pipeline_action]" combined_links.json | jq -c .)
           # Escape newlines and quotes for GitHub Actions output
-          links=$(cat combined_links.json | jq -c .)
+          links=$(echo $links | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
           echo "links=$links" >> $GITHUB_OUTPUT
       
 
@@ -198,3 +200,8 @@ jobs:
           curl --location --request POST '${{ secrets.TEAMS_WEBHOOK_URL }}' \
           --header 'Content-Type: application/json' \
           --data-raw "${teams_payload}"
+
+      - name: Cleanup Artifacts
+        run: |
+          rm -rf all_links
+          rm -f combined_links.json
