@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.dao.TripsDao
 import com.vismo.nextgenmeter.model.TripData
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +16,7 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
     abstract fun tripsDao(): TripsDao
 
     companion object {
-        private const val DATABASE_NAME = "local_trips_db"
+        private const val DATABASE_NAME = "local_trips_db_${BuildConfig.FLAVOR}"
 
         @Volatile
         private var INSTANCE: LocalTripsRoomDatabase? = null
