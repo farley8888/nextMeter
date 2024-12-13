@@ -99,10 +99,12 @@ object AppModule {
     @Singleton
     @Provides
     fun providesLocalTripsRepository(
+        @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         tripsDao: TripsDao,
     ): LocalTripsRepository {
         return LocalTripsRepositoryImpl(
+            defaultDispatcher = defaultDispatcher,
             ioDispatcher = ioDispatcher,
             tripsDao = tripsDao,
         )

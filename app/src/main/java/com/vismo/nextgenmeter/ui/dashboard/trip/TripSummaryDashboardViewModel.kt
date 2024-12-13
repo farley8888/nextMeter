@@ -12,7 +12,10 @@ import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
 import com.vismo.nextgenmeter.util.GlobalUtils.formatSecondsToHHMMSS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -41,6 +44,9 @@ class TripSummaryDashboardViewModel @Inject constructor(
         TripSummaryDashboardUiData(TripSummaryDashboardType.NON_DASH)
     )
     val cashTripsSummary: StateFlow<TripSummaryDashboardUiData> = _cashTripsSummary
+
+    private val _showTripsClearedToast = MutableSharedFlow<Boolean>()
+    val showTripsClearedToast: SharedFlow<Boolean> = _showTripsClearedToast
 
     init {
         getTrips()
@@ -149,6 +155,9 @@ class TripSummaryDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             withContext(ioDispatcher) {
                 localTripsRepository.clearAllTrips()
+                _showTripsClearedToast.emit(true)
+                delay(2000)
+                _showTripsClearedToast.emit(false)
             }
         }
     }
