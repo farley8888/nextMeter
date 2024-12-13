@@ -476,7 +476,7 @@ class DashManager @Inject constructor(
                         json =
                             json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
                         val update = gson.fromJson(json, Update::class.java)
-                        if (update.shouldPrompt()) {
+                        if (update.shouldPrompt() && update.type == "METERAPP") {
                             _mostRelevantUpdate.value = update
                         }
                         Log.d(TAG, "checkForUpdates $json")
