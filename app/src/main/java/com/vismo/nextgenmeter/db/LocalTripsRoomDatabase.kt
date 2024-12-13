@@ -12,7 +12,7 @@ import com.vismo.nextgenmeter.model.TripData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 
-@Database(entities = [TripData::class], version = 4, exportSchema = false)
+@Database(entities = [TripData::class], version = 5, exportSchema = false)
 abstract class LocalTripsRoomDatabase: RoomDatabase() {
     abstract fun tripsDao(): TripsDao
 
@@ -29,12 +29,12 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
                     context = context.applicationContext,
                     LocalTripsRoomDatabase::class.java,
                     DATABASE_NAME
-                ).setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
+                ).setJournalMode(JournalMode.TRUNCATE)
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
-                            db.query("PRAGMA wal_checkpoint(FULL);")
                             db.execSQL("PRAGMA synchronous=EXTRA;")
+                            db.query("PRAGMA wal_checkpoint(FULL);")
                         }
                     })
                     .fallbackToDestructiveMigration()

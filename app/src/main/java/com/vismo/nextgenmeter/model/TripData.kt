@@ -12,8 +12,10 @@ import javax.annotation.Nonnull
 @Entity(tableName = "trips")
 @TypeConverters(Converters::class)
 data class TripData (
+    @Nonnull
+    @PrimaryKey(autoGenerate = true)
+    val internalId: Int = 0,
 
-    @PrimaryKey(autoGenerate = false)
     @Nonnull
     @SerializedName("id")
     val tripId: String,

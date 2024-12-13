@@ -1,32 +1,20 @@
 package com.vismo.nextgenmeter.dao
 
 import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Update
+import androidx.room.RawQuery
+import androidx.room.Transaction
 import androidx.room.Upsert
+import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import com.vismo.nextgenmeter.model.TripData
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TripsDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun addTrip(trip: TripData)
-
     @Upsert
     suspend fun upsertTrip(trip: TripData)
-
-    @Update
-    suspend fun updateTrip(trip: TripData)
-
-    @Query("UPDATE trips SET is_dash = :isDashPayment WHERE tripId = :tripId")
-    suspend fun setDashPaymentStatus(tripId: String, isDashPayment: Boolean)
-
-    @Delete
-    suspend fun deleteTrip(trip: TripData)
 
     @Query("SELECT * FROM trips ORDER BY start_time DESC LIMIT 1")
     suspend fun getMostRecentTrip(): TripData?
@@ -45,5 +33,11 @@ interface TripsDao {
 
     @Query("DELETE FROM trips")
     suspend fun clearAllTrips()
+
+    @Query("DELETE FROM sqlite_sequence WHERE name='trips'")
+    suspend fun deletePrimaryKeyIndex()
+
+    @RawQuery
+    fun checkpoint(supportSQLiteQuery: SupportSQLiteQuery = SimpleSQLiteQuery("PRAGMA wal_checkpoint(FULL)")): Int
 
 }
