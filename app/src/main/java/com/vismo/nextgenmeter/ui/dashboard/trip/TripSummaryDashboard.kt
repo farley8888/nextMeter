@@ -65,7 +65,10 @@ fun TripSummaryDashboard(
     val dashTripsSummary = viewModel.dashTripsSummary.collectAsState().value
 
     val showDialogClearAllLocalTrips = remember { mutableStateOf(false) }
-
+    val showTripsClearedToast = viewModel.showTripsClearedToast.collectAsState(false).value
+    if (showTripsClearedToast) {
+        GlobalToast.show("行程資料已清除")
+    }
 
     Box(
         modifier = Modifier
@@ -114,7 +117,6 @@ fun TripSummaryDashboard(
                 confirmButtonText = "確認",
                 onConfirm = {
                     viewModel.clearAllLocalTrips()
-                    GlobalToast.show("所有行程資料已清除")
                 },
                 cancelButtonText = "取消",
                 onCancel = {
