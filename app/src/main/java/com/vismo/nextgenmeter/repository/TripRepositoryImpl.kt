@@ -1,6 +1,5 @@
 package com.vismo.nextgenmeter.repository
 
-import android.content.Context
 import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
@@ -17,7 +16,6 @@ import com.vismo.nxgnfirebasemodule.model.getPricingResult
 import com.vismo.nxgnfirebasemodule.model.isDashPayment
 import com.vismo.nxgnfirebasemodule.model.paidStatus
 import com.vismo.nxgnfirebasemodule.util.LogConstant
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.IScope
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
@@ -30,8 +28,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class TripRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
-    @IoDispatcher private val mainDispatcher: CoroutineDispatcher,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val measureBoardRepository: MeasureBoardRepository,
     private val dashManager: DashManager,
@@ -74,10 +70,9 @@ class TripRepositoryImpl @Inject constructor(
                     trip?.let {
                         // Update trip in Firestore if required
                         if (trip.requiresUpdateOnDatabase && trip.tripId.isNotBlank()) {
-                            localTripsRepository.upsertTrip(trip)
                             handleFirestoreTripUpdate(trip)
                             if (trip.tripStatus == TripStatus.ENDED) {
-                                dashManager.endTripDocumentListener()
+                                localTripsRepository.upsertTrip(trip)
                                 meterPreferenceRepository.saveOngoingTripId("")
                                 _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
                             }
@@ -141,6 +136,7 @@ class TripRepositoryImpl @Inject constructor(
                         if (tripInFirestore.tripStatus == com.vismo.nxgnfirebasemodule.model.TripStatus.ENDED) {
                             // Update trip paid status in local database
                             localTripsRepository.setDashPaymentStatus(tripInFirestore.tripId, tripInFirestore.isDashPayment())
+                            dashManager.endTripDocumentListener()
                         }
                         Log.i(TAG, "Trip Paid Status: ${_currentTripPaidStatus.value}")
                     }
@@ -151,7 +147,6 @@ class TripRepositoryImpl @Inject constructor(
 
     private fun handleOngoingLostTrip(tripInFirestore: MeterTripInFirestore?, newTrip: TripData) {
         externalScope?.launch {
-            localTripsRepository.upsertTrip(newTrip)
             if (tripInFirestore == null) {
                 // cloud not find trip in firestore - make sure to create a new trip
                 val newTripId = MeasureBoardUtils.generateTripId()

@@ -123,17 +123,13 @@ object AppModule {
     fun provideMeasureBoardRepository(
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        @MainDispatcher mainDispatcher: CoroutineDispatcher,
         dashManagerConfig: DashManagerConfig,
-        localTripsRepository: LocalTripsRepository,
         meterPreferenceRepository: MeterPreferenceRepository
     ): MeasureBoardRepository {
         return MeasureBoardRepositoryImpl(
             context = context,
             ioDispatcher = ioDispatcher,
-            mainDispatcher = mainDispatcher,
             dashManagerConfig = dashManagerConfig,
-            localTripsRepository = localTripsRepository,
             meterPreferenceRepository = meterPreferenceRepository
         )
     }
@@ -154,16 +150,12 @@ object AppModule {
     @Provides
     fun provideTripRepository(
         measureBoardRepository: MeasureBoardRepository,
-        @ApplicationContext context: Context,
-        @MainDispatcher mainDispatcher: CoroutineDispatcher,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManager: DashManager,
         localTripsRepository: LocalTripsRepository,
         meterPreferenceRepository: MeterPreferenceRepository
     ): TripRepository {
         return TripRepositoryImpl (
-            context = context,
-            mainDispatcher = mainDispatcher,
             ioDispatcher = ioDispatcher,
             measureBoardRepository = measureBoardRepository,
             dashManager = dashManager,
