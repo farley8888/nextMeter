@@ -34,7 +34,7 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
                             db.query("PRAGMA wal_checkpoint(FULL);")
-                            db.execSQL("PRAGMA synchronous=FULL;")
+                            db.execSQL("PRAGMA synchronous=EXTRA;")
                         }
                     })
                     .fallbackToDestructiveMigration()
