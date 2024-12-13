@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.dao.TripsDao
 import com.vismo.nextgenmeter.model.TripData
@@ -17,6 +18,7 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
 
     companion object {
         private const val DATABASE_NAME = "local_trips_db_${BuildConfig.FLAVOR}"
+        private const val TAG = "LocalTripsRoomDatabase"
 
         @Volatile
         private var INSTANCE: LocalTripsRoomDatabase? = null
@@ -27,14 +29,21 @@ abstract class LocalTripsRoomDatabase: RoomDatabase() {
                     context = context.applicationContext,
                     LocalTripsRoomDatabase::class.java,
                     DATABASE_NAME
-                ).setJournalMode(JournalMode.TRUNCATE)
+                ).setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
+                    .addCallback(object : RoomDatabase.Callback() {
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            db.query("PRAGMA wal_checkpoint(FULL);")
+                            db.execSQL("PRAGMA synchronous=FULL;")
+                        }
+                    })
                     .fallbackToDestructiveMigration()
                     .setQueryCallback({ sqlQuery, bindArgs ->
                         Log.d("LocalTripsRoomDatabase", "Query: $sqlQuery - Args: $bindArgs")
                     }, Dispatchers.IO.asExecutor())
                     .build()
                 INSTANCE = instance
-                Log.d("LocalTripsRoomDatabase", "getInstance - instance created: $instance - context ${context.applicationContext}")
+                Log.d(TAG, "getInstance - instance created: $instance - context ${context.applicationContext}")
                 instance
             }
         }
