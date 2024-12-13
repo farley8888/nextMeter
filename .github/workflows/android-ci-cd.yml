@@ -74,9 +74,10 @@ jobs:
         run: |
             apk_path=$(find . -name "*.apk" | head -n 1)
             apk_filename=$(basename $apk_path)
+            apk_filename_no_ext="${apk_filename%.apk}"
             build_filename=$(echo $apk_filename | cut -d"-" -f1)
             echo "apk_path=${apk_path}" >> "$GITHUB_ENV"
-            echo "apk_filename=${apk_filename}" >> "$GITHUB_ENV"
+            echo "apk_filename=${apk_filename_no_ext}" >> "$GITHUB_ENV"
             echo "build_filename=${build_filename}" >> "$GITHUB_ENV"
             filename=$(echo "${apk_filename}" | cut -d'-' -f1-2)
             echo "filename=${filename}" >> $GITHUB_OUTPUT
@@ -116,12 +117,13 @@ jobs:
         with:
           name: build-links-${{ matrix.env }}
           path: build_links.json
+          retention-days: 1
 
       - name: Annotation
         run: |
-          echo '::notice title=${{matrix.env}} APK LINK (${{ env.build_name }}),file=${{ env.apk_filename }}:: ${{ env.ONEDRIVE_LINK }}'
-          echo '::notice title=${{matrix.env}} APK LINK (LATEST),file=${{ env.apk_filename }}:: ${{ env.ONEDRIVE_LINK_LATEST }}'
-          echo '::warning title=Installation Command (${{matrix.env}}):: wget -O ${{ env.apk_filename }} "${{ env.ONEDRIVE_LINK_LATEST }}" && adb install -r ${{ env.apk_filename }}.apk && rm ${{ env.apk_filename }}.apk'
+          echo '::notice title=${{matrix.env}} APK LINK (${{ env.build_name }}),file=${{ env.apk_filename }}.apk:: ${{ env.ONEDRIVE_LINK }}'
+          echo '::notice title=${{matrix.env}} APK LINK (LATEST),file=${{ env.apk_filename }}.apk:: ${{ env.ONEDRIVE_LINK_LATEST }}'
+          echo '::warning title=Installation Command (${{matrix.env}}):: wget -O ${{ env.apk_filename }}.apk "${{ env.ONEDRIVE_LINK_LATEST }}" && adb install -r ${{ env.apk_filename }}.apk && rm ${{ env.apk_filename }}.apk'
 
 
   notify-teams:
