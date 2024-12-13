@@ -12,6 +12,7 @@ import com.vismo.nextgenmeter.repository.FirebaseAuthRepository
 import com.vismo.nextgenmeter.repository.InternetConnectivityObserver
 import com.vismo.nextgenmeter.repository.LocalTripsRepository
 import com.vismo.nextgenmeter.repository.LocalTripsRepositoryImpl
+import com.vismo.nextgenmeter.repository.LogShippingRepository
 import com.vismo.nextgenmeter.repository.MeasureBoardRepository
 import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl
 import com.vismo.nextgenmeter.repository.MeterOApiRepository
@@ -50,6 +51,12 @@ object AppModule {
     @Provides
     @Singleton
     fun providesFirebaseStorage() = FirebaseStorage.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideLogsStorageReference(storage: com.google.firebase.storage.FirebaseStorage): com.google.firebase.storage.StorageReference {
+        return storage.reference.child("meter/logs")
+    }
 
     @Provides
     @Singleton
@@ -199,6 +206,19 @@ object AppModule {
         return DriverPreferenceRepository(
             context = context,
             gson = gson
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesLogShippingRepository(
+        storageReference: com.google.firebase.storage.StorageReference,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        meterPreferenceRepository: MeterPreferenceRepository
+    ): LogShippingRepository<Any?> {
+        return LogShippingRepository(
+            storageReference = storageReference,
+            ioDispatcher = ioDispatcher,
         )
     }
 
