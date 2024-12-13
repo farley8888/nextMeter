@@ -72,9 +72,11 @@ class TripRepositoryImpl @Inject constructor(
                         if (trip.requiresUpdateOnDatabase && trip.tripId.isNotBlank()) {
                             handleFirestoreTripUpdate(trip)
                             if (trip.tripStatus == TripStatus.ENDED) {
-                                localTripsRepository.upsertTrip(trip)
-                                meterPreferenceRepository.saveOngoingTripId("")
-                                _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID
+                                val tripData = trip.copy(isDash = _currentTripPaidStatus.value == TripPaidStatus.COMPLETELY_PAID)
+                                localTripsRepository.upsertTrip(tripData)
+                                meterPreferenceRepository.saveOngoingTripId("")    // Reset ongoing trip id
+                                _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID // Reset trip paid status
+                                dashManager.endTripDocumentListener()
                             }
                         } else if (trip.tripId.isBlank() && !isLostTripBeingSearched) {
                             // Handle trip id not found in saved preferences
@@ -133,11 +135,6 @@ class TripRepositoryImpl @Inject constructor(
                             )
                         }
                         _currentTripPaidStatus.value = tripInFirestore.paidStatus()
-                        if (tripInFirestore.tripStatus == com.vismo.nxgnfirebasemodule.model.TripStatus.ENDED) {
-                            // Update trip paid status in local database
-                            localTripsRepository.setDashPaymentStatus(tripInFirestore.tripId, tripInFirestore.isDashPayment())
-                            dashManager.endTripDocumentListener()
-                        }
                         Log.i(TAG, "Trip Paid Status: ${_currentTripPaidStatus.value}")
                     }
                 }
