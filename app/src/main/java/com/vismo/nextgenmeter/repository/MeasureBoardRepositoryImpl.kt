@@ -51,9 +51,7 @@ import javax.inject.Inject
 class MeasureBoardRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     private val dashManagerConfig: DashManagerConfig,
-    private val localTripsRepository: LocalTripsRepository,
     private val meterPreferenceRepository: MeterPreferenceRepository,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
