@@ -17,7 +17,6 @@ import com.vismo.nextgenmeter.model.OngoingMCUHeartbeatData
 import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.module.IoDispatcher
-import com.vismo.nextgenmeter.module.MainDispatcher
 import com.vismo.nextgenmeter.util.GlobalUtils.divideBy100AndConvertToDouble
 import com.vismo.nextgenmeter.util.GlobalUtils.extractSubstring
 import com.vismo.nextgenmeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
@@ -41,7 +40,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.logging.Logger
@@ -247,7 +245,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             )
         }
 
-        if(ongoingTrip?.fare != heartbeatData.fare && ongoingTrip?.fare != 0.0) {
+        if(ongoingTrip?.fare != heartbeatData.fare && ongoingTrip != null) {
             emitBeepSound(5, 0, 1)
             Log.d(TAG, "handleOngoingHeartbeatResult: fare changed - beep sound emitted")
         }
