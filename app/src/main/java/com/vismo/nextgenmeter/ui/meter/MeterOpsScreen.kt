@@ -415,7 +415,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                             lineHeight = 48.sp
                         ),
                         textAlign = TextAlign.End,
-                        modifier = Modifier.align(Alignment.End)
+                        modifier = Modifier.align(Alignment.End),
                     )
                 }
         }
