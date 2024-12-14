@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.ui.meter
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
@@ -249,7 +250,7 @@ class MeterOpsViewModel @Inject constructor(
                     TtsLanguagePref.EN -> localeHelper.setLocale(KEY_EN)
                     TtsLanguagePref.ZH_CN -> localeHelper.setLocale(KEY_ZH_CN)
                     TtsLanguagePref.ZH_HK -> localeHelper.setLocale(KEY_ZH_HK)
-                    TtsLanguagePref.OFF -> localeHelper.setLocale("en") // default to English
+                    TtsLanguagePref.OFF -> localeHelper.setLocale(null)
                 }
                 uiUpdateMutex.withLock {
                     _uiState.value = _uiState.value.copy(languagePref = newLanguagePref)
@@ -437,6 +438,7 @@ class MeterOpsViewModel @Inject constructor(
     private suspend fun endTripAndReadyForHire() {
         if (_ongoingTrip.value?.tripStatus == TripStatus.STOP) {
             tripRepository.endTrip()
+            Log.d(TAG, "endTripAndReadyForHire: end trip")
         }
     }
 
@@ -446,6 +448,7 @@ class MeterOpsViewModel @Inject constructor(
         const val TOTAL_LOCK_BEEP_COUNTER = 30 //seconds
         private const val TOTAL_LOCK_DURATION = TOTAL_COUNTDOWN_DURATION + TOTAL_LOCK_BEEP_COUNTER // seconds
         private const val DEFAULT_STARTING_PRICE = "27.00"
+        private const val TAG = "MeterOpsViewModel"
     }
 
 }

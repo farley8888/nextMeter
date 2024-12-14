@@ -407,6 +407,7 @@ class MainViewModel @Inject constructor(
         observeInternetStatus()
         observeDriverInfo()
         disableADBByDefaultForProd()
+        Log.d(TAG, "MainViewModel initialized")
     }
 
     private fun startACCStatusInquiries() {
