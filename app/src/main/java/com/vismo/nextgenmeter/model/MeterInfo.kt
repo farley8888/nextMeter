@@ -32,6 +32,7 @@ data class Settings(
     @SerializedName("sim_iccid") val simIccid: String,
     @SerializedName("vehicle") val vehicle: Vehicle,
     @SerializedName("operating_area") val operatingArea: OperatingArea,
+    @SerializedName("trigger_log_upload") val triggerLogUpload: Boolean = false,
 )
 
 data class McuInfo(

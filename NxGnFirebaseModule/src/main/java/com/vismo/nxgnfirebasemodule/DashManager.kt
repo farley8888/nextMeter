@@ -509,7 +509,6 @@ class DashManager @Inject constructor(
         }
     }
 
-
     fun sendHeartbeat() {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val meterLocation = dashManagerConfig.meterLocation.value
@@ -557,6 +556,17 @@ class DashManager @Inject constructor(
 
             heartBeatCollection
                 .document(id)
+                .set(map, SetOptions.merge())
+        }
+    }
+
+    /**
+     * update the value of triggerLogUpload in the settings of the meter document
+     */
+    fun setTriggerLogUpload(booleanValue: Boolean) {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
+            val map = mapOf(SETTINGS to mapOf(TRIGGER_LOG_UPLOAD to booleanValue))
+            getMeterDocument()
                 .set(map, SetOptions.merge())
         }
     }
@@ -632,6 +642,7 @@ class DashManager @Inject constructor(
         private const val DRIVER_NAME_CH = "name_ch"
         private const val DRIVER_LICENSE = "driver_license"
         private const val LOCKED_AT = "locked_at"
+        private const val TRIGGER_LOG_UPLOAD = "trigger_log_upload"
         var isInitialized = false
     }
 }
