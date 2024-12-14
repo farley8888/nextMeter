@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.repository
 
+import android.util.Log
 import com.google.firebase.Timestamp
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.BuildConfig
@@ -25,8 +26,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val dashManager: DashManager,
     private val measureBoardRepository: MeasureBoardRepository,
+    private val logShippingRepository: LogShippingRepository,
 ) : RemoteMeterControlRepository {
 
+    private val TAG = "RemoteMeterControlRepositoryImpl"
     private val _meterInfo = MutableStateFlow<MeterInfo?>(null)
     override val meterInfo: StateFlow<MeterInfo?> = _meterInfo
 
@@ -88,9 +91,29 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
                         if (meterInfo.settings?.heartbeatInterval != _heartBeatInterval.value)
                             _heartBeatInterval.value = meterInfo.settings?.heartbeatInterval ?: DEFAULT_HEARTBEAT_INTERVAL
+
+                        // Trigger log shipping if needed
+                        if (meterInfo.settings?.triggerLogUpload == true) {
+                            triggerLogUpload()
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun triggerLogUpload() {
+        Log.d(TAG, "triggerLogUpload")
+        externalScope?.launch {
+            val logShippingResult = logShippingRepository.handleLogUploadFlow()
+            if (logShippingResult.isSuccess) {
+                val count = logShippingResult.getOrNull() ?: 0
+                Log.d(TAG, "Log upload success with $count files.")
+            } else {
+                Log.d(TAG, "Log upload failed")
+            }
+            // Set it back to false after log upload regardless of success or failure
+            dashManager.setTriggerLogUpload(false)
         }
     }
 
