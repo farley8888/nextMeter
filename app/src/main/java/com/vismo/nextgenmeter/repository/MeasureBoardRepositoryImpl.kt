@@ -36,6 +36,7 @@ import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -114,6 +115,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     override fun init(scope: CoroutineScope) {
+        externalScope?.cancel()
         externalScope = scope
         startTaskProcessor()
         startMessageProcessor()

@@ -14,6 +14,7 @@ import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,6 +53,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     }
 
     override fun observeFlows(scope: CoroutineScope) {
+        externalScope?.cancel()
         externalScope = scope
         externalScope?.launch {
             launch {
