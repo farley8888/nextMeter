@@ -43,4 +43,6 @@ interface MeasureBoardRepository {
     fun unlockMeter()
 
     fun updateMeasureBoardTime(formattedDateStr: String)
+
+    fun close()
 }

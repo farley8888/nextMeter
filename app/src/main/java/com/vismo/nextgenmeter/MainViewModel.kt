@@ -3,6 +3,7 @@ package com.vismo.nextgenmeter
 import android.content.Context
 import android.os.PowerManager
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.nextgenmeter.module.IoDispatcher
+import com.vismo.nextgenmeter.module.MainDispatcher
 import com.vismo.nextgenmeter.repository.DriverPreferenceRepository
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository.Companion.AUTHORIZATION_HEADER
@@ -68,6 +70,7 @@ class MainViewModel @Inject constructor(
     private val measureBoardRepository: MeasureBoardRepository,
     private val peripheralControlRepository: PeripheralControlRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     private val remoteMeterControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
     private val tripRepository: TripRepository,
@@ -106,6 +109,7 @@ class MainViewModel @Inject constructor(
     val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
 
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest.stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
+    private var isMCUTimeSet = false
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
@@ -118,17 +122,29 @@ class MainViewModel @Inject constructor(
             launch { observeShowConnectionIconsToggle() }
             launch { observeStorageReceiverStatus() }
             launch { observeClearCacheOfApplication() }
+            launch { observeReInitMCURepository() }
         }
     }
 
-    private fun observeClearCacheOfApplication() {
-        viewModelScope.launch {
-            DeviceDataStore.clearCacheOfApplication.collectLatest { clearCache ->
-                if (clearCache) {
-                    _clearApplicationCache.value = true
-                    Sentry.captureMessage("Clearing cache of application")
-                    DeviceDataStore.setClearCacheOfApplication(false)
+    private suspend fun observeReInitMCURepository() {
+        DeviceDataStore.reinitMCURepository.collectLatest { reinit ->
+            if (reinit) {
+                measureBoardRepository.init(viewModelScope)
+                DeviceDataStore.setReinitMCURepository(false)
+                withContext(mainDispatcher) {
+                    Toast.makeText(context, "MCU repository reinitialized", Toast.LENGTH_SHORT).show()
                 }
+                Log.d(TAG, "MCU repository init called again ")
+            }
+        }
+    }
+
+    private suspend fun observeClearCacheOfApplication() {
+        DeviceDataStore.clearCacheOfApplication.collectLatest { clearCache ->
+            if (clearCache) {
+                _clearApplicationCache.value = true
+                Sentry.captureMessage("Clearing cache of application")
+                DeviceDataStore.setClearCacheOfApplication(false)
             }
         }
     }
@@ -208,14 +224,17 @@ class MainViewModel @Inject constructor(
         val headers = firebaseAuthRepository.getHeaders()
         if (!headers.containsKey(AUTHORIZATION_HEADER)) {
             firebaseAuthRepository.initToken(viewModelScope)
-            networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
-                measureBoardRepository.updateMeasureBoardTime(networkTime)
-                Log.d(TAG, "Network time: $networkTime")
-            }
             Log.d(TAG, "FirebaseAuth initToken called")
         } else if (!DashManager.Companion.isInitialized) {
             remoteMeterControlRepository.initDashManager(viewModelScope)
             Log.d(TAG, "FirebaseAuth headers already present - calling dashManager.init()")
+        }
+        networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
+            if (!isMCUTimeSet) {
+                measureBoardRepository.updateMeasureBoardTime(networkTime)
+                isMCUTimeSet = true
+                Log.d(TAG, "Network time set: $networkTime")
+            }
         }
     }
 
@@ -395,9 +414,13 @@ class MainViewModel @Inject constructor(
         measureBoardRepository.stopCommunication()
     }
 
+    fun initMeasureBoardRepository() {
+        measureBoardRepository.init(viewModelScope)
+    }
+
 
     init {
-        measureBoardRepository.init(viewModelScope)
+        initMeasureBoardRepository()
         remoteMeterControlRepository.observeFlows(viewModelScope)
         tripRepository.initObservers(viewModelScope)
         observeFlows()
@@ -405,6 +428,7 @@ class MainViewModel @Inject constructor(
         observeInternetStatus()
         observeDriverInfo()
         disableADBByDefaultForProd()
+        Log.d(TAG, "MainViewModel initialized")
     }
 
     private fun startACCStatusInquiries() {

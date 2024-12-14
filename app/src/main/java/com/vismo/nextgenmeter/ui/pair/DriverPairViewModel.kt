@@ -99,7 +99,7 @@ class DriverPairViewModel @Inject constructor(
                         licensePlate = it.licensePlate,
                         deviceSerialNumber = it.deviceId,
                     )
-                    Log.d("DriverPairViewModel", "License Plate: ${it.licensePlate}")
+                    Log.d("DriverPairViewModel", "License Plate: ${it.licensePlate} Device ID: ${it.deviceId}")
                 }
             }
         }
