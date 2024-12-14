@@ -16,6 +16,7 @@ import com.vismo.nextgenmeter.repository.DriverPreferenceRepository
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository.Companion.AUTHORIZATION_HEADER
 import com.vismo.nextgenmeter.repository.InternetConnectivityObserver
+import com.vismo.nextgenmeter.repository.LogShippingRepository
 import com.vismo.nextgenmeter.repository.MeasureBoardRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.NetworkTimeRepository
@@ -70,6 +71,7 @@ class MainViewModel @Inject constructor(
     private val remoteMeterControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
     private val tripRepository: TripRepository,
+    private val logShippingRepository: LogShippingRepository,
     @ApplicationContext private val context: Context,
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val driverPreferenceRepository: DriverPreferenceRepository,

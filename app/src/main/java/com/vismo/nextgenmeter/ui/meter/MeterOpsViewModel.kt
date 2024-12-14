@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.ui.meter
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
@@ -12,6 +13,7 @@ import com.vismo.nextgenmeter.model.getRemainingLockTimeInSeconds
 import com.vismo.nextgenmeter.model.isAbnormalPulseStatus
 import com.vismo.nextgenmeter.model.shouldLockMeter
 import com.vismo.nextgenmeter.module.IoDispatcher
+import com.vismo.nextgenmeter.repository.LogShippingRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
@@ -44,11 +46,15 @@ import javax.inject.Inject
 class MeterOpsViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val tripRepository: TripRepository,
+    private val logShippingRepository: LogShippingRepository,
     private val peripheralControlRepository: PeripheralControlRepository,
     private val localeHelper: LocaleHelper,
     private val ttsUtil: TtsUtil,
     private val meterPreferenceRepository: MeterPreferenceRepository
 ) : ViewModel() {
+
+    private val TAG = "MeterOpsViewModel"
+
     private val _ongoingTrip = MutableStateFlow<TripData?>(null)
     private val _uiState = MutableStateFlow<MeterOpsUiData>(
         MeterOpsUiData(
@@ -256,6 +262,32 @@ class MeterOpsViewModel @Inject constructor(
                 }
                 ttsUtil.setLanguagePref(newLanguagePref)
                 meterPreferenceRepository.saveSelectedLocale(newLanguagePref.toLanguageCode())
+            }
+        }
+    }
+
+    fun triggerLogShipping(){
+        viewModelScope.launch {
+            Log.d(TAG, "triggerLogShipping")
+            val result = withContext(ioDispatcher) {
+                logShippingRepository.handleLogUploadFlow()
+            }
+
+            when {
+                result.isSuccess -> {
+                    val uploadedCount = result.getOrNull() ?: 0
+                    _showSnackBarMessage.value = Pair(
+                        "已發送日誌 $uploadedCount 條 ✨ $uploadedCount log(s) uploaded successfully.",
+                        SnackbarState.SUCCESS
+                    )
+                }
+                result.isFailure -> {
+                    val exception = result.exceptionOrNull()
+                    _showSnackBarMessage.value = Pair(
+                        "Failed to upload logs: ${exception?.message ?: "Unknown error"}",
+                        SnackbarState.ERROR
+                    )
+                }
             }
         }
     }
