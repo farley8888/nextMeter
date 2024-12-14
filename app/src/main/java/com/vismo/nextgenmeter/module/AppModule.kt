@@ -12,6 +12,7 @@ import com.vismo.nextgenmeter.repository.FirebaseAuthRepository
 import com.vismo.nextgenmeter.repository.InternetConnectivityObserver
 import com.vismo.nextgenmeter.repository.LocalTripsRepository
 import com.vismo.nextgenmeter.repository.LocalTripsRepositoryImpl
+import com.vismo.nextgenmeter.repository.LogShippingRepository
 import com.vismo.nextgenmeter.repository.MeasureBoardRepository
 import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl
 import com.vismo.nextgenmeter.repository.MeterOApiRepository
@@ -50,6 +51,12 @@ object AppModule {
     @Provides
     @Singleton
     fun providesFirebaseStorage() = FirebaseStorage.getInstance()
+
+    @Provides
+    @Singleton
+    fun provideLogsStorageReference(storage: com.google.firebase.storage.FirebaseStorage): com.google.firebase.storage.StorageReference {
+        return storage.reference.child("dash-meter-logs")
+    }
 
     @Provides
     @Singleton
@@ -172,11 +179,13 @@ object AppModule {
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManager: DashManager,
         measureBoardRepository: MeasureBoardRepository,
+        logShippingRepository: LogShippingRepository
     ): RemoteMeterControlRepository {
         return RemoteMeterControlRepositoryImpl(
             ioDispatcher = ioDispatcher,
             dashManager = dashManager,
             measureBoardRepository = measureBoardRepository,
+            logShippingRepository = logShippingRepository,
         )
     }
 
@@ -199,6 +208,22 @@ object AppModule {
         return DriverPreferenceRepository(
             context = context,
             gson = gson
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesLogShippingRepository(
+        @ApplicationContext context: Context,
+        storageReference: com.google.firebase.storage.StorageReference,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        meterPreferenceRepository: MeterPreferenceRepository
+    ): LogShippingRepository {
+        return LogShippingRepository(
+            context = context,
+            storageReference = storageReference,
+            ioDispatcher = ioDispatcher,
+            meterPreferenceRepository = meterPreferenceRepository
         )
     }
 

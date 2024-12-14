@@ -32,6 +32,7 @@ data class Settings(
     @SerializedName("vehicle") val vehicle: Vehicle,
     @SerializedName("operating_area") val operatingArea: OperatingArea,
     @SerializedName("show_connection_icons_toggle") val showConnectionIconsToggle: Boolean = false,
+    @SerializedName("trigger_log_upload") val triggerLogUpload: Boolean = false,
 )
 
 data class McuInfo(
