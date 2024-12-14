@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
+import com.vismo.nextgenmeter.api.NetworkResult
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
@@ -14,9 +15,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.DriverPreferenceRepository
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository
+import com.vismo.nextgenmeter.repository.FirebaseAuthRepository.Companion
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository.Companion.AUTHORIZATION_HEADER
 import com.vismo.nextgenmeter.repository.InternetConnectivityObserver
 import com.vismo.nextgenmeter.repository.MeasureBoardRepository
+import com.vismo.nextgenmeter.repository.MeterOApiRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.NetworkTimeRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
@@ -76,6 +79,7 @@ class MainViewModel @Inject constructor(
     private val internetConnectivityObserver: InternetConnectivityObserver,
     private val networkTimeRepository: NetworkTimeRepository,
     private val meterPreferenceRepository: MeterPreferenceRepository,
+    private val meterOApiRepository: MeterOApiRepository
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -201,6 +205,13 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun tryInternetTasks() {
+        fun convertWithStringManipulation(inputDate: String): String {
+            // Remove non-digit characters
+            return inputDate.replace("-", "")
+                .replace(" ", "")
+                .replace(":", "")
+        }
+
         Log.d(TAG, "Trying internet tasks")
         val headers = firebaseAuthRepository.getHeaders()
         if (!headers.containsKey(AUTHORIZATION_HEADER)) {
@@ -209,6 +220,7 @@ class MainViewModel @Inject constructor(
                 measureBoardRepository.updateMeasureBoardTime(networkTime)
                 Log.d(TAG, "Network time: $networkTime")
             }
+
             Log.d(TAG, "FirebaseAuth initToken called")
         } else if (!DashManager.Companion.isInitialized) {
             remoteMeterControlRepository.initDashManager(viewModelScope)

@@ -3,6 +3,7 @@ package com.vismo.nextgenmeter.module
 import com.vismo.nextgenmeter.api.service.MeterOApiService
 import com.vismo.nextgenmeter.api.interceptor.LoggingInterceptor
 import com.vismo.nextgenmeter.api.service.MeterApiService
+import com.vismo.nextgenmeter.api.service.NgrokApiService
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository
 import com.vismo.nextgenmeter.repository.MeterApiRepository
 import com.vismo.nextgenmeter.repository.MeterOApiRepository
@@ -34,6 +35,15 @@ annotation class ApiRetrofit1
 )
 @Retention(AnnotationRetention.BINARY)
 annotation class ApiRetrofit2
+
+@Qualifier
+@Target(
+    AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER,
+    AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.FIELD,
+    AnnotationTarget.VALUE_PARAMETER
+)
+@Retention(AnnotationRetention.BINARY)
+annotation class ApiRetrofit3
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -78,6 +88,27 @@ class NetworkModule {
 
     @Singleton
     @Provides
+    @ApiRetrofit3
+    fun providesRetrofitForDemoNgrok(): Retrofit {
+        val BASE_URL = "https://6d53-78-156-69-38.ngrok-free.app/"
+
+        val okHttpBuilder = okhttp3.OkHttpClient.Builder()
+
+        val httpLoggingInterceptor = HttpLoggingInterceptor()
+        httpLoggingInterceptor.level = HttpLoggingInterceptor.Level.BODY
+        okHttpBuilder.addInterceptor(httpLoggingInterceptor)
+        okHttpBuilder.addInterceptor(LoggingInterceptor())
+
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(okHttpBuilder.build())
+            .build()
+
+    }
+
+    @Singleton
+    @Provides
     fun providesMeterApi(@ApiRetrofit1 retrofit: Retrofit): MeterApiService {
         return retrofit.create(MeterApiService::class.java)
     }
@@ -90,11 +121,19 @@ class NetworkModule {
 
     @Singleton
     @Provides
+    fun providesNgrokApi(@ApiRetrofit3 retrofit: Retrofit): NgrokApiService {
+        return retrofit.create(NgrokApiService::class.java)
+    }
+
+    @Singleton
+    @Provides
     fun provideOMeterApiRepository(
         meterOApiService: MeterOApiService,
+        ngrokApiService: NgrokApiService
     ): MeterOApiRepository {
         return MeterOApiRepository(
             meterOApiService = meterOApiService,
+            ngrokApiService = ngrokApiService
         )
     }
 
