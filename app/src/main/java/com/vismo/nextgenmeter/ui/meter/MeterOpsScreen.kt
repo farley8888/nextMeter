@@ -394,7 +394,11 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     color = Color.Gray,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clickable {
+                            viewModel.triggerLogShipping()
+                        },
                 )
                 Spacer(modifier = Modifier
                     .fillMaxWidth()
@@ -411,7 +415,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                             lineHeight = 48.sp
                         ),
                         textAlign = TextAlign.End,
-                        modifier = Modifier.align(Alignment.End),
+                        modifier = Modifier.align(Alignment.End)
                     )
                 }
         }

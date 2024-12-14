@@ -55,7 +55,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideLogsStorageReference(storage: com.google.firebase.storage.FirebaseStorage): com.google.firebase.storage.StorageReference {
-        return storage.reference.child("meter/logs")
+        return storage.reference.child("dash-meter-logs")
     }
 
     @Provides
@@ -212,13 +212,16 @@ object AppModule {
     @Singleton
     @Provides
     fun providesLogShippingRepository(
+        @ApplicationContext context: Context,
         storageReference: com.google.firebase.storage.StorageReference,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         meterPreferenceRepository: MeterPreferenceRepository
-    ): LogShippingRepository<Any?> {
+    ): LogShippingRepository {
         return LogShippingRepository(
+            context = context,
             storageReference = storageReference,
             ioDispatcher = ioDispatcher,
+            meterPreferenceRepository = meterPreferenceRepository
         )
     }
 

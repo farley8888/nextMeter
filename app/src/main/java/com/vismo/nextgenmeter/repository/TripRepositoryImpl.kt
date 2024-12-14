@@ -85,7 +85,7 @@ class TripRepositoryImpl @Inject constructor(
                             val timeoutJob = launch {
                                 delay(10_000) // 10 seconds
                                 isLostTripBeingSearched = false
-                                Log.d(TAG, "Timeout reached, resetting isLostTripBeingSearched to false.")
+                                Log.d(TAG, "Timeout reached, resetting isLost   TripBeingSearched to false.")
                             }
                             dashManager.getLastUnEndedTrip() { latestTripInFirestore ->
                                 timeoutJob.cancel()
