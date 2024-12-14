@@ -63,7 +63,6 @@ class TripRepositoryImpl @Inject constructor(
 
 
     override fun initObservers(scope: CoroutineScope) {
-        externalScope?.cancel()
         Log.d(TAG, "initObservers")
         externalScope = scope
         externalScope?.launch(ioDispatcher) {

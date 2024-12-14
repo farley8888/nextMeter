@@ -37,6 +37,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,8 +55,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private val meterPreferenceRepository: MeterPreferenceRepository,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
-    private val taskChannel = Channel<suspend () -> Unit>(Channel.UNLIMITED)
-    private val messageChannel = Channel<MCUMessage>(Channel.UNLIMITED)
+    private var taskChannel = Channel<suspend () -> Unit>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private var messageChannel = Channel<MCUMessage>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val _latestOngoingTripFromDataStore: MutableStateFlow<TripData?> = MutableStateFlow(null)
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -74,6 +75,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             for (msg in messageChannel) {
                 when (msg.what) {
                     IAtCmd.W_MSG_DISPLAY -> {
+                        Log.d(TAG, "startMessageProcessor: ${msg.obj}")
                         val receiveData = msg.obj?.toString() ?: continue
                         checkStatues(receiveData)
                     }
@@ -82,6 +84,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                         addTask {
                             delay(1800)
                             sendMessage(MCUMessage(WHAT_PRINT_STATUS, null))
+                            Log.d(TAG, "startMessageProcessor: WHAT_PRINT_STATUS")
                         }
                     }
                 }
@@ -91,7 +94,14 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private fun sendMessage(msg: MCUMessage) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            if (messageChannel.isClosedForSend || messageChannel.isClosedForReceive) {
+                messageChannel = Channel<MCUMessage>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                startMessageProcessor() // Restart the message processor
+                Log.d(TAG, "sendMessage: messageChannel is closed")
+            }
+
             messageChannel.send(msg)
+            Log.d(TAG, "sendMessage: $msg")
         }
     }
 
@@ -99,13 +109,20 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             for (task in taskChannel) {
                 task()
+                Log.d(TAG, "startTaskProcessor: $task")
             }
         }
     }
 
     private fun addTask(task: suspend () -> Unit) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            if (taskChannel.isClosedForSend || taskChannel.isClosedForReceive) {
+                taskChannel = Channel<suspend () -> Unit>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                startTaskProcessor() // Restart the task processor
+                Log.d(TAG, "addTask: taskChannel is closed")
+            }
             taskChannel.send(task)
+            Log.d(TAG, "addTask: $task")
         }
     }
 
@@ -115,7 +132,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     override fun init(scope: CoroutineScope) {
-        externalScope?.cancel()
         externalScope = scope
         startTaskProcessor()
         startMessageProcessor()
@@ -491,6 +507,12 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             mBusModel?.write(MeasureBoardUtils.getUpdateTimeCmd(formattedDateStr = formattedDateStr))
             delay(200)
         }
+    }
+
+    override fun close() {
+        taskChannel.close()
+        messageChannel.close()
+        Log.d(TAG, "close")
     }
 
     private fun setReceiveEvalDataLs() {

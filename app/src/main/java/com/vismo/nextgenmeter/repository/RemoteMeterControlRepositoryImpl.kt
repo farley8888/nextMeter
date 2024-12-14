@@ -53,7 +53,6 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     }
 
     override fun observeFlows(scope: CoroutineScope) {
-        externalScope?.cancel()
         externalScope = scope
         externalScope?.launch {
             launch {

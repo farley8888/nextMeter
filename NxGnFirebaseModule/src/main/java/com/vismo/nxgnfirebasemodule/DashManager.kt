@@ -43,7 +43,6 @@ import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -93,7 +92,6 @@ class DashManager @Inject constructor(
     private var externalScope: CoroutineScope? = null
 
     fun init(scope: CoroutineScope) {
-        externalScope?.cancel()
         externalScope = scope
         setMeterInfoToSettings()
         meterSdkConfigurationListener()

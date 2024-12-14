@@ -297,6 +297,11 @@ class MeterOpsViewModel @Inject constructor(
                     subtractExtras(1)
                 }
             }
+            251 -> {
+                if (repeatCount.mod(25) == 0) {
+                    DeviceDataStore.setReinitMCURepository(true)
+                }
+            }
         }
     }
 
