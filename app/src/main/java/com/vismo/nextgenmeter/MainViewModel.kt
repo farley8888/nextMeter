@@ -104,6 +104,7 @@ class MainViewModel @Inject constructor(
     val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
 
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest.stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
+    private var isMCUTimeSet = false
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
@@ -207,8 +208,11 @@ class MainViewModel @Inject constructor(
         if (!headers.containsKey(AUTHORIZATION_HEADER)) {
             firebaseAuthRepository.initToken(viewModelScope)
             networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
-                measureBoardRepository.updateMeasureBoardTime(networkTime)
-                Log.d(TAG, "Network time: $networkTime")
+                if (!isMCUTimeSet) {
+                    measureBoardRepository.updateMeasureBoardTime(networkTime)
+                    isMCUTimeSet = true
+                    Log.d(TAG, "Network time set: $networkTime")
+                }
             }
             Log.d(TAG, "FirebaseAuth initToken called")
         } else if (!DashManager.Companion.isInitialized) {
