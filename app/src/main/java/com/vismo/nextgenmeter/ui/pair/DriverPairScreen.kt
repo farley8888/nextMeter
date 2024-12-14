@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,13 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.lightspark.composeqr.DotShape
 import com.lightspark.composeqr.QrCodeView
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
@@ -49,7 +46,6 @@ import com.vismo.nextgenmeter.ui.theme.nobel400
 import com.vismo.nextgenmeter.ui.theme.nobel50
 import com.vismo.nextgenmeter.ui.theme.nobel900
 import com.vismo.nextgenmeter.ui.theme.primary600
-import com.vismo.nextgenmeter.ui.theme.primary800
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
@@ -97,7 +93,8 @@ fun DriverPairScreen(
         Column(
             modifier = Modifier.weight(1f),
         ) {
-            QRCode(qrcodeString = uiState.qrString, viewModel, view)
+            QRCode(qrcodeString = uiState.qrString, viewModel, view, modifier = Modifier.weight(1f).fillMaxWidth())
+            Text(text = uiState.deviceSerialNumber, color = Color.White, style = Typography.labelSmall, modifier = Modifier.padding(horizontal = 18.dp, vertical = 0.dp))
         }
 
         Column(
@@ -106,7 +103,8 @@ fun DriverPairScreen(
             StartSession(
                 driverPhoneNumber = uiState.driverPhoneNumber,
                 viewModel = viewModel,
-                navigateToMeterOps, view)
+                navigateToMeterOps, view, modifier = Modifier.weight(1f).fillMaxWidth())
+            Text(text = uiState.licensePlate, color = Color.White, style = Typography.labelSmall, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 0.dp), textAlign = TextAlign.End)
         }
     }
 }
@@ -154,11 +152,11 @@ fun StartSession(
     driverPhoneNumber: String,
     viewModel: DriverPairViewModel,
     navigateToMeterOps: () -> Unit,
-    view: View
+    view: View,
+    modifier: Modifier
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -219,7 +217,7 @@ fun StartSession(
 }
 
 @Composable
-fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
+fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View, modifier: Modifier) {
     var showQRCode by remember { mutableStateOf(false) }
 
     // Start a countdown when QR code is shown
@@ -239,7 +237,7 @@ fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
         }
     }
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -267,7 +265,8 @@ fun QRCode(qrcodeString: String, viewModel: DriverPairViewModel, view: View) {
 fun DashQrCodeView(data: String, size: Int = 250) {
     QrCodeView(
         data = data,
-        modifier = Modifier.size(size.dp)
+        modifier = Modifier
+            .size(size.dp)
             .padding(16.dp),
     )
 }

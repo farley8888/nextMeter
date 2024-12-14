@@ -49,7 +49,6 @@ class FirebaseAuthRepository @Inject constructor(
     val isFirebaseAuthSuccess: StateFlow<Boolean> = _isFirebaseAuthSuccess
 
     fun initToken(scope: CoroutineScope) {
-        externalScope = scope
         Log.d(TAG, "FirebaseRepositoryImpl: initToken")
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             Log.d(TAG, "FirebaseRepositoryImpl: scope.launch")

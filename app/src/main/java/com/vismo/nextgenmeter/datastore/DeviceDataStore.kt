@@ -33,6 +33,9 @@ object DeviceDataStore {
     private val _clearCacheOfApplication = MutableStateFlow(false)
     val clearCacheOfApplication: StateFlow<Boolean> = _clearCacheOfApplication
 
+    private val _reinitMCURepository = MutableStateFlow(false)
+    val reinitMCURepository: StateFlow<Boolean> = _reinitMCURepository
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
@@ -67,5 +70,9 @@ object DeviceDataStore {
 
     fun setClearCacheOfApplication(clearCache: Boolean) {
         this._clearCacheOfApplication.value = clearCache
+    }
+
+    fun setReinitMCURepository(reinit: Boolean) {
+        this._reinitMCURepository.value = reinit
     }
 }
