@@ -55,7 +55,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -207,17 +206,17 @@ class MainViewModel @Inject constructor(
         val headers = firebaseAuthRepository.getHeaders()
         if (!headers.containsKey(AUTHORIZATION_HEADER)) {
             firebaseAuthRepository.initToken(viewModelScope)
-            networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
-                if (!isMCUTimeSet) {
-                    measureBoardRepository.updateMeasureBoardTime(networkTime)
-                    isMCUTimeSet = true
-                    Log.d(TAG, "Network time set: $networkTime")
-                }
-            }
             Log.d(TAG, "FirebaseAuth initToken called")
         } else if (!DashManager.Companion.isInitialized) {
             remoteMeterControlRepository.initDashManager(viewModelScope)
             Log.d(TAG, "FirebaseAuth headers already present - calling dashManager.init()")
+        }
+        networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
+            if (!isMCUTimeSet) {
+                measureBoardRepository.updateMeasureBoardTime(networkTime)
+                isMCUTimeSet = true
+                Log.d(TAG, "Network time set: $networkTime")
+            }
         }
     }
 
