@@ -36,7 +36,6 @@ import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -166,6 +165,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             Sentry.captureMessage("handleIdleHeartbeatResult: Invalid result length: ${result.length}")
             return
         }
+        DeviceDataStore.setMCUHeartbeatActive(true)
         val measureBoardDeviceId = result.substring(52, 52 + 10)
         val licensePlateHex = result.substring(110, 110 + 16)
         val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
@@ -192,6 +192,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             Sentry.captureMessage("parseHeartbeatResult: Invalid result length: ${result.length}")
             return
         }
+        DeviceDataStore.setMCUHeartbeatActive(true)
         // Parse the heartbeat result into a data class for better organization
         val heartbeatData = parseHeartbeatResult(result)
 
@@ -307,6 +308,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             Sentry.captureMessage("handleTripEndSummaryResult: Invalid result length: ${result.length}")
             return
         }
+        DeviceDataStore.setMCUHeartbeatActive(true)
         val distance = result.substring(118, 118 + 6).multiplyBy10AndConvertToDouble()
         val duration = result.substring(124, 124 + 6)
         val fare = result.substring(130, 130 + 6).divideBy100AndConvertToDouble()
@@ -361,6 +363,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleAbnormalPulse(result: String) {
+        DeviceDataStore.setMCUHeartbeatActive(true)
         TripDataStore.setAbnormalPulseTriggered(isAbnormalPulseTriggered = true)
         Log.d(TAG, "ABNORMAL_PULSE: $result")
     }
@@ -371,6 +374,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             Sentry.captureMessage("handleParametersEnquiryResult: Invalid result length: ${result.length}")
             return
         }
+        DeviceDataStore.setMCUHeartbeatActive(true)
         //parameters enquiry
         val firmwareVersion = result.substring(18, 18 + 8)
         val parametersVersion = result.substring(26, 26 + 8)
