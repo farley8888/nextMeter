@@ -76,6 +76,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             for (msg in messageChannel) {
                 when (msg.what) {
                     IAtCmd.W_MSG_DISPLAY -> {
+                        Log.d(TAG, "startMessageProcessor: ${msg.obj}")
                         val receiveData = msg.obj?.toString() ?: continue
                         checkStatues(receiveData)
                     }
@@ -84,6 +85,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                         addTask {
                             delay(1800)
                             sendMessage(MCUMessage(WHAT_PRINT_STATUS, null))
+                            Log.d(TAG, "startMessageProcessor: WHAT_PRINT_STATUS")
                         }
                     }
                 }
@@ -94,6 +96,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun sendMessage(msg: MCUMessage) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             messageChannel.send(msg)
+            Log.d(TAG, "sendMessage: ${msg.what}")
         }
     }
 
@@ -101,6 +104,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             for (task in taskChannel) {
                 task()
+                Log.d(TAG, "startTaskProcessor: $task")
             }
         }
     }
@@ -108,14 +112,17 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun addTask(task: suspend () -> Unit) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             taskChannel.send(task)
+            Log.d(TAG, "addTask: $task")
         }
     }
 
     override fun startCommunicate() {
         mBusModel?.startCommunicate()
+        Log.d(TAG, "startCommunicate")
     }
 
     override fun init(scope: CoroutineScope) {
+        Log.d(TAG, "init")
         externalScope = scope
         startTaskProcessor()
         startMessageProcessor()
@@ -411,6 +418,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getBeepSoundCmd(duration, interval, repeatCount))
             delay(200)
+            Log.d(TAG, "emitBeepSound: $duration, $interval, $repeatCount")
         }
     }
 
@@ -418,6 +426,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getStartTripCmd(tripId = tripId))
             delay(200)
+            Log.d(TAG, "writeStartTripCommand: $tripId")
         }
     }
 
@@ -425,6 +434,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getContinueTripCmd())
             delay(200)
+            Log.d(TAG, "writeResumeTripCommand")
         }
     }
 
@@ -432,6 +442,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getEndTripCmd())
             delay(200)
+            Log.d(TAG, "writeEndTripCommand")
         }
     }
 
@@ -439,6 +450,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getPauseTripCmd())
             delay(200)
+            Log.d(TAG, "writePauseTripCommand")
         }
     }
 
@@ -446,6 +458,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getStartPauseTripCmd(tripId))
             delay(200)
+            Log.d(TAG, "writeStartAndPauseTripCommand: $tripId")
         }
     }
 
@@ -453,6 +466,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getUpdateExtrasCmd("$extrasAmount"))
             delay(200)
+            Log.d(TAG, "writeAddExtrasCommand: $extrasAmount")
         }
     }
 
