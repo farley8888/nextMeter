@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -114,12 +115,23 @@ fun AppBar(
                         )
                     }
                 }
-                Text(
-                    text = if (uiState.showMCUHeartbeatIncomingSignal)"♥" else " ",
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (uiState.showMCUHeartbeatIncomingSignal) "♥" else " ",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        modifier = Modifier.width(14.dp) // Set a fixed width
+                    )
+                    Text(
+                        text = if (uiState.showBusModelSignal) "●" else " ",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        modifier = Modifier.width(14.dp) // Set a fixed width
+                    )
+                }
             }
         },
         actions = {

@@ -111,6 +111,7 @@ class MainViewModel @Inject constructor(
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest.stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
     private var isMCUTimeSet = false
     private var heartbeatJob: Job? = null
+    private var busModelJob: Job? = null
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
@@ -125,10 +126,11 @@ class MainViewModel @Inject constructor(
             launch { observeClearCacheOfApplication() }
             launch { observeReInitMCURepository() }
             launch { observeMCUHeartbeatSignal() }
+            launch { observeBusModelSignal() }
         }
     }
 
-    private fun resetHeartbeatTimeout() {
+    private fun resetHeartbeatUITimeout() {
         // Cancel any existing timer job
         heartbeatJob?.cancel()
 
@@ -136,6 +138,17 @@ class MainViewModel @Inject constructor(
         heartbeatJob = viewModelScope.launch {
             delay(3000)
             DeviceDataStore.setMCUHeartbeatActive(false)
+        }
+    }
+
+    private fun resetBusModelUITimeout() {
+        // Cancel any existing timer job
+        busModelJob?.cancel()
+
+        // Start a new timer job
+        busModelJob = viewModelScope.launch {
+            delay(3000)
+            DeviceDataStore.setBusModelListenerDataReceived(false)
         }
     }
 
@@ -285,14 +298,25 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private suspend fun observeMCUHeartbeatSignal() {
+    private suspend fun observeBusModelSignal() {
         DeviceDataStore.isMCUHeartbeatActive.collectLatest { isMCUHeartbeatActive ->
             toolbarUiDataUpdateMutex.withLock {
                 _topAppBarUiState.value = _topAppBarUiState.value.copy(
                     showMCUHeartbeatIncomingSignal = isMCUHeartbeatActive
                 )
             }
-            resetHeartbeatTimeout()
+            resetBusModelUITimeout()
+        }
+    }
+
+    private suspend fun observeMCUHeartbeatSignal() {
+        DeviceDataStore.isBusModelListenerDataReceived.collectLatest { isBusModelListenerDataReceived ->
+            toolbarUiDataUpdateMutex.withLock {
+                _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                    showBusModelSignal = isBusModelListenerDataReceived
+                )
+            }
+            resetHeartbeatUITimeout()
         }
     }
 
@@ -591,6 +615,8 @@ class MainViewModel @Inject constructor(
         remoteMeterControlRepository.onCleared()
         peripheralControlRepository.close()
         accEnquiryJob?.cancel()
+        busModelJob?.cancel()
+        heartbeatJob?.cancel()
     }
 
     companion object {
