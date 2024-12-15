@@ -39,7 +39,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -56,7 +55,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private var mBusModel: BusModel? = null
     private var taskChannel = Channel<suspend () -> Unit>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private var messageChannel = Channel<MCUMessage>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-    private val _latestOngoingTripFromDataStore: MutableStateFlow<TripData?> = MutableStateFlow(null)
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
@@ -145,18 +143,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             }
             delay(200)
         }
-        observeOngoingTripInDb()
         Log.d(TAG, "MeasureBoardRepositoryImpl: init")
-    }
-
-    private fun observeOngoingTripInDb() {
-        externalScope?.launch(ioDispatcher + exceptionHandler) {
-            launch {
-                TripDataStore.ongoingTripData.collect {
-                    _latestOngoingTripFromDataStore.value = it
-                }
-            }
-        }
     }
 
     private suspend fun handleIdleHeartbeatResult(result: String) {
@@ -207,7 +194,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         dashManagerConfig.setDeviceIdData(deviceId = savedDeviceId, licensePlate = savedLicensePlate)
         DeviceDataStore.setDeviceIdData(DeviceIdData(savedLicensePlate, savedLicensePlate))
 
-        val ongoingTrip = _latestOngoingTripFromDataStore.value
+        val ongoingTrip = TripDataStore.ongoingTripData.firstOrNull()
 
         val requiresUpdate = ongoingTrip?.fare != heartbeatData.fare ||
                 ongoingTrip.tripStatus != heartbeatData.tripStatus ||
@@ -317,7 +304,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
         Log.d(TAG, "TRIP_END_SUMMARY: $distance, ${getTimeInSeconds(duration)}, $fare, $extras, $totalFare")
 
-        val currentOngoingTrip = _latestOngoingTripFromDataStore.value
+        val currentOngoingTrip = TripDataStore.ongoingTripData.firstOrNull()
 
         if(currentOngoingTrip != null) {
             val newTrip = TripData(
@@ -523,6 +510,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         mBusModel?.setListener { data: String ->
             sendMessage(MCUMessage(IAtCmd.W_MSG_DISPLAY, data))
             Log.d(TAG, "setReceiveEvalDataLs $data")
+            DeviceDataStore.setBusModelListenerDataReceived(true)
         }
         if(mBusModel == null) {
            Log.e(TAG, "setReceiveEvalDataLs: mBusModel is null")

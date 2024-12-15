@@ -38,6 +38,9 @@ object DeviceDataStore {
     private val _isMCUHeartbeatActive = MutableStateFlow(false)
     val isMCUHeartbeatActive: StateFlow<Boolean> = _isMCUHeartbeatActive
 
+    private val _isBusModelListenerDataReceived = MutableStateFlow(false)
+    val isBusModelListenerDataReceived: StateFlow<Boolean> = _isBusModelListenerDataReceived
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
@@ -82,5 +85,9 @@ object DeviceDataStore {
         mutex.withLock {
             this._isMCUHeartbeatActive.value = isActive
         }
+    }
+
+    fun setBusModelListenerDataReceived(isActive: Boolean) {
+        this._isBusModelListenerDataReceived.value = isActive
     }
 }
