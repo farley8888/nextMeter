@@ -26,5 +26,6 @@ data class TopAppBarUiState (
         else -> "INVALID"
     },
     val showLoginToggle:Boolean = false,
-    val showConnectionIconsToggle:Boolean = false
+    val showConnectionIconsToggle:Boolean = false,
+    val showMCUHeartbeatIncomingSignal:Boolean = false
 )

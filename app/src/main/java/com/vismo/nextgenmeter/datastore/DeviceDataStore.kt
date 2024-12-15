@@ -2,7 +2,6 @@ package com.vismo.nextgenmeter.datastore
 
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
-import com.vismo.nextgenmeter.model.format
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -35,6 +34,9 @@ object DeviceDataStore {
 
     private val _reinitMCURepository = MutableStateFlow(false)
     val reinitMCURepository: StateFlow<Boolean> = _reinitMCURepository
+
+    private val _isMCUHeartbeatActive = MutableStateFlow(false)
+    val isMCUHeartbeatActive: StateFlow<Boolean> = _isMCUHeartbeatActive
 
     private val mutex = Mutex() // Mutex for synchronization
 
@@ -74,5 +76,11 @@ object DeviceDataStore {
 
     fun setReinitMCURepository(reinit: Boolean) {
         this._reinitMCURepository.value = reinit
+    }
+
+    suspend fun setMCUHeartbeatActive(isActive: Boolean) {
+        mutex.withLock {
+            this._isMCUHeartbeatActive.value = isActive
+        }
     }
 }

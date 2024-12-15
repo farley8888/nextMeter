@@ -114,6 +114,12 @@ fun AppBar(
                         )
                     }
                 }
+                Text(
+                    text = if (uiState.showMCUHeartbeatIncomingSignal)"♥" else " ",
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
             }
         },
         actions = {
