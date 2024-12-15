@@ -110,6 +110,7 @@ class MainViewModel @Inject constructor(
 
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest.stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
     private var isMCUTimeSet = false
+    private var heartbeatJob: Job? = null
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
@@ -123,6 +124,18 @@ class MainViewModel @Inject constructor(
             launch { observeStorageReceiverStatus() }
             launch { observeClearCacheOfApplication() }
             launch { observeReInitMCURepository() }
+            launch { observeMCUHeartbeatSignal() }
+        }
+    }
+
+    private fun resetHeartbeatTimeout() {
+        // Cancel any existing timer job
+        heartbeatJob?.cancel()
+
+        // Start a new timer job
+        heartbeatJob = viewModelScope.launch {
+            delay(3000)
+            DeviceDataStore.setMCUHeartbeatActive(false)
         }
     }
 
@@ -269,6 +282,17 @@ class MainViewModel @Inject constructor(
     private suspend fun observeTripData() {
         TripDataStore.ongoingTripData.collectLatest {
             _isTripInProgress.value = it != null
+        }
+    }
+
+    private suspend fun observeMCUHeartbeatSignal() {
+        DeviceDataStore.isMCUHeartbeatActive.collectLatest { isMCUHeartbeatActive ->
+            toolbarUiDataUpdateMutex.withLock {
+                _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                    showMCUHeartbeatIncomingSignal = isMCUHeartbeatActive
+                )
+            }
+            resetHeartbeatTimeout()
         }
     }
 
