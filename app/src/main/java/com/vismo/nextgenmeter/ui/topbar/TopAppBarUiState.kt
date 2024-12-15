@@ -27,5 +27,6 @@ data class TopAppBarUiState (
     },
     val showLoginToggle:Boolean = false,
     val showConnectionIconsToggle:Boolean = false,
-    val showMCUHeartbeatIncomingSignal:Boolean = false
+    val showMCUHeartbeatIncomingSignal:Boolean = false,
+    val showBusModelSignal: Boolean = false
 )
