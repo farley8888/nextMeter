@@ -50,6 +50,7 @@ class FirebaseAuthRepository @Inject constructor(
 
     fun initToken(scope: CoroutineScope) {
         Log.d(TAG, "FirebaseRepositoryImpl: initToken")
+        externalScope = scope
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             Log.d(TAG, "FirebaseRepositoryImpl: scope.launch")
             val user = auth.currentUser
