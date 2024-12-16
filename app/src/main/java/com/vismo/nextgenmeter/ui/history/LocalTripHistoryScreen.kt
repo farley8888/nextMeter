@@ -291,7 +291,7 @@ fun TripItemRow(count: Int, trip: TripData, isSelected: Boolean, onClick: () -> 
         )
         // distance in km
         Text(
-            text = (trip.distanceInMeter/1000).toString(),
+            text = (trip.paidDistanceInMeters/1000).toString(),
             modifier = Modifier.weight(columnWeight),
             fontSize = fontSize,
             color = defaultColor,

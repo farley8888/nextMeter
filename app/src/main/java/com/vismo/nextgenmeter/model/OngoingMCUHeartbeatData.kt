@@ -8,7 +8,8 @@ import com.vismo.nextgenmeter.util.MeasureBoardUtils
 data class OngoingMCUHeartbeatData(
     val measureBoardStatus: Int,
     val lockedDurationHex: String,
-    val distanceHex: String,
+    val paidDistanceHex: String,
+    val unpaidDistanceHex: String,
     val duration: String,
     val extrasHex: String,
     val fareHex: String,
@@ -19,7 +20,8 @@ data class OngoingMCUHeartbeatData(
     val isStopped: Boolean = measureBoardStatus.isStopped(),
     val tripStatus: TripStatus = if (isStopped) TripStatus.STOP else TripStatus.HIRED,
     val lockedDurationDecimal: Int = 0,
-    val distance: Double = 0.0,
+    val paidDistance: Double = 0.0,
+    val unpaidDistance: Double = 0.0,
     val extras: Double = 0.0,
     val fare: Double = 0.0,
     val totalFare: Double = 0.0,
@@ -30,7 +32,8 @@ data class OngoingMCUHeartbeatData(
     fun processHexValues(): OngoingMCUHeartbeatData {
         return copy(
             lockedDurationDecimal = MeasureBoardUtils.hexToDecimal(lockedDurationHex),
-            distance = distanceHex.multiplyBy10AndConvertToDouble(),
+            paidDistance = paidDistanceHex.multiplyBy10AndConvertToDouble(),
+            unpaidDistance = unpaidDistanceHex.multiplyBy10AndConvertToDouble(),
             extras = extrasHex.divideBy100AndConvertToDouble(),
             fare = fareHex.divideBy100AndConvertToDouble(),
             totalFare = totalFareHex.divideBy100AndConvertToDouble(),

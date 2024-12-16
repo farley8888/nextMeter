@@ -48,9 +48,13 @@ data class TripData (
     @SerializedName("trip_total")
     val totalFare: Double = 0.0,
 
-    @ColumnInfo(name = "distance_in_meter")
+    @ColumnInfo(name = "paid_distance_in_meters")
     @SerializedName("distance")
-    val distanceInMeter: Double = 0.0,
+    val paidDistanceInMeters: Double = 0.0,
+
+    @ColumnInfo(name = "unpaid_distance_in_meters")
+    @SerializedName("unpaid_distance")
+    val unpaidDistanceInMeters: Double = 0.0,
 
     @ColumnInfo(name = "wait_time")
     @SerializedName("wait_time")
