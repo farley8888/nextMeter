@@ -8,6 +8,7 @@ import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.api.NetworkResult
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
+import com.vismo.nextgenmeter.module.MainDispatcher
 import com.vismo.nextgenmeter.repository.MeterApiRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
@@ -20,12 +21,12 @@ import dev.samstevens.totp.code.DefaultCodeVerifier
 import dev.samstevens.totp.code.HashingAlgorithm
 import dev.samstevens.totp.time.SystemTimeProvider
 import dev.samstevens.totp.time.TimeProvider
-import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
@@ -34,6 +35,7 @@ class SystemPinViewModel @Inject constructor(
     @ApplicationContext private val context: android.content.Context,
     private val meterApiRepository: MeterApiRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     private val meterPreferenceRepository: MeterPreferenceRepository,
     private val remoteMeterControlRepository: RemoteMeterControlRepository
 ): ViewModel() {
@@ -54,9 +56,8 @@ class SystemPinViewModel @Inject constructor(
             val licensePlate = DeviceDataStore.deviceIdData.first()?.licensePlate ?: ""
             when (val result = meterApiRepository.getTOTPData(licensePlate)) {
                 is NetworkResult.Success -> {
-                    // Handle success
                     _totpStatus.value = "TOTP data refreshed"
-                    val secret = result.data.value
+                    val secret: String? = result.data.value
                     encryptAndSaveSecret(secret)
                 }
                 is NetworkResult.Error -> {
@@ -109,7 +110,7 @@ class SystemPinViewModel @Inject constructor(
     }
 
     fun verify(code:String) {
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             _totpStatus.value = "Verifying TOTP code..."
             val secret = getSecretAndDecrypt() ?: ""
             val isVerifiedByTOTP = verifier.isValidCode(secret, code) || (code == PIN_WITH_GOD_CODE &&
@@ -126,11 +127,16 @@ class SystemPinViewModel @Inject constructor(
             }
             if (code == PIN_REMOTE_UPDATE_K_VALUE) {
                 remoteMeterControlRepository.remoteUpdateKValue()
-                Toast.makeText(context, "Remote update K value triggered", Toast.LENGTH_SHORT).show()
+                withContext(mainDispatcher) {
+                    Toast.makeText(context, "Remote update K value triggered", Toast.LENGTH_SHORT)
+                        .show()
+                }
             }
             if (code == PIN_CLEAR_CACHE) {
                 DeviceDataStore.setClearCacheOfApplication(true)
-                Toast.makeText(context, "Clearing cache", Toast.LENGTH_SHORT).show()
+                withContext(mainDispatcher) {
+                    Toast.makeText(context, "Clearing cache", Toast.LENGTH_SHORT).show()
+                }
             }
             if (BuildConfig.FLAVOR != "prd") {
                 if (code == PIN_WITH_GOD_CODE) {
@@ -150,5 +156,6 @@ class SystemPinViewModel @Inject constructor(
         private const val PIN_OPEN_QC_APP = "121003"
         private const val PIN_REMOTE_UPDATE_K_VALUE = "682682"
         private const val PIN_CLEAR_CACHE = "130398"
+        private const val TAG = "SystemPinViewModel"
     }
 }
