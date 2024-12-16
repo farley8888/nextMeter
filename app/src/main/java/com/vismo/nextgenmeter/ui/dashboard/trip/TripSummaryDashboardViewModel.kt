@@ -64,7 +64,7 @@ class TripSummaryDashboardViewModel @Inject constructor(
                         val sumWaitingTime =
                             formatSecondsToHHMMSS(allTrips.sumOf { it.waitDurationInSeconds })
                         val sumOfDistanceInKm =
-                            (allTrips.sumOf { it.distanceInMeter } / 1000).toString()
+                            (allTrips.sumOf { it.paidDistanceInMeters } / 1000).toString()
 
                         _allTripsSummary.value = TripSummaryDashboardUiData(
                             type = TripSummaryDashboardType.ALL,
@@ -80,7 +80,7 @@ class TripSummaryDashboardViewModel @Inject constructor(
                         val sumExtrasCash = formatToNDecimalPlace(cashOnlyTrips.sumOf { it.extra }, 2)
                         val sumWaitingTimeCash =
                             formatSecondsToHHMMSS(cashOnlyTrips.sumOf { it.waitDurationInSeconds })
-                        val sumOfDistanceInKmCash = (cashOnlyTrips.sumOf { it.distanceInMeter } / 1000).toString()
+                        val sumOfDistanceInKmCash = (cashOnlyTrips.sumOf { it.paidDistanceInMeters } / 1000).toString()
                         _cashTripsSummary.value = TripSummaryDashboardUiData(
                             type = TripSummaryDashboardType.NON_DASH,
                             totalTrips = cashOnlyTrips.size.toString(),
@@ -95,7 +95,7 @@ class TripSummaryDashboardViewModel @Inject constructor(
                         val sumExtrasDash = formatToNDecimalPlace(dashOnlyTrips.sumOf { it.extra }, 2)
                         val sumWaitingTimeDash =
                             formatSecondsToHHMMSS(dashOnlyTrips.sumOf { it.waitDurationInSeconds })
-                        val sumOfDistanceInKmDash = (dashOnlyTrips.sumOf { it.distanceInMeter } / 1000).toString()
+                        val sumOfDistanceInKmDash = (dashOnlyTrips.sumOf { it.paidDistanceInMeters } / 1000).toString()
                         _dashTripsSummary.value = TripSummaryDashboardUiData(
                             type = TripSummaryDashboardType.DASH,
                             totalTrips = dashOnlyTrips.size.toString(),
@@ -133,9 +133,9 @@ class TripSummaryDashboardViewModel @Inject constructor(
                     allTripsCount = sortedTrips.size,
                     cashTripsCount = sortedTrips.count { !it.isDash },
                     dashTripsCount = sortedTrips.count { it.isDash },
-                    allTripsDistanceInKm = sortedTrips.sumOf { it.distanceInMeter } / 1000,
-                    cashTripsDistanceInKm = sortedTrips.filter { !it.isDash }.sumOf { it.distanceInMeter } / 1000,
-                    dashTripsDistanceInKm = sortedTrips.filter { it.isDash }.sumOf { it.distanceInMeter } / 1000,
+                    allTripsDistanceInKm = sortedTrips.sumOf { it.paidDistanceInMeters } / 1000,
+                    cashTripsDistanceInKm = sortedTrips.filter { !it.isDash }.sumOf { it.paidDistanceInMeters } / 1000,
+                    dashTripsDistanceInKm = sortedTrips.filter { it.isDash }.sumOf { it.paidDistanceInMeters } / 1000,
                     allTripsWaitTime = sortedTrips.sumOf { it.waitDurationInSeconds },
                     cashTripsWaitTime = sortedTrips.filter { !it.isDash }.sumOf { it.waitDurationInSeconds },
                     dashTripsWaitTime = sortedTrips.filter { it.isDash }.sumOf { it.waitDurationInSeconds },
