@@ -173,7 +173,8 @@ class PeripheralControlRepositoryImpl(
             val licensePlate = tripData.licensePlate
             val startDateTime = tripData.startTime.toDate()
             val pauseDateTime = tripData.pauseTime?.toDate() ?: Date()
-            val paidKm = getDistanceInKm(tripData.distanceInMeter)
+            val paidKm = getDistanceInKm(tripData.paidDistanceInMeters)
+            val totalKm = getDistanceInKm(tripData.paidDistanceInMeters + tripData.unpaidDistanceInMeters)
             val waitTimeInMinutes = tripData.waitDurationInSeconds / 60.0
             val paidMin = formatToNDecimalPlace(waitTimeInMinutes, 2)
             val surcharge = formatToNDecimalPlace(tripData.extra, 2)
@@ -190,7 +191,7 @@ class PeripheralControlRepositoryImpl(
                         .replace("FF", "20"),
                     Config.getSPIDateTime(startDateTime),
                     Config.getSPIDateTime(pauseDateTime),
-                    Config.getSPIDecimal(paidKm, 6),
+                    Config.getSPIDecimal(totalKm, 6),
                     Config.getSPIDecimal(paidKm, 6),
                     Config.getSPIDecimal(paidMin, 6),
                     Config.getSPIDecimal(surcharge, 7),
