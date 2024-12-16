@@ -224,7 +224,7 @@ class MeterOpsViewModel @Inject constructor(
                 status = status,
                 extras = MeterOpsUtil.formatToNDecimalPlace(trip.extra, 1),
                 fare = MeterOpsUtil.formatToNDecimalPlace(fareIfZero, 2),
-                distanceInKM = MeterOpsUtil.getDistanceInKm(trip.distanceInMeter),
+                distanceInKM = MeterOpsUtil.getDistanceInKm(trip.paidDistanceInMeters),
                 duration = MeterOpsUtil.getFormattedDurationFromSeconds(trip.waitDurationInSeconds),
                 totalFare = MeterOpsUtil.formatToNDecimalPlace(totalFareIfZero, 2),
                 languagePref = _uiState.value.languagePref,

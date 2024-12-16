@@ -12,7 +12,7 @@ import com.vismo.nextgenmeter.model.TripData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 
-@Database(entities = [TripData::class], version = 5, exportSchema = false)
+@Database(entities = [TripData::class], version = 6, exportSchema = false)
 abstract class LocalTripsRoomDatabase: RoomDatabase() {
     abstract fun tripsDao(): TripsDao
 

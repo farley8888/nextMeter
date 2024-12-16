@@ -174,7 +174,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private suspend  fun handleOngoingHeartbearResult(result: String) {
         Log.d(TAG, "ONGOING_HEARTBEAT: $result")
-        if (result.length < 70 || !result.startsWith(CHECKSUM)) {
+        if (result.length < 75 || !result.startsWith(CHECKSUM)) {
             Log.d(TAG, "parseHeartbeatResult: Invalid result length: ${result.length}")
             Sentry.captureMessage("parseHeartbeatResult: Invalid result length: ${result.length}")
             return
@@ -218,7 +218,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
                 totalFare = heartbeatData.totalFare,
-                distanceInMeter = heartbeatData.distance,
+                paidDistanceInMeters = heartbeatData.paidDistance,
+                unpaidDistanceInMeters = heartbeatData.unpaidDistance,
                 waitDurationInSeconds = getTimeInSeconds(heartbeatData.duration),
                 pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = null),
                 endTime = null,
@@ -240,7 +241,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
                 totalFare = heartbeatData.totalFare,
-                distanceInMeter = heartbeatData.distance,
+                paidDistanceInMeters = heartbeatData.paidDistance,
+                unpaidDistanceInMeters = heartbeatData.unpaidDistance,
                 waitDurationInSeconds = getTimeInSeconds(heartbeatData.duration),
                 overSpeedDurationInSeconds = overSpeedDurationInSeconds,
                 requiresUpdateOnDatabase = requiresUpdate,
@@ -276,14 +278,15 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val heartbeatData = OngoingMCUHeartbeatData(
             measureBoardStatus = result.extractSubstring(17, 1).toIntOrNull() ?: 1,
             lockedDurationHex = result.extractSubstring(18, 4),
-            distanceHex = result.extractSubstring(22, 6),
+            paidDistanceHex = result.extractSubstring(22, 6),
             duration = result.extractSubstring(28, 6),
             extrasHex = result.extractSubstring(38, 6),
             fareHex = result.extractSubstring(44, 6),
             totalFareHex = result.extractSubstring(50, 6),
             currentTime = result.extractSubstring(56, 12),
             abnormalPulseCounterHex = result.extractSubstring(68, 2),
-            overspeedCounterHex = result.extractSubstring(70, 2)
+            overspeedCounterHex = result.extractSubstring(70, 2),
+            unpaidDistanceHex = result.extractSubstring(72, 6)
         )
 
         return heartbeatData.processHexValues()
@@ -314,7 +317,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 fare = fare,
                 extra = extras,
                 totalFare = totalFare,
-                distanceInMeter = distance,
+                paidDistanceInMeters = distance,
                 waitDurationInSeconds = getTimeInSeconds(duration),
                 pauseTime = currentOngoingTrip.pauseTime,
                 endTime = Timestamp.now(),
