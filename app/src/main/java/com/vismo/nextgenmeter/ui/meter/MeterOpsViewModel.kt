@@ -1,6 +1,8 @@
 package com.vismo.nextgenmeter.ui.meter
 
 import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
@@ -73,6 +75,10 @@ class MeterOpsViewModel @Inject constructor(
     private var isUnlockRun = false
     private val _showSnackBarMessage = MutableStateFlow<Pair<String, SnackbarState>?>(null)
     val showSnackBarMessage: StateFlow<Pair<String, SnackbarState>?> = _showSnackBarMessage
+
+    // Track whether an upload is currently in progress
+    private val _isUploading = MutableLiveData(false)
+    val isUploading: LiveData<Boolean> get() = _isUploading
 
     init {
         viewModelScope.launch {
@@ -267,6 +273,15 @@ class MeterOpsViewModel @Inject constructor(
     }
 
     fun triggerLogShipping(){
+        if (_isUploading.value == true) {
+            // Already uploading, show a message and return
+            _showSnackBarMessage.value = Pair(
+                "日誌發送中，請稍後！⌛ Log upload already in progress, please wait...",
+                SnackbarState.WARNING
+            )
+            return
+        }
+        _isUploading.value = true
         viewModelScope.launch {
             Log.d(TAG, "triggerLogShipping")
             val result = withContext(ioDispatcher) {
@@ -289,6 +304,7 @@ class MeterOpsViewModel @Inject constructor(
                     )
                 }
             }
+            _isUploading.value = false
         }
     }
 

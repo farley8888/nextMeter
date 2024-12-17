@@ -12,7 +12,10 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
+import java.util.zip.GZIPOutputStream
 import javax.inject.Inject
 
 class LogShippingRepository @Inject constructor(
@@ -87,11 +90,32 @@ class LogShippingRepository @Inject constructor(
             logDir.mkdirs()
             val process = Runtime.getRuntime().exec("logcat -d -f ${logFile.absolutePath}")
             val exitValue = process.waitFor()
-            exitValue == 0
+            if (exitValue == 0) {
+                // Compress the file
+                val gzipFile = compressFileToGzip(logFile)
+                // Delete the original uncompressed file if you don't need it anymore
+                logFile.delete()
+                true
+            } else {
+                Log.e(TAG, "logcat command failed with exit code: $exitValue")
+                false
+            }
         } catch (e: IOException) {
             Log.e(TAG, "Error creating log file from logcat", e)
             false
         }
+    }
+
+    private suspend fun compressFileToGzip(inputFile: File): File = withContext(ioDispatcher) {
+        val gzFile = File(inputFile.parent, inputFile.name + ".gz") // e.g. logcat_20210101_120000.txt.gz
+        FileInputStream(inputFile).use { fis ->
+            FileOutputStream(gzFile).use { fos ->
+                GZIPOutputStream(fos).use { gos ->
+                    fis.copyTo(gos)
+                }
+            }
+        }
+        gzFile
     }
 
     private suspend fun uploadFileToFirebase(file: File, licensePlate: String): Boolean = withContext(ioDispatcher) {
@@ -101,7 +125,7 @@ class LogShippingRepository @Inject constructor(
         }
 
         return@withContext try {
-            withTimeout(15_000) {
+            withTimeout(60_000) {
                 storageReference.child(licensePlate).child(file.name)
                     .putFile(android.net.Uri.fromFile(file))
                     .await() // Suspends until upload completes or fails
