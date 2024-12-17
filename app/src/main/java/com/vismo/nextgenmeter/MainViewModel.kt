@@ -475,7 +475,7 @@ class MainViewModel @Inject constructor(
         startACCStatusInquiries()
         observeInternetStatus()
         observeDriverInfo()
-        disableADBByDefaultForProd()
+//        disableADBByDefaultForProd()
         Log.d(TAG, "MainViewModel initialized")
     }
 
