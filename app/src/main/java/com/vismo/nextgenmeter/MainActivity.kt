@@ -117,7 +117,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
 
     private fun enableLogcatPrint() {
         val pid = Process.myPid()
-        val whiteList = "logcat -P '$pid'"
+        // Whitelist process and set the logcat main buffer size to 5MB
+        // val whiteList = "logcat -P '$pid'; logcat -b main -G 5M; logcat -b system -G 1M; logcat -b crash -G 1M"
+        val whiteList = "logcat -P '$pid'; logcat -G 5M"
         Runtime.getRuntime().exec(whiteList).waitFor()
     }
 
