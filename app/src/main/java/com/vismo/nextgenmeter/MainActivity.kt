@@ -8,7 +8,7 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbManager
 import android.net.wifi.WifiManager
 import android.os.Bundle
-import android.os.PowerManager
+import android.os.Process
 import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyManager
@@ -48,7 +48,6 @@ import com.vismo.nextgenmeter.repository.UsbEventReceiver
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
-import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.ui.NavigationGraph
 import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
@@ -56,6 +55,7 @@ import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.GlobalToastHolder
 import com.vismo.nextgenmeter.ui.theme.CableMeterTheme
 import com.vismo.nextgenmeter.ui.theme.pastelGreen600
+import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
@@ -72,6 +72,7 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity(), UsbEventReceiver {
@@ -114,9 +115,16 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         Log.d(TAG, "onPause: stop communicating")
     }
 
+    private fun enableLogcatPrint() {
+        val pid = Process.myPid()
+        val whiteList = "logcat -P '$pid'"
+        Runtime.getRuntime().exec(whiteList).waitFor()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate: ")
+        enableLogcatPrint()
         initObservers()
         startAMapLocation()
         listenToSignalStrength()
