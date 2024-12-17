@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import com.vismo.nextgenmeter.ui.theme.gold300
 import com.vismo.nextgenmeter.ui.theme.mineShaft50
 import com.vismo.nextgenmeter.ui.theme.mineShaft900
 import com.vismo.nextgenmeter.ui.theme.nobel100
@@ -15,7 +16,8 @@ import kotlinx.coroutines.launch
 enum class SnackbarState {
     DEFAULT,
     ERROR,
-    SUCCESS
+    SUCCESS,
+    WARNING
 }
 
 class GlobalSnackbarDelegate(
@@ -31,6 +33,7 @@ class GlobalSnackbarDelegate(
             SnackbarState.DEFAULT -> nobel100
             SnackbarState.ERROR -> valencia600
             SnackbarState.SUCCESS -> pastelGreen600
+            SnackbarState.WARNING -> gold300
         }
     val snackbarContentColor: Color
         @Composable
@@ -38,6 +41,7 @@ class GlobalSnackbarDelegate(
             SnackbarState.DEFAULT -> mineShaft900
             SnackbarState.ERROR -> mineShaft50
             SnackbarState.SUCCESS -> mineShaft50
+            SnackbarState.WARNING -> mineShaft50
         }
 
     fun showSnackbar(
