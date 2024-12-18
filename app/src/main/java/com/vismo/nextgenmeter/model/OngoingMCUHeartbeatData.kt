@@ -34,9 +34,9 @@ data class OngoingMCUHeartbeatData(
         MeasureBoardUtils.hexToDecimal(lockedDurationHex).takeIf { it >= 0 } ?: return null
         paidDistanceHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return null
         unpaidDistanceHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return null
-        extrasHex.toDoubleOrNull()?.takeIf { it > 0.0 } ?: return null
-        fareHex.toDoubleOrNull()?.takeIf { it > 0.0 } ?: return null
-        totalFareHex.toDoubleOrNull()?.takeIf { it > 0.0 } ?: return null
+        extrasHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return null
+        fareHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return null
+        totalFareHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return null
         MeasureBoardUtils.hexToDecimal(abnormalPulseCounterHex).takeIf { it >= 0 } ?: return null
         MeasureBoardUtils.hexToDecimal(overspeedCounterHex).takeIf { it >= 0 } ?: return null
 
