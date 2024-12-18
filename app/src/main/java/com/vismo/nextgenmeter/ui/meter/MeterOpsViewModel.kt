@@ -346,7 +346,7 @@ class MeterOpsViewModel @Inject constructor(
             }
             251 -> {
                 if (repeatCount.mod(25) == 0) {
-                    DeviceDataStore.setReinitMCURepository(true)
+                    DeviceDataStore.setToggleCommunicationWithMCU()
                 }
             }
         }

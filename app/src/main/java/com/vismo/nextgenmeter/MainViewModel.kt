@@ -11,6 +11,7 @@ import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -155,14 +156,21 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun observeReInitMCURepository() {
-        DeviceDataStore.reinitMCURepository.collectLatest { reinit ->
-            if (reinit) {
-                measureBoardRepository.init(viewModelScope)
-                DeviceDataStore.setReinitMCURepository(false)
-                withContext(mainDispatcher) {
-                    Toast.makeText(context, "MCU repository reinitialized", Toast.LENGTH_SHORT).show()
+        DeviceDataStore.toggleCommunicationWithMCU.collectLatest { toggle ->
+            when(toggle) {
+                TOGGLE_COMMS_WITH_MCU.TOGGLE_OFF -> {
+                    measureBoardRepository.stopCommunication()
+                    withContext(mainDispatcher) {
+                        Toast.makeText(context, "Communication stopped", Toast.LENGTH_SHORT).show()
+                    }
                 }
-                Log.d(TAG, "MCU repository init called again ")
+                TOGGLE_COMMS_WITH_MCU.TOGGLE_ON -> {
+                    measureBoardRepository.startCommunicate()
+                    withContext(mainDispatcher) {
+                        Toast.makeText(context, "Communication started", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                else -> {}
             }
         }
     }
@@ -268,7 +276,7 @@ class MainViewModel @Inject constructor(
 
     private suspend fun observeFirebaseAuthSuccess() {
         firebaseAuthRepository.isFirebaseAuthSuccess.collectLatest { isFirebaseAuthSuccess ->
-            if (isFirebaseAuthSuccess) {
+            if (isFirebaseAuthSuccess && !DashManager.isInitialized) {
                 remoteMeterControlRepository.initDashManager(viewModelScope)
                 Log.d(TAG, "Firebase auth success - calling dashManager.init()")
             }
@@ -464,13 +472,9 @@ class MainViewModel @Inject constructor(
         measureBoardRepository.stopCommunication()
     }
 
-    fun initMeasureBoardRepository() {
-        measureBoardRepository.init(viewModelScope)
-    }
-
 
     init {
-        initMeasureBoardRepository()
+        measureBoardRepository.init(viewModelScope)
         remoteMeterControlRepository.observeFlows(viewModelScope)
         tripRepository.initObservers(viewModelScope)
         observeFlows()
