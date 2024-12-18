@@ -33,10 +33,14 @@ android {
     signingConfigs {
         create("myConfig") {
             // Use absolute path for keystore.properties
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-            storeFile = file("..\\keystore\\debug.keystore")
-            storePassword = "android"
+            val keystoreFile = file("$rootDir/keystore.properties")
+            val keystoreProperties = Properties()
+            keystoreProperties.load(keystoreFile.inputStream())
+
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+            storeFile = file(keystoreProperties.getProperty("storeFile"))
+            storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
 
