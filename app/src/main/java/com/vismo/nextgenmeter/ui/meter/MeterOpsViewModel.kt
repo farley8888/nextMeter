@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.model.Quadruple
@@ -345,8 +346,10 @@ class MeterOpsViewModel @Inject constructor(
                 }
             }
             251 -> {
-                if (repeatCount.mod(25) == 0) {
-                    DeviceDataStore.setToggleCommunicationWithMCU()
+                if (BuildConfig.FLAVOR != "prd") {
+                    if (repeatCount.mod(25) == 0) {
+                        DeviceDataStore.setToggleCommunicationWithMCU()
+                    }
                 }
             }
         }
