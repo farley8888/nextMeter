@@ -29,7 +29,17 @@ data class OngoingMCUHeartbeatData(
     val overspeedCounterDecimal: Int = 0,
     val mcuStatus: Int = measureBoardStatus
 ) {
-    fun processHexValues(): OngoingMCUHeartbeatData {
+    fun processHexValues(): OngoingMCUHeartbeatData? {
+        if (!MeasureBoardUtils.isDurationValid(duration)) return null
+        MeasureBoardUtils.hexToDecimal(lockedDurationHex).takeIf { it >= 0 } ?: return null
+        paidDistanceHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return null
+        unpaidDistanceHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return null
+        extrasHex.toDoubleOrNull()?.takeIf { it > 0.0 } ?: return null
+        fareHex.toDoubleOrNull()?.takeIf { it > 0.0 } ?: return null
+        totalFareHex.toDoubleOrNull()?.takeIf { it > 0.0 } ?: return null
+        MeasureBoardUtils.hexToDecimal(abnormalPulseCounterHex).takeIf { it >= 0 } ?: return null
+        MeasureBoardUtils.hexToDecimal(overspeedCounterHex).takeIf { it >= 0 } ?: return null
+
         return copy(
             lockedDurationDecimal = MeasureBoardUtils.hexToDecimal(lockedDurationHex),
             paidDistance = paidDistanceHex.multiplyBy10AndConvertToDouble(),

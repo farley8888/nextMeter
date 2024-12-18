@@ -153,7 +153,12 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleIdleHeartbeatResult(result: String) {
-        if (result.length < 125 || !result.startsWith(CHECKSUM)) {
+        val timeHex = result.substring(40, 40 + 12)
+        fun isHBValid(): Boolean {
+            if (!MeasureBoardUtils.isValidDate(timeHex, "yyyyMMddHHmm")) return false
+            return true
+        }
+        if (result.length < 125 || !result.startsWith(HEARTBEAT_IDENTIFIER) || !isHBValid()) {
             Log.d(TAG, "handleIdleHeartbeatResult: Invalid result length: ${result.length}")
             Sentry.captureMessage("handleIdleHeartbeatResult: Invalid result length: ${result.length}")
             return
@@ -164,7 +169,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val licensePlate = MeasureBoardUtils.convertToASCIICharacters(licensePlateHex) ?: ""
 
         DeviceDataStore.setDeviceIdData(DeviceIdData(measureBoardDeviceId, licensePlate))
-        DeviceDataStore.setMCUTime(result.substring(40, 40 + 12))
+        DeviceDataStore.setMCUTime(timeHex)
 
         TripDataStore.ongoingTripData.value?.let { _ ->
             TripDataStore.clearTripData()
@@ -180,15 +185,20 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private suspend  fun handleOngoingHeartbearResult(result: String) {
         Log.d(TAG, "ONGOING_HEARTBEAT: $result")
-        if (result.length < 75 || !result.startsWith(CHECKSUM)) {
+        if (result.length < 75 || !result.startsWith(HEARTBEAT_IDENTIFIER)) {
             Log.d(TAG, "parseHeartbeatResult: Invalid result length: ${result.length}")
             Sentry.captureMessage("parseHeartbeatResult: Invalid result length: ${result.length}")
             return
         }
-        DeviceDataStore.setMCUHeartbeatActive(true)
         // Parse the heartbeat result into a data class for better organization
         val heartbeatData = parseHeartbeatResult(result)
+        if (heartbeatData == null) {
+            Log.d(TAG, "parseHeartbeatResult: Invalid content: ${result}")
+            Sentry.captureMessage("parseHeartbeatResult: Invalid content: ${result}")
+            return
+        }
 
+        DeviceDataStore.setMCUHeartbeatActive(true)
         // Update the MCU time
         DeviceDataStore.setMCUTime(heartbeatData.currentTime)
 
@@ -280,9 +290,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun parseHeartbeatResult(result: String): OngoingMCUHeartbeatData {
+    private fun parseHeartbeatResult(result: String): OngoingMCUHeartbeatData? {
+        val status = result.extractSubstring(17, 1).toIntOrNull().takeIf { it in 0..7 } ?: return null
+        if(!MeasureBoardUtils.isValidDate(result.extractSubstring(56, 12), "yyyyMMddHHmm")) return null
         val heartbeatData = OngoingMCUHeartbeatData(
-            measureBoardStatus = result.extractSubstring(17, 1).toIntOrNull() ?: 1,
+            measureBoardStatus = status,
             lockedDurationHex = result.extractSubstring(18, 4),
             paidDistanceHex = result.extractSubstring(22, 6),
             duration = result.extractSubstring(28, 6),
@@ -299,17 +311,30 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleTripEndSummaryResult(result: String) {
-        if (result.length < 147 || !result.startsWith(CHECKSUM)) {
-            Log.d(TAG, "handleTripEndSummaryResult: Invalid result length: ${result.length}")
-            Sentry.captureMessage("handleTripEndSummaryResult: Invalid result length: ${result.length}")
+        val distanceHex = result.substring(118, 118 + 6)
+        val durationHex = result.substring(124, 124 + 6)
+        val fareHex = result.substring(130, 130 + 6)
+        val extrasHex = result.substring(136, 136 + 6)
+        val totalFareHex = result.substring(142, 142 + 6)
+        fun isHBValid(): Boolean {
+            distanceHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return false
+            if (!MeasureBoardUtils.isDurationValid(durationHex)) return false
+            fareHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return false
+            extrasHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return false
+            totalFareHex.toDoubleOrNull()?.takeIf { it >= 0.0 } ?: return false
+            return true
+        }
+        if (result.length < 147 || !result.startsWith(HEARTBEAT_IDENTIFIER) || !isHBValid()) {
+            Log.d(TAG, "handleTripEndSummaryResult: Invalid result length or content: $result")
+            Sentry.captureMessage("handleTripEndSummaryResult: Invalid result length or content: $result")
             return
         }
         DeviceDataStore.setMCUHeartbeatActive(true)
-        val distance = result.substring(118, 118 + 6).multiplyBy10AndConvertToDouble()
-        val duration = result.substring(124, 124 + 6)
-        val fare = result.substring(130, 130 + 6).divideBy100AndConvertToDouble()
-        val extras = result.substring(136, 136 + 6).divideBy100AndConvertToDouble()
-        val totalFare = result.substring(142, 142 + 6).divideBy100AndConvertToDouble()
+        val distance = distanceHex.multiplyBy10AndConvertToDouble()
+        val duration = durationHex
+        val fare = fareHex.divideBy100AndConvertToDouble()
+        val extras = extrasHex.divideBy100AndConvertToDouble()
+        val totalFare = totalFareHex.divideBy100AndConvertToDouble()
 
         Log.d(TAG, "TRIP_END_SUMMARY: $distance, ${getTimeInSeconds(duration)}, $fare, $extras, $totalFare")
 
@@ -365,7 +390,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleParametersEnquiryResult(result: String) {
-        if (result.length < 97 || !result.startsWith(CHECKSUM)) {
+        if (result.length < 97 || !result.startsWith(HEARTBEAT_IDENTIFIER)) {
             Log.d(TAG, "handleParametersEnquiryResult: Invalid result length: ${result.length}")
             Sentry.captureMessage("handleParametersEnquiryResult: Invalid result length: ${result.length}")
             return
@@ -598,6 +623,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     companion object {
         private const val WHAT_PRINT_STATUS: Int = 110
         private const val TAG = "MeasureBoardRepository"
-        private const val CHECKSUM = "55AA"
+        private const val HEARTBEAT_IDENTIFIER = "55AA"
     }
 }
