@@ -326,6 +326,7 @@ class MainViewModel @Inject constructor(
                 // Recheck if it's still inactive after the delay
                 if (!isHeartbeatActive) {
                    startCommunicate()
+                    Sentry.captureException(Throwable(message = "Restarting MCU communication"))
                     withContext(mainDispatcher) {
                         Toast.makeText(context, "Restarting MCU communication", Toast.LENGTH_SHORT).show()
                     }
