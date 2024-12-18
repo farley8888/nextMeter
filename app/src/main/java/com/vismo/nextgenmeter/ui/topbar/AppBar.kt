@@ -33,7 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -115,22 +114,24 @@ fun AppBar(
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (uiState.showMCUHeartbeatIncomingSignal) "♥" else " ",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        modifier = Modifier.width(14.dp) // Set a fixed width
-                    )
-                    Text(
-                        text = if (uiState.showBusModelSignal) "●" else " ",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        modifier = Modifier.width(14.dp) // Set a fixed width
-                    )
+                if(uiState.showConnectionIconsToggle) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (uiState.showMCUHeartbeatIncomingSignal) "♥" else " ",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            modifier = Modifier.width(14.dp) // Set a fixed width
+                        )
+                        Text(
+                            text = if (uiState.showBusModelSignal) "●" else " ",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            modifier = Modifier.width(14.dp) // Set a fixed width
+                        )
+                    }
                 }
             }
         },
