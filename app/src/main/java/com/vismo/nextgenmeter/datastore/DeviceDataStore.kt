@@ -32,8 +32,8 @@ object DeviceDataStore {
     private val _clearCacheOfApplication = MutableStateFlow(false)
     val clearCacheOfApplication: StateFlow<Boolean> = _clearCacheOfApplication
 
-    private val _reinitMCURepository = MutableStateFlow(false)
-    val reinitMCURepository: StateFlow<Boolean> = _reinitMCURepository
+    private val _toggleCommunicationWithMCU = MutableStateFlow(TOGGLE_COMMS_WITH_MCU.NONE)
+    val toggleCommunicationWithMCU: StateFlow<TOGGLE_COMMS_WITH_MCU> = _toggleCommunicationWithMCU
 
     private val _isMCUHeartbeatActive = MutableStateFlow(false)
     val isMCUHeartbeatActive: StateFlow<Boolean> = _isMCUHeartbeatActive
@@ -77,8 +77,13 @@ object DeviceDataStore {
         this._clearCacheOfApplication.value = clearCache
     }
 
-    fun setReinitMCURepository(reinit: Boolean) {
-        this._reinitMCURepository.value = reinit
+    fun setToggleCommunicationWithMCU() {
+        this._toggleCommunicationWithMCU.value =
+        when(this._toggleCommunicationWithMCU.value) {
+            TOGGLE_COMMS_WITH_MCU.NONE -> TOGGLE_COMMS_WITH_MCU.TOGGLE_OFF
+            TOGGLE_COMMS_WITH_MCU.TOGGLE_OFF -> TOGGLE_COMMS_WITH_MCU.TOGGLE_ON
+            else -> TOGGLE_COMMS_WITH_MCU.NONE
+        }
     }
 
     suspend fun setMCUHeartbeatActive(isActive: Boolean) {
@@ -91,3 +96,10 @@ object DeviceDataStore {
         this._isBusModelListenerDataReceived.value = isActive
     }
 }
+
+enum class TOGGLE_COMMS_WITH_MCU {
+    NONE,
+    TOGGLE_OFF,
+    TOGGLE_ON
+}
+
