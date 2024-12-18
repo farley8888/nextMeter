@@ -7,6 +7,8 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.crashlytics.CustomKeysAndValues
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
@@ -18,7 +20,6 @@ import com.vismo.nextgenmeter.repository.DriverPreferenceRepository
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository
 import com.vismo.nextgenmeter.repository.FirebaseAuthRepository.Companion.AUTHORIZATION_HEADER
 import com.vismo.nextgenmeter.repository.InternetConnectivityObserver
-import com.vismo.nextgenmeter.repository.LogShippingRepository
 import com.vismo.nextgenmeter.repository.MeasureBoardRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.NetworkTimeRepository
@@ -54,6 +55,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -74,13 +76,13 @@ class MainViewModel @Inject constructor(
     private val remoteMeterControlRepository: RemoteMeterControlRepository,
     private val dashManagerConfig: DashManagerConfig,
     private val tripRepository: TripRepository,
-    private val logShippingRepository: LogShippingRepository,
     @ApplicationContext private val context: Context,
     private val firebaseAuthRepository: FirebaseAuthRepository,
     private val driverPreferenceRepository: DriverPreferenceRepository,
     private val internetConnectivityObserver: InternetConnectivityObserver,
     private val networkTimeRepository: NetworkTimeRepository,
     private val meterPreferenceRepository: MeterPreferenceRepository,
+    private val crashlytics: FirebaseCrashlytics
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -476,7 +478,21 @@ class MainViewModel @Inject constructor(
         observeInternetStatus()
         observeDriverInfo()
 //        disableADBByDefaultForProd()
+        setCrashlyticsKeys()
         Log.d(TAG, "MainViewModel initialized")
+    }
+
+    private fun setCrashlyticsKeys() {
+        viewModelScope.launch(ioDispatcher) {
+            val savedDeviceId = meterPreferenceRepository.getDeviceId().firstOrNull() ?: ""
+            val savedLicensePlate = meterPreferenceRepository.getLicensePlate().firstOrNull() ?: ""
+            crashlytics.setUserId(savedLicensePlate)
+            val keys = CustomKeysAndValues.Builder()
+                .putString("device_id", savedDeviceId)
+                .putString("license_plate", savedLicensePlate)
+                .build()
+            crashlytics.setCustomKeys(keys)
+        }
     }
 
     private fun startACCStatusInquiries() {
