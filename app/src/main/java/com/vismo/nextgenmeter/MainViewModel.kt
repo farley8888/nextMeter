@@ -309,40 +309,40 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun observeBusModelSignal() {
-        var isHeartbeatActive: Boolean
-        val debounceDelay = 5000L // 5 seconds
-
         DeviceDataStore.isMCUHeartbeatActive.collectLatest { isMCUHeartbeatActive ->
-            isHeartbeatActive = isMCUHeartbeatActive
             toolbarUiDataUpdateMutex.withLock {
                 _topAppBarUiState.value = _topAppBarUiState.value.copy(
                     showMCUHeartbeatIncomingSignal = isMCUHeartbeatActive
                 )
             }
             resetBusModelUITimeout()
-
-            if (!isMCUHeartbeatActive) {
-                delay(debounceDelay)
-                // Recheck if it's still inactive after the delay
-                if (!isHeartbeatActive) {
-                   startCommunicate()
-                    Sentry.captureException(Throwable(message = "Restarting MCU communication"))
-                    withContext(mainDispatcher) {
-                        Toast.makeText(context, "Restarting MCU communication", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
         }
     }
 
     private suspend fun observeMCUHeartbeatSignal() {
+        var isHeartbeatActive: Boolean
+        val debounceDelay = 5000L // 5 seconds
+
         DeviceDataStore.isBusModelListenerDataReceived.collectLatest { isBusModelListenerDataReceived ->
+            isHeartbeatActive = isBusModelListenerDataReceived
             toolbarUiDataUpdateMutex.withLock {
                 _topAppBarUiState.value = _topAppBarUiState.value.copy(
                     showBusModelSignal = isBusModelListenerDataReceived
                 )
             }
             resetHeartbeatUITimeout()
+
+            if (!isBusModelListenerDataReceived) {
+                delay(debounceDelay)
+                // Recheck if it's still inactive after the delay
+                if (!isHeartbeatActive) {
+                    startCommunicate()
+                    Sentry.captureException(Throwable(message = "Restarting MCU communication"))
+                    withContext(mainDispatcher) {
+                        Toast.makeText(context, "Restarting MCU communication", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
     }
 
