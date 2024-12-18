@@ -40,4 +40,7 @@ interface TripsDao {
     @RawQuery
     fun checkpoint(supportSQLiteQuery: SupportSQLiteQuery = SimpleSQLiteQuery("PRAGMA wal_checkpoint(FULL)")): Int
 
+    @RawQuery
+    fun deleteWAL(supportSQLiteQuery: SupportSQLiteQuery = SimpleSQLiteQuery("PRAGMA journal_mode = DELETE")): Int
+
 }

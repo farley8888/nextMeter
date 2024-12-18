@@ -59,6 +59,8 @@ class LocalTripsRepositoryImpl @Inject constructor(
     private suspend fun checkpointDatabase() {
         withContext(defaultDispatcher) {
             tripsDao.checkpoint()
+            delay(500)
+            tripsDao.deleteWAL()
         }
     }
 
