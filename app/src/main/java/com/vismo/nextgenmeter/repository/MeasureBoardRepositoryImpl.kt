@@ -74,6 +74,12 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                     IAtCmd.W_MSG_DISPLAY -> {
                         Log.d(TAG, "startMessageProcessor: ${msg.obj}")
                         val receiveData = msg.obj?.toString() ?: continue
+                        // Check checksum and see if the message is valid
+                        if(!validateChecksum(receiveData)){
+                            Log.d(TAG, "Checksum validation failed")
+                            Sentry.captureMessage("Checksum validation failed")
+                            continue
+                        }
                         checkStatues(receiveData)
                     }
                     WHAT_PRINT_STATUS -> {
@@ -536,6 +542,58 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         mBusModel?.stopCommunicate()
         Log.d(TAG, "stopCommunication")
     }
+
+
+    /**
+     * xor Checksum algo
+     */
+    fun calculateXORChecksum(data: ByteArray): Byte {
+        var checksum: Int = 0 // Use Int for intermediate computation
+        for (byte in data) {
+            checksum = checksum xor byte.toInt()
+        }
+        return checksum.toByte() // Convert result back to Byte
+    }
+
+    /**
+     * hex string to byte
+     */
+    fun hexStringToByteArray(hex: String): ByteArray {
+        val fixedHex = if (hex.length % 2 != 0) "0$hex" else hex // Prepend a '0' if the string length is odd
+        val length = fixedHex.length
+        val byteArray = ByteArray(length / 2)
+        for (i in 0 until length step 2) {
+            val byte = fixedHex.substring(i, i + 2).toInt(16).toByte()
+            byteArray[i / 2] = byte
+        }
+        return byteArray
+    }
+
+    fun validateChecksum(hexString: String): Boolean {
+        // Step 1: Locate and trim the 55AA markers
+        val startIndex = hexString.indexOf("55AA")
+        if (startIndex == -1) return false // No valid 55AA found
+
+        val endIndex = hexString.indexOf("55AA", startIndex + 4) // Look for the next 55AA
+        if (endIndex == -1) return false // No second 55AA found
+
+        // Extract the body (everything between the two 55AA markers)
+        val bodyHex = hexString.substring(startIndex + 4, endIndex)
+
+        // Step 2: Convert the body into ByteArray and extract the checksum byte
+        val bodyBytes = hexStringToByteArray(bodyHex)
+        if (bodyBytes.size < 2) return false // Ensure there's at least one data byte and one checksum byte
+
+        val checksumByte = bodyBytes.last() // Last byte is the checksum
+        val dataWithoutChecksum = bodyBytes.dropLast(1).toByteArray() // Remove the last byte (checksum)
+
+        // Step 3: Calculate the XOR checksum for the remaining data
+        val calculatedChecksum = calculateXORChecksum(dataWithoutChecksum)
+
+        // Step 4: Compare the first byte of the calculated checksum with the checksum byte
+        return calculatedChecksum == checksumByte
+    }
+
 
     companion object {
         private const val WHAT_PRINT_STATUS: Int = 110
