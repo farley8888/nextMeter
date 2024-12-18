@@ -8,6 +8,7 @@ import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.UUID
 import kotlin.math.ceil
 
@@ -31,15 +32,44 @@ object MeasureBoardUtils {
         }
     }
 
-    fun getTimeInSeconds(duration: String): Long =
-        if (duration.length == 6) {
+    fun isValidDate(date: String, format: String): Boolean {
+        return try {
+            val sdf = SimpleDateFormat(format, Locale.ENGLISH).apply {
+                isLenient = false
+            }
+            sdf.parse(date) != null
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun isDurationValid(duration: String): Boolean {
+        return if (duration.length == 6) {
             val hour = duration.substring(0, 2)
             val min = duration.substring(2, 4)
             val sec = duration.substring(4, 6)
-            (hour.toLong()) * 60 * 60 + (min.toLong()) * 60 + sec.toLong()
+            val hourInSeconds = hour.toLongOrNull()
+            val minInSeconds = min.toLongOrNull()
+            val seconds = sec.toLongOrNull()
+            hourInSeconds != null && minInSeconds != null && seconds != null
+        } else {
+            false
+        }
+    }
+
+    fun getTimeInSeconds(duration: String): Long {
+        return if (duration.length == 6) {
+            val hour = duration.substring(0, 2)
+            val min = duration.substring(2, 4)
+            val sec = duration.substring(4, 6)
+            val hourInSeconds = hour.toLongOrNull()?.times(60 * 60) ?: 0
+            val minInSeconds = min.toLongOrNull()?.times(60) ?: 0
+            val seconds = sec.toLongOrNull() ?: 0
+            hourInSeconds + minInSeconds + seconds
         } else {
             0
         }
+    }
 
     fun getPaidMin(duration: String): BigDecimal =
         if (duration.length == 6) {
