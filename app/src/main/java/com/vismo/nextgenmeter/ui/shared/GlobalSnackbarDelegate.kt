@@ -41,7 +41,7 @@ class GlobalSnackbarDelegate(
             SnackbarState.DEFAULT -> mineShaft900
             SnackbarState.ERROR -> mineShaft50
             SnackbarState.SUCCESS -> mineShaft50
-            SnackbarState.WARNING -> mineShaft50
+            SnackbarState.WARNING -> mineShaft900
         }
 
     fun showSnackbar(
