@@ -239,7 +239,7 @@ class TripRepositoryImpl @Inject constructor(
 
     override suspend fun getMostRecentTrip() {
         measureBoardRepository.emitBeepSound(5, 0, 1)
-        val trip = tripFileManager.descendingSortedTrip.firstOrNull()?.get(1)
+        val trip = tripFileManager.descendingSortedTrip.firstOrNull()?.get(0)
 
         // Set the most recent trip in the data store
         TripDataStore.setMostRecentTripData(trip)
