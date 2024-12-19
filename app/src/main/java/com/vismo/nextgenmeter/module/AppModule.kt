@@ -22,6 +22,7 @@ import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepositoryImpl
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepositoryImpl
+import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.repository.TripRepositoryImpl
 import com.vismo.nextgenmeter.util.LocaleHelper
@@ -103,6 +104,21 @@ object AppModule {
         )
     }
 
+
+    @Singleton
+    @Provides
+    fun providesTripFileManager(
+        @ApplicationContext context: Context,
+        gson: Gson,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher
+    ): TripFileManager {
+        return TripFileManager(
+            context = context,
+            gson = gson,
+            ioDispatcher = ioDispatcher
+        )
+    }
+
     @Singleton
     @Provides
     fun providesLocalTripsRepository(
@@ -161,15 +177,15 @@ object AppModule {
         measureBoardRepository: MeasureBoardRepository,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManager: DashManager,
-        localTripsRepository: LocalTripsRepository,
-        meterPreferenceRepository: MeterPreferenceRepository
+        meterPreferenceRepository: MeterPreferenceRepository,
+        tripFileManager: TripFileManager
     ): TripRepository {
         return TripRepositoryImpl (
             ioDispatcher = ioDispatcher,
             measureBoardRepository = measureBoardRepository,
             dashManager = dashManager,
-            localTripsRepository = localTripsRepository,
-            meterPreferenceRepository = meterPreferenceRepository
+            meterPreferenceRepository = meterPreferenceRepository,
+            tripFileManager = tripFileManager
         )
     }
 
