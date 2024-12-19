@@ -14,7 +14,7 @@ import javax.annotation.Nonnull
 data class TripData (
     @Nonnull
     @PrimaryKey(autoGenerate = true)
-    val internalId: Int = 0,
+    val internalId: Long = 0,
 
     @Nonnull
     @SerializedName("id")

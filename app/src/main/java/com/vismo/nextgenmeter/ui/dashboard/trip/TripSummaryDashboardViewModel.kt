@@ -3,11 +3,12 @@ package com.vismo.nextgenmeter.ui.dashboard.trip
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
+import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripSummary
 import com.vismo.nextgenmeter.module.IoDispatcher
-import com.vismo.nextgenmeter.repository.LocalTripsRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
+import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
 import com.vismo.nextgenmeter.util.GlobalUtils.formatSecondsToHHMMSS
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,14 +18,16 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
 class TripSummaryDashboardViewModel @Inject constructor(
-    private val localTripsRepository: LocalTripsRepository,
+    private val tripFileManager: TripFileManager,
     private val meterPreferenceRepository: MeterPreferenceRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val peripheralControlRepository: PeripheralControlRepository
@@ -55,10 +58,8 @@ class TripSummaryDashboardViewModel @Inject constructor(
     private fun getTrips() {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                localTripsRepository.getDescendingSortedTripsFlow().collect { allTrips ->
+                tripFileManager.descendingSortedTrip.collectLatest { allTrips ->
                     if (allTrips.isNotEmpty()) {
-                        val currentLicensePlate = meterPreferenceRepository.getLicensePlate().first()
-
                         val sumTotalFare = formatToNDecimalPlace(allTrips.sumOf { it.fare }, 2)
                         val sumExtras = formatToNDecimalPlace(allTrips.sumOf { it.extra }, 2)
                         val sumWaitingTime =
@@ -75,12 +76,15 @@ class TripSummaryDashboardViewModel @Inject constructor(
                             totalExtras = "$$sumExtras",
                         )
 
-                        val cashOnlyTrips = allTrips.filter { !it.isDash  }
-                        val sumTotalFareCash = formatToNDecimalPlace(cashOnlyTrips.sumOf { it.fare }, 2)
-                        val sumExtrasCash = formatToNDecimalPlace(cashOnlyTrips.sumOf { it.extra }, 2)
+                        val cashOnlyTrips = allTrips.filter { !it.isDash }
+                        val sumTotalFareCash =
+                            formatToNDecimalPlace(cashOnlyTrips.sumOf { it.fare }, 2)
+                        val sumExtrasCash =
+                            formatToNDecimalPlace(cashOnlyTrips.sumOf { it.extra }, 2)
                         val sumWaitingTimeCash =
                             formatSecondsToHHMMSS(cashOnlyTrips.sumOf { it.waitDurationInSeconds })
-                        val sumOfDistanceInKmCash = (cashOnlyTrips.sumOf { it.paidDistanceInMeters } / 1000).toString()
+                        val sumOfDistanceInKmCash =
+                            (cashOnlyTrips.sumOf { it.paidDistanceInMeters } / 1000).toString()
                         _cashTripsSummary.value = TripSummaryDashboardUiData(
                             type = TripSummaryDashboardType.NON_DASH,
                             totalTrips = cashOnlyTrips.size.toString(),
@@ -91,11 +95,14 @@ class TripSummaryDashboardViewModel @Inject constructor(
                         )
 
                         val dashOnlyTrips = allTrips.filter { it.isDash }
-                        val sumTotalFareDash = formatToNDecimalPlace(dashOnlyTrips.sumOf { it.fare }, 2)
-                        val sumExtrasDash = formatToNDecimalPlace(dashOnlyTrips.sumOf { it.extra }, 2)
+                        val sumTotalFareDash =
+                            formatToNDecimalPlace(dashOnlyTrips.sumOf { it.fare }, 2)
+                        val sumExtrasDash =
+                            formatToNDecimalPlace(dashOnlyTrips.sumOf { it.extra }, 2)
                         val sumWaitingTimeDash =
                             formatSecondsToHHMMSS(dashOnlyTrips.sumOf { it.waitDurationInSeconds })
-                        val sumOfDistanceInKmDash = (dashOnlyTrips.sumOf { it.paidDistanceInMeters } / 1000).toString()
+                        val sumOfDistanceInKmDash =
+                            (dashOnlyTrips.sumOf { it.paidDistanceInMeters } / 1000).toString()
                         _dashTripsSummary.value = TripSummaryDashboardUiData(
                             type = TripSummaryDashboardType.DASH,
                             totalTrips = dashOnlyTrips.size.toString(),
@@ -124,8 +131,8 @@ class TripSummaryDashboardViewModel @Inject constructor(
     fun printSummary() {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                val sortedTrips = localTripsRepository.getDescendingSortedTrips()
-                if (sortedTrips.isEmpty()) return@withContext
+                val sortedTrips = tripFileManager.descendingSortedTrip.firstOrNull()
+                if (sortedTrips.isNullOrEmpty()) return@withContext
                 val tripSummary = TripSummary(
                     licensePlate = meterPreferenceRepository.getLicensePlate().first() ?: "",
                     firstStartTime = sortedTrips.last().startTime,
@@ -154,7 +161,7 @@ class TripSummaryDashboardViewModel @Inject constructor(
     fun clearAllLocalTrips() {
         viewModelScope.launch {
             withContext(ioDispatcher) {
-                localTripsRepository.clearAllTrips()
+                tripFileManager.deleteAllTrips()
                 _showTripsClearedToast.emit(true)
                 delay(2000)
                 _showTripsClearedToast.emit(false)
