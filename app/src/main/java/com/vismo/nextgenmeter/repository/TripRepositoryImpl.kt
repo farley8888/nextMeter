@@ -25,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,7 +33,7 @@ class TripRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val measureBoardRepository: MeasureBoardRepository,
     private val dashManager: DashManager,
-    private val localTripsRepository: LocalTripsRepository,
+    private val tripFileManager: TripFileManager,
     private val meterPreferenceRepository: MeterPreferenceRepository
 ) : TripRepository {
     private val _currentTripPaidStatus: MutableStateFlow<TripPaidStatus> = MutableStateFlow(TripPaidStatus.NOT_PAID)
@@ -70,11 +71,12 @@ class TripRepositoryImpl @Inject constructor(
                 TripDataStore.ongoingTripData.collect { trip ->
                     trip?.let {
                         // Update trip in Firestore if required
+                        Log.d(TAG, "trip update received. require update on db - ${trip.requiresUpdateOnDatabase}, trip id ${trip.tripId}")
                         if (trip.requiresUpdateOnDatabase && trip.tripId.isNotBlank()) {
                             handleFirestoreTripUpdate(trip)
                             if (trip.tripStatus == TripStatus.ENDED) {
                                 val tripData = trip.copy(isDash = _currentTripPaidStatus.value == TripPaidStatus.COMPLETELY_PAID)
-                                localTripsRepository.upsertTrip(tripData)
+                                tripFileManager.addTrip(tripData)
                                 meterPreferenceRepository.saveOngoingTripId("")    // Reset ongoing trip id
                                 _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID // Reset trip paid status
                                 dashManager.endTripDocumentListener()
@@ -237,8 +239,10 @@ class TripRepositoryImpl @Inject constructor(
 
     override suspend fun getMostRecentTrip() {
         measureBoardRepository.emitBeepSound(5, 0, 1)
-        val mostRecentTrip = localTripsRepository.getMostRecentCompletedTrip()
-        TripDataStore.setMostRecentTripData(mostRecentTrip)
+        val trip = tripFileManager.descendingSortedTrip.firstOrNull()?.get(1)
+
+        // Set the most recent trip in the data store
+        TripDataStore.setMostRecentTripData(trip)
     }
 
     override fun emitBeepSound() {

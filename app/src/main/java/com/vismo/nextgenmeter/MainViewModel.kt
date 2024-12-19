@@ -26,6 +26,7 @@ import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.NetworkTimeRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
+import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
@@ -83,7 +84,8 @@ class MainViewModel @Inject constructor(
     private val internetConnectivityObserver: InternetConnectivityObserver,
     private val networkTimeRepository: NetworkTimeRepository,
     private val meterPreferenceRepository: MeterPreferenceRepository,
-    private val crashlytics: FirebaseCrashlytics
+    private val crashlytics: FirebaseCrashlytics,
+    tripFileManager: TripFileManager
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -499,6 +501,9 @@ class MainViewModel @Inject constructor(
         observeDriverInfo()
 //        disableADBByDefaultForProd()
         setCrashlyticsKeys()
+        viewModelScope.launch(ioDispatcher) {
+            tripFileManager.initializeTrips()
+        }
         Log.d(TAG, "MainViewModel initialized")
     }
 
