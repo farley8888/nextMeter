@@ -22,6 +22,7 @@ class TripFileManager @Inject constructor(
     private val gson: Gson,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
+    private val TAG = "TripFileManager"
     private val fileName = "trips.json"
     private val backupFileName = "trips_backup.json"
     private val maxTrips = 100 // Maximum number of trips to retain
@@ -39,11 +40,12 @@ class TripFileManager @Inject constructor(
     private suspend fun loadTrips(): List<TripData> = withContext(ioDispatcher) {
         val originalFile = getFile()
         if (!originalFile.exists()) {
-            Log.d("TripFileManager", "Trip file does not exist. Returning empty list.")
+            Log.d(TAG, "Trip file does not exist. Returning empty list.")
             return@withContext emptyList<TripData>()
         }
 
         return@withContext try {
+            Log.d(TAG, "load trip from ${originalFile.path}")
             val json = originalFile.readText()
             val type = object : TypeToken<List<TripData>>() {}.type
             gson.fromJson<List<TripData>>(json, type) ?: emptyList()
@@ -73,7 +75,8 @@ class TripFileManager @Inject constructor(
 
     // Save trips to the file atomically
     private suspend fun saveTrips(trips: List<TripData>): Boolean = withContext(ioDispatcher) {
-        val tempFile = File(context.filesDir, "$fileName.tmp")
+        val file = getFile()
+        Log.d(TAG, "save trip at ${file.path}")
         return@withContext try {
             val sortedTrips = trips.sortedByDescending { trip ->
                 trip.endTime ?: com.google.firebase.Timestamp.now()
@@ -89,29 +92,16 @@ class TripFileManager @Inject constructor(
             // Serialize trips to JSON
             val json = gson.toJson(trimmedTrips)
 
-            // Write to temporary file
-            tempFile.writeText(json)
+            file.outputStream().use { fos ->
+                // Write the text data
+                fos.write(json.toByteArray(Charsets.UTF_8))
+                fos.flush()  // Flushes the stream's internal buffers
 
-            // Backup the original file if it exists
-            val originalFile = getFile()
-            if (originalFile.exists()) {
-                val backupFile = getBackupFile()
-                originalFile.copyTo(backupFile, overwrite = true)
-                Log.d("TripFileManager", "Original trip file backed up successfully.")
-            }
-
-            // Rename temp file to original file
-            val renamed = tempFile.renameTo(originalFile)
-            if (!renamed) {
-                Log.e("TripFileManager", "Failed to rename temp file to original file.")
-                false
-            } else {
-                Log.d("TripFileManager", "Trips saved successfully. Total trips: ${trimmedTrips.size}")
-                // Emit the updated sorted and trimmed trips
+                // Force the OS to sync changes to the disk
+                fos.fd.sync()
                 _descendingSortedTrip.emit(trimmedTrips)
                 true
             }
-
         } catch (e: IOException) {
             Log.e("TripFileManager", "Error saving trips", e)
             false
