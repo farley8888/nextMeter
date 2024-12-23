@@ -222,7 +222,7 @@ fun AppBar(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = uiState.title,
+            text = if (uiState.showConnectionIconsToggle)"SUNTEC⨮" else "SUNTEC",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.pointerInput(Unit) {
