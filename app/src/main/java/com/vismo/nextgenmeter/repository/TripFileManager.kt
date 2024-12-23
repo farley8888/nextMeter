@@ -22,16 +22,9 @@ class TripFileManager @Inject constructor(
     private val gson: Gson,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
-    private val TAG = "TripFileManager"
-    private val fileName = "trips.json"
-    private val backupFileName = "trips_backup.json"
-    private val maxTrips = 100 // Maximum number of trips to retain
 
     // Get the file
-    private fun getFile(): File = File(context.filesDir, fileName)
-    // Get the backup file
-    private fun getBackupFile(): File = File(context.filesDir, backupFileName)
-
+    private fun getFile(): File = File(context.filesDir, FILE_NAME)
     private val _descendingSortedTrip = MutableStateFlow<List<TripData>>(emptyList())
     val descendingSortedTrip: StateFlow<List<TripData>> = _descendingSortedTrip
     private val mutex = Mutex()
@@ -50,24 +43,6 @@ class TripFileManager @Inject constructor(
             val type = object : TypeToken<List<TripData>>() {}.type
             gson.fromJson<List<TripData>>(json, type) ?: emptyList()
         } catch (e: Exception) {
-            Log.e("TripFileManager", "Error loading trips from main file: ${e.localizedMessage}", e)
-            // Attempt to load from backup
-            loadFromBackup()
-        }
-    }
-
-    private suspend fun loadFromBackup(): List<TripData> = withContext(ioDispatcher) {
-        val backupFile = getBackupFile()
-        if (!backupFile.exists()) {
-            Log.e("TripFileManager", "Backup trip file does not exist. Returning empty list.")
-            return@withContext emptyList<TripData>()
-        }
-
-        return@withContext try {
-            val json = backupFile.readText()
-            val type = object : TypeToken<List<TripData>>() {}.type
-            gson.fromJson<List<TripData>>(json, type) ?: emptyList()
-        } catch (e: Exception) {
             Log.e("TripFileManager", "Error loading trips from backup file: ${e.localizedMessage}", e)
             emptyList<TripData>()
         }
@@ -83,8 +58,8 @@ class TripFileManager @Inject constructor(
             }
 
             // Trim the list to the maximum allowed trips
-            val trimmedTrips = if (sortedTrips.size > maxTrips) {
-                sortedTrips.take(maxTrips)
+            val trimmedTrips = if (sortedTrips.size > MAX_TRIPS) {
+                sortedTrips.take(MAX_TRIPS)
             } else {
                 sortedTrips
             }
@@ -164,5 +139,11 @@ class TripFileManager @Inject constructor(
             val trips = loadTrips()
             _descendingSortedTrip.emit(trips)
         }
+    }
+
+    companion object {
+        private const val TAG = "TripFileManager"
+        private const val FILE_NAME = "trips.json"
+        private const val MAX_TRIPS = 100 // Maximum number of trips to retain
     }
 }
