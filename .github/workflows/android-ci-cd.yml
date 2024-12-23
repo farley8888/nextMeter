@@ -29,11 +29,7 @@ jobs:
       - name: Get build type
         id: build-type
         run: |
-#          if [ "${{ matrix.env }}" = "prd" ]; then
-#            build_type="Release"
-#          else
           build_type="Debug"
-          fi
           echo "build_type=${build_type}" >> "$GITHUB_ENV"
 
       - name: Set up JDK 17
