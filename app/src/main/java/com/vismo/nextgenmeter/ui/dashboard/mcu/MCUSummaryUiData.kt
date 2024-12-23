@@ -17,5 +17,6 @@ data class MCUSummaryUiData(
     val androidId: String = "",
     val appVersion: String = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
     val fareParams: MCUFareParams = MCUFareParams("", "", "", "", "", "", "", ""),
-    val deviceIdData: DeviceIdData = DeviceIdData("", "")
+    val deviceIdData: DeviceIdData = DeviceIdData("", ""),
+    val showConnectionIconsToggle: Boolean = false
 )
