@@ -236,7 +236,7 @@ fun McuInfoForTD(uiState: MCUSummaryUiData) {
     DetailRow("安桌固件", uiState.androidROMVersion)
     DetailRow("安桌ID", uiState.androidId)
     DetailRow("計量ID", uiState.deviceIdData.deviceId)
-    DetailRow("APP版本", "5.0.0.990")
+    DetailRow("APP版本", if(uiState.showConnectionIconsToggle) "5.0.0.997" else "5.0.0.990")
     DetailRow("K值", uiState.fareParams.kValue)
 }
 
