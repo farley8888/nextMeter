@@ -8,13 +8,16 @@ import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.module.IoDispatcher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
+import java.io.InputStreamReader
 import javax.inject.Inject
 
 class TripFileManager @Inject constructor(
@@ -43,7 +46,7 @@ class TripFileManager @Inject constructor(
             val type = object : TypeToken<List<TripData>>() {}.type
             gson.fromJson<List<TripData>>(json, type) ?: emptyList()
         } catch (e: Exception) {
-            Log.e("TripFileManager", "Error loading trips from backup file: ${e.localizedMessage}", e)
+            Log.e(TAG, "Error loading trips from backup file: ${e.localizedMessage}", e)
             emptyList<TripData>()
         }
     }
@@ -65,7 +68,12 @@ class TripFileManager @Inject constructor(
             }
 
             // Serialize trips to JSON
-            val json = gson.toJson(trimmedTrips)
+            val json = try {
+                gson.toJson(trimmedTrips)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error serializing trips to JSON", e)
+                return@withContext false
+            }
 
             file.outputStream().use { fos ->
                 // Write the text data
@@ -74,14 +82,49 @@ class TripFileManager @Inject constructor(
 
                 // Force the OS to sync changes to the disk
                 fos.fd.sync()
-                _descendingSortedTrip.emit(trimmedTrips)
-                true
             }
+            if (!forceOsWideSync()) {
+                Log.e(TAG, "OS-wide sync failed")
+            }
+
+            try {
+                _descendingSortedTrip.emit(trimmedTrips)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to emit trips", e)
+            }
+
+            Log.d(TAG, "Trips saved successfully")
+            true
+
         } catch (e: IOException) {
-            Log.e("TripFileManager", "Error saving trips", e)
+            Log.e(TAG, "Error saving trips", e)
             false
         }
     }
+
+    /**
+     * Some how our meter is not able to sync the file to disk, so we are forcing the OS to sync the file to disk.
+     */
+    private suspend fun forceOsWideSync(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val process = Runtime.getRuntime().exec("sync")
+            val exitCode = process.waitFor()
+            if (exitCode == 0) {
+                Log.d(TAG, "Sync command executed successfully.")
+                true
+            } else {
+                val errorMessage = process.errorOutput()
+                Log.e(TAG, "Sync command failed with exit code $exitCode. Error: $errorMessage")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception occurred while executing sync: ${e.message}")
+            false
+        }
+    }
+
+    private fun Process.errorOutput(): String =
+        errorStream.bufferedReader().use { it.readText() }
 
     // Add a trip
     suspend fun addTrip(newTrip: TripData): Boolean = withContext(ioDispatcher) {
@@ -101,7 +144,7 @@ class TripFileManager @Inject constructor(
                 trips[index] = updatedTrip
                 saveTrips(trips)
             } else {
-                Log.e("TripFileManager", "Trip with ID ${updatedTrip.internalId} not found for update.")
+                Log.e(TAG, "Trip with ID ${updatedTrip.internalId} not found for update.")
                 false
             }
         }
@@ -115,7 +158,7 @@ class TripFileManager @Inject constructor(
             return@withLock if (removed) {
                 saveTrips(trips)
             } else {
-                Log.e("TripFileManager", "Trip with ID $id not found for deletion.")
+                Log.e(TAG, "Trip with ID $id not found for deletion.")
                 false
             }
         }
@@ -128,7 +171,7 @@ class TripFileManager @Inject constructor(
                 val saveSuccessful = saveTrips(emptyList())
                 saveSuccessful
             } catch (e: Exception) {
-                Log.e("TripFileManager", "Error deleting all trips: ${e.localizedMessage}", e)
+                Log.e(TAG, "Error deleting all trips: ${e.localizedMessage}", e)
                 false
             }
         }
