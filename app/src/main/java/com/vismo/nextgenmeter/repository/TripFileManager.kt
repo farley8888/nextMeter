@@ -105,7 +105,7 @@ class TripFileManager @Inject constructor(
     /**
      * Some how our meter is not able to sync the file to disk, so we are forcing the OS to sync the file to disk.
      */
-    private suspend fun forceOsWideSync(): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun forceOsWideSync(): Boolean = withContext(ioDispatcher) {
         try {
             val process = Runtime.getRuntime().exec("sync")
             val exitCode = process.waitFor()
