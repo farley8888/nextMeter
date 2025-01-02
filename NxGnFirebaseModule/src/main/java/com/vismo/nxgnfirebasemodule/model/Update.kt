@@ -13,7 +13,6 @@ data class Update(
     @SerializedName("snooze_until") val snoozeUntil: Timestamp?,
     @SerializedName("url") val url: String,
     @SerializedName("version") val version: String,
-    @SerializedName("clear_cache") val doClearCache: Boolean = false
 )
 
 fun Update.canBeSnoozed(): Boolean {

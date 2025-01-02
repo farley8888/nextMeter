@@ -207,10 +207,6 @@ class UpdateViewModel @Inject constructor(
                         completedOn = Timestamp.now()
                     ))
                 }
-                if (updateDetails.first()?.doClearCache == true) {
-                    File(context.cacheDir.path).deleteRecursively()
-                    Log.d(TAG, "Cache cleared")
-                }
             } catch (e: Exception) {
                 Log.e(TAG, "Installation error: ${e.message}")
                 _updateState.value = UpdateState.Error("Installation failed: ${e.message}")
