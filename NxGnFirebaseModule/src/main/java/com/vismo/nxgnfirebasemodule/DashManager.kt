@@ -466,19 +466,25 @@ class DashManager @Inject constructor(
 
             updatesCollection
                 .orderBy(CREATED_ON, Query.Direction.DESCENDING)
-                .limit(1)
+                .limit(3)
                 .get(Source.SERVER)
                 .addOnSuccessListener { snapshot ->
                     if (snapshot != null && !snapshot.isEmpty) {
-                        val latestDocument = snapshot.documents[0]
-                        var json = gson.toJson(latestDocument.data)
-                        // Manually add the document ID to the JSON string
-                        json =
-                            json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
-                        val update = gson.fromJson(json, Update::class.java)
-                        if (update.shouldPrompt()) {
-                            _mostRelevantUpdate.value = update
-                            Log.d(TAG, "checkForUpdates $json")
+                        val filteredDocument = snapshot.documents.firstNotNullOfOrNull { document ->
+                            var json = gson.toJson(document.data)
+                            // Manually add the document ID to the JSON string
+                            json =
+                                json.substring(0, json.length - 1) + ",\"id\":\"${document.id}\"}"
+                            val update = gson.fromJson(json, Update::class.java)
+                            if (update.shouldPrompt()) update else null
+                        } // Get the first match
+
+                        if (filteredDocument != null) {
+                            _mostRelevantUpdate.value = filteredDocument
+                            Log.d(TAG, "checkForUpdates ${gson.toJson(filteredDocument)}")
+                        }
+                        else {
+                            Log.d(TAG, "No matching updates found.")
                         }
                     }
                     Log.d(TAG, "checkForUpdates addOnSuccessListener")
