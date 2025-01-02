@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.util.GlobalUtils
+import com.vismo.nxgnfirebasemodule.util.Constant
 
 @Composable
 fun UpdateScreen(
@@ -39,8 +40,9 @@ fun UpdateScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val currentVersionName = if (updateDetails?.type == Constant.OTA_METERAPP_TYPE) "${BuildConfig.VERSION_NAME} -> " else ""
             // details of the update
-            Text("升級部份: \n計費軟件 ${BuildConfig.VERSION_NAME} -> ${updateDetails?.version}", style = Typography.headlineMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text("升級部份: \n計費軟件 $currentVersionName${updateDetails?.version}", style = Typography.headlineMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text("升級細節: ${updateDetails?.description}", style = Typography.headlineMedium)
             Text("升級期限:" + GlobalUtils.formatTimestamp(updateDetails?.mustUpdateBefore, showTime = false, showDate = true), style = Typography.headlineMedium)
         }
