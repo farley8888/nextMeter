@@ -404,7 +404,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 .toInt()
 
         if (progress == 100) {
-            delay(3000)
             DeviceDataStore.setFirmwareUpdateComplete(true)
         }
     }

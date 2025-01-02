@@ -23,6 +23,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -57,6 +58,13 @@ class UpdateViewModel @Inject constructor(
                 DeviceDataStore.isFirmwareUpdateComplete.collectLatest {
                     Log.d(TAG, " is firmware update complete - $it")
                     if(it) {
+                        _updateState.value = UpdateState.Success
+                        updateDetails.firstOrNull()?.let { update ->
+                            writeUpdateResultToFireStore(update.copy(
+                                completedOn = Timestamp.now()
+                            ))
+                        }
+                        delay(4000)
                         val powerManager = context.getSystemService(PowerManager::class.java) as PowerManager
                         powerManager.reboot("firmware upgraded")
                     }
