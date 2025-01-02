@@ -31,4 +31,6 @@ interface RemoteMeterControlRepository {
 
     fun remoteUpdateKValue()
 
+    fun requestPatchFirmwareToMCU(fileName: String)
+
 }

@@ -41,6 +41,9 @@ object DeviceDataStore {
     private val _isBusModelListenerDataReceived = MutableStateFlow(false)
     val isBusModelListenerDataReceived: StateFlow<Boolean> = _isBusModelListenerDataReceived
 
+    private val _isFirmwareUpdateComplete = MutableStateFlow(false)
+    val isFirmwareUpdateComplete: StateFlow<Boolean> = _isFirmwareUpdateComplete
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
@@ -94,6 +97,10 @@ object DeviceDataStore {
 
     fun setBusModelListenerDataReceived(isActive: Boolean) {
         this._isBusModelListenerDataReceived.value = isActive
+    }
+
+    fun setFirmwareUpdateComplete(isComplete: Boolean) {
+        this._isFirmwareUpdateComplete.value = isComplete
     }
 }
 

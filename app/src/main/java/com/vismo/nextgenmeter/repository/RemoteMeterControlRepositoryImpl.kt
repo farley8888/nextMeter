@@ -7,13 +7,11 @@ import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nextgenmeter.model.format
-import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +21,6 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class RemoteMeterControlRepositoryImpl @Inject constructor(
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val dashManager: DashManager,
     private val measureBoardRepository: MeasureBoardRepository,
     private val logShippingRepository: LogShippingRepository,
@@ -39,7 +36,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     override val meterDeviceProperties = dashManager.meterDeviceProperties
     override val meterIdentifier = measureBoardRepository.meterIdentifierInRemote
 
-    override val remoteUpdateRequest = dashManager.mostRelevantUpdate
+    override val remoteUpdateRequest: StateFlow<Update?> = dashManager.mostRelevantUpdate
 
     private var externalScope: CoroutineScope? = null
 
@@ -102,7 +99,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun triggerLogUpload() {
+    private fun triggerLogUpload() {
         Log.d(TAG, "triggerLogUpload")
         externalScope?.launch {
             val logShippingResult = logShippingRepository.handleLogUploadFlow()
@@ -153,6 +150,12 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     override fun remoteUpdateKValue() {
         dashManager.isMCUParamsUpdateRequired()
+    }
+
+    override fun requestPatchFirmwareToMCU(fileName: String) {
+        externalScope?.launch {
+            measureBoardRepository.requestPatchFirmware(fileName)
+        }
     }
 
 
