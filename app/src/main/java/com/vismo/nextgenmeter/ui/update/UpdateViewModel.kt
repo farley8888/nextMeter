@@ -5,18 +5,20 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.net.Uri
+import android.os.PowerManager
 import android.util.Log
-import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.storage.FirebaseStorage
+import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.OnUpdateCompletedReceiver
 import com.vismo.nxgnfirebasemodule.model.Update
+import com.vismo.nxgnfirebasemodule.util.Constant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -24,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
@@ -36,7 +39,7 @@ import javax.inject.Inject
 class UpdateViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val remoteMeterControlRepository: RemoteMeterControlRepository
+    private val remoteMeterControlRepository: RemoteMeterControlRepository,
 ): ViewModel() {
     private val _updateState: MutableStateFlow<UpdateState> = MutableStateFlow(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState
@@ -45,15 +48,30 @@ class UpdateViewModel @Inject constructor(
 
     init {
         checkForUpdates()
+        observeFlows()
+    }
+
+    private fun observeFlows() {
+        viewModelScope.launch(ioDispatcher) {
+            launch {
+                DeviceDataStore.isFirmwareUpdateComplete.collectLatest {
+                    Log.d(TAG, " is firmware update complete - $it")
+                    if(it) {
+                        val powerManager = context.getSystemService(PowerManager::class.java) as PowerManager
+                        powerManager.reboot("firmware upgraded")
+                    }
+                }
+            }
+        }
     }
 
     private fun checkForUpdates() {
         viewModelScope.launch(ioDispatcher) {
             val update = remoteMeterControlRepository.remoteUpdateRequest.firstOrNull()
-            if (update != null) {
+            if (update != null && (update.type == Constant.OTA_FIRMWARE_TYPE || update.type == Constant.OTA_METERAPP_TYPE)) {
                 FirebaseStorage.getInstance().getReferenceFromUrl(update.url).downloadUrl
                     .addOnSuccessListener {
-                        downloadApk(it, update)
+                        downloadFile(it, update)
                     }
                     .addOnFailureListener {
                         _updateState.value = UpdateState.Error(it.message ?: "Could not download error")
@@ -65,7 +83,7 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
-    private fun downloadApk(uri: Uri, update: Update) {
+    private fun downloadFile(uri: Uri, update: Update) {
         // Download the APK
         viewModelScope.launch(ioDispatcher) {
             _updateState.value = UpdateState.Downloading(0)
@@ -124,8 +142,11 @@ class UpdateViewModel @Inject constructor(
 
                 // Validate the downloaded APK
                 _updateState.value = UpdateState.Installing
-                installApk(targetFile)
-
+                if (update.type == Constant.OTA_METERAPP_TYPE) {
+                    installApk(targetFile)
+                } else if (update.type == Constant.OTA_FIRMWARE_TYPE) {
+                    remoteMeterControlRepository.requestPatchFirmwareToMCU(targetFile.absolutePath)
+                }
             } catch (e: Exception) {
                 _updateState.value = UpdateState.Error(e.message ?: "Unknown error")
             }

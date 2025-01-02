@@ -192,13 +192,11 @@ object AppModule {
     @Singleton
     @Provides
     fun providesRemoteMCUControlRepository(
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManager: DashManager,
         measureBoardRepository: MeasureBoardRepository,
         logShippingRepository: LogShippingRepository
     ): RemoteMeterControlRepository {
         return RemoteMeterControlRepositoryImpl(
-            ioDispatcher = ioDispatcher,
             dashManager = dashManager,
             measureBoardRepository = measureBoardRepository,
             logShippingRepository = logShippingRepository,

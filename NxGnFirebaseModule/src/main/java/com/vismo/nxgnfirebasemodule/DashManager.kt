@@ -99,7 +99,7 @@ class DashManager @Inject constructor(
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
         }
-        checkForMostRelevantUpdate()
+        checkForMostRelevantOTAUpdate()
         isInitialized = true
         Log.d(TAG, "DashManager initialized")
     }
@@ -457,7 +457,7 @@ class DashManager @Inject constructor(
         }
     }
 
-    private fun checkForMostRelevantUpdate() {
+    private fun checkForMostRelevantOTAUpdate() {
         // apk or firmware updates
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             _mostRelevantUpdate.value = null
@@ -476,10 +476,10 @@ class DashManager @Inject constructor(
                         json =
                             json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
                         val update = gson.fromJson(json, Update::class.java)
-                        if (update.shouldPrompt() && update.type == "METERAPP") {
+                        if (update.shouldPrompt()) {
                             _mostRelevantUpdate.value = update
+                            Log.d(TAG, "checkForUpdates $json")
                         }
-                        Log.d(TAG, "checkForUpdates $json")
                     }
                     Log.d(TAG, "checkForUpdates addOnSuccessListener")
                 }

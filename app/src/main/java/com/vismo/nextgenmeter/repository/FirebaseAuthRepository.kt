@@ -152,7 +152,7 @@ class FirebaseAuthRepository @Inject constructor(
                 onSuccess(response.data.customToken)
             }
             is NetworkResult.Error -> {
-                Log.d(TAG, "postApiCall - error")
+                Log.d(TAG, "postApiCall - network error")
                 onError(IOException("Error getting custom token"))
             }
             is NetworkResult.Exception -> {

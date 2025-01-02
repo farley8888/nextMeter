@@ -58,6 +58,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -113,7 +115,10 @@ class MainViewModel @Inject constructor(
     private val _clearApplicationCache = MutableStateFlow(false)
     val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
 
-    val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest.stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
+    val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
+        .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
+        .stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
+
     private var isMCUTimeSet = false
     private var heartbeatJob: Job? = null
     private var busModelJob: Job? = null

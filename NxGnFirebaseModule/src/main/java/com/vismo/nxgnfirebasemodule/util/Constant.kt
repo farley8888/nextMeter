@@ -16,6 +16,8 @@ object Constant {
     const val UPDATE_MCU_PARAMS = "update_mcu_params"
     const val CREATED_ON = "created_on"
     const val COMPLETED_ON = "completed_on"
+    const val OTA_METERAPP_TYPE = "METERAPP"
+    const val OTA_FIRMWARE_TYPE = "FIRMWARE"
 }
 
 object LogConstant {

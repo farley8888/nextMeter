@@ -121,6 +121,19 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveFirmwareFilenameForOTA(fileName: String) {
+        context.dataStore.edit { settings ->
+            settings[KEY_FIRMWARE_FILENAME_FOR_OTA] = fileName
+        }
+    }
+
+    suspend fun getFirmwareFilenameForOTA(): Flow<String?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_FIRMWARE_FILENAME_FOR_OTA]
+            }
+    }
+
 
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
@@ -132,6 +145,7 @@ class MeterPreferenceRepository(
         private val KEY_LOCALE = stringPreferencesKey("selected_language")
         private val KEY_MCU_START_PRICE = stringPreferencesKey("mcu_start_price")
         private val KEY_ONGOING_TRIP_ID = stringPreferencesKey("ongoing_trip_id_${BuildConfig.FLAVOR}")
+        private val KEY_FIRMWARE_FILENAME_FOR_OTA = stringPreferencesKey("latest_firmware_filename_for_ota")
     }
 
 }
