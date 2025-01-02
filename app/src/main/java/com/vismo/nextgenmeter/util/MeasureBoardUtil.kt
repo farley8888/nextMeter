@@ -409,6 +409,26 @@ object MeasureBoardUtils {
         return result
     }
 
+    open fun getFirmwareTotalOffset(firmwarePath: String):Int{
+        var num: Int = 10 // Declare with explicit type for clarity
+
+
+        val file = File(firmwarePath)
+        var rdFile:RandomAccessFile?=null
+        try{
+
+            rdFile = RandomAccessFile(file, "rw")
+            if (rdFile!=null){
+                num = (rdFile.length() / 2048 + 1).toInt()  // Explicit conversion to Short
+            }
+        }catch (e:Exception){
+            Log.e("getInitPatchMeterBoardFirmwareCmd", "error found", e)
+        }finally {
+            rdFile?.close()
+        }
+        return num;
+    }
+
     fun getRequestPatchMeterBoardFirmwareCmd(firmwarePath: String, version: String):ByteArray?{
         var result:ByteArray?=null
         val file = File(firmwarePath)
@@ -473,7 +493,7 @@ object MeasureBoardUtils {
             .joinToString(" ") { it.toUpperCase() } // Capitalize and add spaces
     }
 
-    private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
+    fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
 
     fun crc(data: ByteArray): Byte {
         var temp: Byte = 0x00

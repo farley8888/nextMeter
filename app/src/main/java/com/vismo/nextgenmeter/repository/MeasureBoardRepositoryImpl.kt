@@ -25,9 +25,12 @@ import com.vismo.nextgenmeter.util.MeasureBoardUtils.ABNORMAL_PULSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.ONGOING_HEARTBEAT
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.PARAMETERS_ENQUIRY
+import com.vismo.nextgenmeter.util.MeasureBoardUtils.REQUEST_UPGRADE_FIRMWARE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.TRIP_END_SUMMARY
+import com.vismo.nextgenmeter.util.MeasureBoardUtils.UPGRADING_FIRMWARE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.getResultType
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.getTimeInSeconds
+import com.vismo.nextgenmeter.util.MeasureBoardUtils.toHexString
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.IScope
@@ -376,10 +379,51 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             TRIP_END_SUMMARY -> handleTripEndSummaryResult(result = result)
             PARAMETERS_ENQUIRY -> handleParametersEnquiryResult(result = result)
             ABNORMAL_PULSE -> handleAbnormalPulse(result = result)
+            REQUEST_UPGRADE_FIRMWARE -> handleUpgradeFirmwareRequestResult(result)
+            UPGRADING_FIRMWARE -> handleFirmwareUpdate(result)
             else -> {
                 Log.d(TAG, "Unknown result type: ${getResultType(result)}")
                 Sentry.captureMessage("Unknown result: $result")
             }
+        }
+    }
+
+    private suspend fun handleFirmwareUpdate(result: String) {
+        val version = result.substring(16, 16 + 8)
+        val offset = result.substring(24, 24 + 4)
+        val fileName = meterPreferenceRepository.getFirmwareFilenameForOTA().firstOrNull()
+        Log.d(TAG, "handleFirmwareUpdate - result $result - offset - ${offset.toIntOrNull(16)}")
+        if (offset.toIntOrNull(16) == null || fileName == null) return
+        val offsetInt = offset.toInt(16)
+        val firmwareBytes =
+            MeasureBoardUtils.getPatchMeterBoardFirmwareCmd(fileName, version, offsetInt)
+        mBusModel?.sendCmd(firmwareBytes)
+        val total = MeasureBoardUtils.getFirmwareTotalOffset(fileName)
+        val progress =
+            Math.round(((total.toDouble() - offsetInt.toDouble()) / total.toDouble()) * 100)
+                .toInt()
+
+        if (progress == 100) {
+            delay(3000)
+            DeviceDataStore.setFirmwareUpdateComplete(true)
+        }
+    }
+
+    private fun handleUpgradeFirmwareRequestResult(result: String) {
+        val requestResult = result.substring(18, 18 + 2)
+        Log.d(TAG, "REQUEST_UPGRADE_FIRMWARE ${result} == $requestResult")
+        if ("FF" == requestResult) {
+            Log.i(
+                TAG,
+                "REQUEST_UPGRADE_FIRMWARE request firmware upgrade fail with result ${requestResult}"
+            )
+        }
+        if ("90" == requestResult) {
+            val offset = result.substring(26, 26 + 2)
+            Log.i(
+                TAG,
+                "REQUEST_UPGRADE_FIRMWARE request firmware upgrade success with result ${requestResult} $offset"
+            )
         }
     }
 
@@ -531,6 +575,19 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         addTask {
             mBusModel?.write(MeasureBoardUtils.getUpdateTimeCmd(formattedDateStr = formattedDateStr))
             delay(200)
+        }
+    }
+
+    override suspend fun requestPatchFirmware(fileName: String) {
+        meterPreferenceRepository.saveFirmwareFilenameForOTA(fileName)
+        val version = (fileName.split("/").lastOrNull() ?: "").substringBefore(".")
+        addTask {
+            mBusModel?.write(
+                MeasureBoardUtils.getRequestPatchMeterBoardFirmwareCmd(
+                    fileName,
+                    version
+                )!!.toHexString().replace(" ", "")
+            )
         }
     }
 

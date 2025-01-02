@@ -44,5 +44,7 @@ interface MeasureBoardRepository {
 
     fun updateMeasureBoardTime(formattedDateStr: String)
 
+    suspend fun requestPatchFirmware(fileName: String)
+
     fun close()
 }
