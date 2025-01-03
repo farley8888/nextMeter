@@ -45,6 +45,8 @@ import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
+import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
+import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.IScope
 import io.sentry.Sentry
@@ -56,6 +58,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.launchIn
@@ -117,11 +120,36 @@ class MainViewModel @Inject constructor(
 
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
+        .filter { if(it?.type == OTA_METERAPP_TYPE) {
+            isBuildVersionHigherThanCurrentVersion(it.version)
+        }else if (it?.type == OTA_FIRMWARE_TYPE) {
+            it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion // valid only if the firmware versions are not equal
+        } else false }
         .stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
 
     private var isMCUTimeSet = false
     private var heartbeatJob: Job? = null
     private var busModelJob: Job? = null
+
+    private fun isBuildVersionHigherThanCurrentVersion(version: String): Boolean {
+        val currentVersionCode = "${BuildConfig.VERSION_NAME}.${BuildConfig.VERSION_CODE}" // Assuming current version is in the form 6.5.3.1034
+
+        // Convert both version codes to integer arrays for comparison
+        val currentVersionParts = currentVersionCode.split(".").map { it.toInt() }
+        val newVersionParts = version.split(".").map { it.toInt() }
+
+        // Compare version parts
+        for (i in 0 until minOf(currentVersionParts.size, newVersionParts.size)) {
+            if (newVersionParts[i] > currentVersionParts[i]) {
+                return true // New version is higher
+            } else if (newVersionParts[i] < currentVersionParts[i]) {
+                return false // Current version is higher
+            }
+        }
+
+        // If the parts are equal, compare by length (i.e., higher version may have more sub-version numbers)
+        return newVersionParts.size > currentVersionParts.size
+    }
 
     private fun observeFlows() {
         viewModelScope.launch(ioDispatcher) {
