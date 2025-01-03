@@ -1,8 +1,10 @@
 package com.vismo.nextgenmeter.ui
 
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -52,10 +54,10 @@ fun NavigationGraph(
         startDestination = NavigationDestination.Splash.route,
         modifier = Modifier.padding(innerPadding),
         enterTransition = {
-            EnterTransition.None
+            fadeIn(tween((50)))
         },
         exitTransition = {
-            ExitTransition.None
+            fadeOut(tween((50)))
         }
     ) {
         composable(route = NavigationDestination.Splash.route, arguments = listOf(navArgument(MainActivity.SPLASH_ARG) {
