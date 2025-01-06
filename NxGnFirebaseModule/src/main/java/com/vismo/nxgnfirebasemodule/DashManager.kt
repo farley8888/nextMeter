@@ -164,6 +164,7 @@ class DashManager @Inject constructor(
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val env = when(env) {
                 "dev" -> "DEV"
+                "dev2" -> "DEV2"
                 "qa" -> "QA"
                 "prd" -> "PRD"
                 else -> "INVALID"
