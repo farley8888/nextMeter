@@ -147,7 +147,15 @@ fun NavigationGraph(
             AdjustBrightnessOrVolumeScreen(viewModel = hiltViewModel<AdjustBrightnessOrVolumeViewModel>())
         }
         composable(NavigationDestination.UpdateApk.route) {
-            UpdateScreen(viewModel = hiltViewModel<UpdateViewModel>())
+            UpdateScreen(viewModel = hiltViewModel<UpdateViewModel>(), navigateToMeterOps = {
+                navController.navigate(NavigationDestination.MeterOps.route) {
+                    navController.graph.id.let { it1 -> popUpTo(it1) {
+                        inclusive = true
+                    } } // Clear the backstack
+                    restoreState = true
+                    launchSingleTop = true
+                }
+            })
         }
     }
 }

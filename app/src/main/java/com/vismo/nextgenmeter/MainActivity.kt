@@ -237,7 +237,13 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                                         confirmButtonText = "立即更新",
                                         onConfirm = {
                                             // navigate to update
-                                            navController?.navigate(NavigationDestination.UpdateApk.route)
+                                            navController?.navigate(NavigationDestination.UpdateApk.route) {
+                                                navController?.graph?.id?.let { it1 -> popUpTo(it1) {
+                                                    inclusive = true
+                                                } } // Clear the backstack
+                                                restoreState = true
+                                                launchSingleTop = true
+                                            }
                                         },
                                         confirmButtonColor = pastelGreen600,
                                         cancelButtonText = if(aValidUpdate?.canBeSnoozed() == true) "稍后更新" else null,

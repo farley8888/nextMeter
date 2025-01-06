@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -89,6 +88,11 @@ class UpdateViewModel @Inject constructor(
                 _updateState.value = UpdateState.NoUpdateFound
             }
         }
+    }
+
+    fun retryDownload() {
+        _updateState.value = UpdateState.Idle
+        checkForUpdates()
     }
 
     private fun downloadFile(uri: Uri, update: Update) {
@@ -156,7 +160,7 @@ class UpdateViewModel @Inject constructor(
                     remoteMeterControlRepository.requestPatchFirmwareToMCU(targetFile.absolutePath)
                 }
             } catch (e: Exception) {
-                _updateState.value = UpdateState.Error(e.message ?: "Unknown error")
+                _updateState.value = UpdateState.Error(e.message ?: "Unknown error", allowRetry = true)
             }
         }
     }
@@ -236,5 +240,5 @@ sealed class UpdateState {
     data class Downloading(val progress: Int) : UpdateState()
     data object Installing : UpdateState()
     data object Success : UpdateState()
-    data class Error(val message: String) : UpdateState()
+    data class Error(val message: String, val allowRetry: Boolean = false) : UpdateState()
 }

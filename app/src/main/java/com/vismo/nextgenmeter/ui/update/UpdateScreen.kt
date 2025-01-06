@@ -9,20 +9,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.vismo.nextgenmeter.BuildConfig
+import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
+import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.theme.Typography
 import com.vismo.nextgenmeter.util.GlobalUtils
 import com.vismo.nxgnfirebasemodule.util.Constant
 
 @Composable
 fun UpdateScreen(
-    viewModel: UpdateViewModel
+    viewModel: UpdateViewModel,
+    navigateToMeterOps: () -> Unit
 ) {
+    val showRetryDialog = remember { mutableStateOf(false) }
     val updateState by viewModel.updateState.collectAsState()
     val updateDetails by viewModel.updateDetails.collectAsState()
     Row(
@@ -71,8 +77,9 @@ fun UpdateScreen(
                     Text(text = "更新成功。正在重新启动应用程序。请稍候...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
                 }
                 is UpdateState.Error -> {
-                    val error = (updateState as UpdateState.Error).message
-                    Text("误差: $error", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
+                    val error = (updateState as UpdateState.Error)
+                    Text("误差: ${error.message}", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
+                    showRetryDialog.value = error.allowRetry
                 }
 
                 is UpdateState.NoUpdateFound -> {
@@ -82,4 +89,26 @@ fun UpdateScreen(
             }
         }
     }
+
+    GlobalDialog(
+        onDismiss = {},
+        showDialog = showRetryDialog,
+        isBlinking = false,
+        content = {
+            GenericDialogContent(
+                title = "更新失敗",
+                message = "軟件下載失敗，請重新嘗試。",
+                confirmButtonText = "稍後再試",
+                cancelButtonText = "重試",
+                onConfirm = {
+                    showRetryDialog.value = false
+                    navigateToMeterOps()
+                },
+                onCancel = {
+                    viewModel.retryDownload()
+                    showRetryDialog.value = false
+                },
+            )
+        },
+    )
 }
