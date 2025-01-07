@@ -7,6 +7,7 @@ import androidx.datastore.core.Serializer
 import androidx.datastore.dataStore
 import com.google.gson.Gson
 import com.vismo.nextgenmeter.model.Driver
+import com.vismo.nextgenmeter.util.GlobalUtils.withTransactionSync
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -35,7 +36,9 @@ class DriverPreferenceRepository @Inject constructor(
 
     suspend fun saveDriver(driver: Driver) {
         try {
-            context.driverDataStore.updateData { driver }
+            withTransactionSync {
+                context.driverDataStore.updateData { driver }
+            }
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -43,7 +46,9 @@ class DriverPreferenceRepository @Inject constructor(
 
     suspend fun resetDriver() {
         try {
-            context.driverDataStore.updateData { defaultDriver }
+            withTransactionSync {
+                context.driverDataStore.updateData { defaultDriver }
+            }
         } catch (e: IOException) {
             e.printStackTrace()
         }

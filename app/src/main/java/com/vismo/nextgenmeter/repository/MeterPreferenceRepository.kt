@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.vismo.nextgenmeter.BuildConfig
+import com.vismo.nextgenmeter.util.GlobalUtils.withTransactionSync
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,8 +19,10 @@ class MeterPreferenceRepository(
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = SETTING_PREFS_NAME)
 
     suspend fun saveTotpSecret(secret: ByteArray) {
-        context.dataStore.edit { settings ->
-            settings[KEY_TOTP_SECRET] = Base64.encodeToString(secret, Base64.DEFAULT)
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_TOTP_SECRET] = Base64.encodeToString(secret, Base64.DEFAULT)
+            }
         }
     }
 
@@ -31,8 +34,10 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveShowLoginToggle(showLoginToggle: Boolean) {
-        context.dataStore.edit { settings ->
-            settings[KEY_SHOW_LOGIN_TOGGLE] = showLoginToggle.toString()
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_SHOW_LOGIN_TOGGLE] = showLoginToggle.toString()
+            }
         }
     }
 
@@ -57,8 +62,10 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveLicensePlate(licensePlate: String) {
-        context.dataStore.edit { settings ->
-            settings[KEY_LICENSE_PLATE] = licensePlate
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_LICENSE_PLATE] = licensePlate
+            }
         }
     }
 
@@ -70,8 +77,10 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveDeviceId(deviceId: String) {
-        context.dataStore.edit { settings ->
-            settings[KEY_DEVICE_ID] = deviceId
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_DEVICE_ID] = deviceId
+            }
         }
     }
 
@@ -83,8 +92,10 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveSelectedLocale(ttsLanguage: String) {
-        context.dataStore.edit { settings ->
-            settings[KEY_LOCALE] = ttsLanguage
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_LOCALE] = ttsLanguage
+            }
         }
     }
 
@@ -96,8 +107,10 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveMcuStartPrice(mcuStartPrice: String) {
-        context.dataStore.edit { settings ->
-            settings[KEY_MCU_START_PRICE] = mcuStartPrice
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_MCU_START_PRICE] = mcuStartPrice
+            }
         }
     }
 
@@ -109,8 +122,10 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveOngoingTripId(ongoingTripId: String) {
-        context.dataStore.edit { settings ->
-            settings[KEY_ONGOING_TRIP_ID] = ongoingTripId
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_ONGOING_TRIP_ID] = ongoingTripId
+            }
         }
     }
 
@@ -122,8 +137,10 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveFirmwareFilenameForOTA(fileName: String) {
-        context.dataStore.edit { settings ->
-            settings[KEY_FIRMWARE_FILENAME_FOR_OTA] = fileName
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_FIRMWARE_FILENAME_FOR_OTA] = fileName
+            }
         }
     }
 
