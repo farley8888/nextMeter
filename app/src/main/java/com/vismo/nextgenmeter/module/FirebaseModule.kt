@@ -35,10 +35,7 @@ object FirebaseModule {
     @Singleton
     @Provides
     fun providesDashManagerConfig(
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-    ) = DashManagerConfig(
-        ioDispatcher = ioDispatcher
-    )
+    ) = DashManagerConfig()
 
     @Singleton
     @Provides

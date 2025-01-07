@@ -44,12 +44,18 @@ class DashManagerConfig @Inject constructor(
         }
     }
 
+    fun resetLocation() {
+        CoroutineScope(ioDispatcher).launch {
+            _meterLocation.value = defaultMeterLocation
+        }
+    }
+
     fun setIsDeviceAsleep(isAsleep: Boolean) {
         this._isDeviceAsleep.value = isAsleep
     }
 
     companion object {
-        private val defaultMeterLocation = MeterLocation(GeoPoint(0.0, 0.0), NOT_SET)
+        val defaultMeterLocation = MeterLocation(GeoPoint(0.0, 0.0), NOT_SET)
         var meterSoftwareVersion = ""
         var simIccId = ""
     }

@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.ilin.util.AmapLocationUtils
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
@@ -42,7 +43,9 @@ import com.vismo.nextgenmeter.util.Constant
 import com.vismo.nextgenmeter.util.GlobalUtils.maskLast
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
+import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
+import com.vismo.nxgnfirebasemodule.model.NOT_SET
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
@@ -65,6 +68,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -115,6 +119,8 @@ class MainViewModel @Inject constructor(
 
     private val _clearApplicationCache = MutableStateFlow(false)
     val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
+
+    private var gpsLocationResetJob: Job? = null
 
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
@@ -180,6 +186,22 @@ class MainViewModel @Inject constructor(
             launch { observeReInitMCURepository() }
             launch { observeMCUHeartbeatSignal() }
             launch { observeBusModelSignal() }
+            launch { observeMeterLocation() }
+        }
+    }
+
+    private suspend fun observeMeterLocation() {
+        dashManagerConfig.meterLocation.collectLatest {
+            updateLocationIconVisibility(isVisible = it.gpsType != NOT_SET)
+            when (it.gpsType) {
+                is GPS -> {
+                    AmapLocationUtils.getInstance().stopLocation()
+                }
+                NOT_SET -> {
+                    AmapLocationUtils.getInstance().startLocation()
+                }
+                else -> {}
+            }
         }
     }
 
@@ -526,8 +548,18 @@ class MainViewModel @Inject constructor(
     }
 
     fun setLocation(meterLocation: MeterLocation) {
-        dashManagerConfig.setLocation(meterLocation)
-        updateLocationIconVisibility()
+        gpsLocationResetJob?.cancel() // Cancel any existing job
+        gpsLocationResetJob = viewModelScope.launch(ioDispatcher) {
+            dashManagerConfig.setLocation(meterLocation)
+            while (isActive) {
+                delay(10_000L)
+                dashManagerConfig.meterLocation.firstOrNull()?.let { currentLocation ->
+                    if (currentLocation.gpsType is GPS) {
+                        dashManagerConfig.resetLocation()
+                    }
+                }
+            }
+        }
     }
 
     fun startCommunicate() {
@@ -711,6 +743,7 @@ class MainViewModel @Inject constructor(
         accEnquiryJob?.cancel()
         busModelJob?.cancel()
         heartbeatJob?.cancel()
+        gpsLocationResetJob?.cancel()
     }
 
     companion object {

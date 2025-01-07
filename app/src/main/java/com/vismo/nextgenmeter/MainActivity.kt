@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.usb.UsbManager
+import android.location.Location
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Process
@@ -42,6 +43,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
+import com.ilin.service.GPSService
 import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
@@ -132,6 +134,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         enableLogcatPrint()
         initObservers()
         startAMapLocation()
+        startGPSService()
         listenToSignalStrength()
         setWifiStatus()
         registerStorageReceiver()
@@ -426,6 +429,27 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         mainViewModel.setWifiIconVisibility(wifiManager.isWifiEnabled)
     }
 
+    private fun startGPSService() {
+        setGpsLS()
+        val it = Intent(applicationContext, GPSService::class.java)
+        it.setAction("act.init.gps")
+        startService(it)
+    }
+
+    private fun setGpsLS() {
+        GPSService.setLs { location: Location ->
+            mainViewModel.setLocation(
+                MeterLocation(
+                    geoPoint = GeoPoint(location.latitude, location.longitude),
+                    gpsType = GPS(
+                        speed = location.speed.toDouble(),
+                        bearing = location.bearing.toDouble()
+                    )
+                )
+            )
+        }
+    }
+
 
     private fun startAMapLocation() {
         AmapLocationUtils.getInstance().init(applicationContext)
@@ -452,35 +476,16 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                 // Retrieve the locType
                 val locType = jsonObject.getInt("locType")
                 Log.d(TAG, "onLocationChanged: locType = $locType")
-
-                when (locType) {
-                    1 -> {
-                        location?.let {
-                            mainViewModel.setLocation(
-                                MeterLocation(
-                                    geoPoint = it,
-                                    gpsType = GPS(
-                                        speed = speed,
-                                        bearing = bearing
-                                    )
-                                )
+                location?.let {
+                    mainViewModel.setLocation(
+                        MeterLocation(
+                            geoPoint = it,
+                            gpsType = AGPS(
+                                speed = speed,
+                                bearing = bearing
                             )
-                        }
-                    }
-
-                    else -> {
-                        location?.let {
-                            mainViewModel.setLocation(
-                                MeterLocation(
-                                    geoPoint = it,
-                                    gpsType = AGPS(
-                                        speed = speed,
-                                        bearing = bearing
-                                    )
-                                )
-                            )
-                        }
-                    }
+                        )
+                    )
                 }
             }
         AmapLocationUtils.getInstance().startLocation()
