@@ -36,6 +36,7 @@ import com.vismo.nxgnfirebasemodule.util.Constant.LOGGING_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METERS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_DEVICES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.METER_SDK_DOCUMENT
+import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
@@ -495,14 +496,22 @@ class DashManager @Inject constructor(
                 .get(Source.SERVER)
                 .addOnSuccessListener { snapshot ->
                     if (snapshot != null && !snapshot.isEmpty) {
-                        val filteredDocument = snapshot.documents.firstNotNullOfOrNull { document ->
+                        val firmwareUpdate = snapshot.documents.firstNotNullOfOrNull { document ->
                             var json = gson.toJson(document.data)
                             // Manually add the document ID to the JSON string
-                            json =
-                                json.substring(0, json.length - 1) + ",\"id\":\"${document.id}\"}"
+                            json = json.substring(0, json.length - 1) + ",\"id\":\"${document.id}\"}"
+                            val update = gson.fromJson(json, Update::class.java)
+                            if (update.type == OTA_FIRMWARE_TYPE && update.shouldPrompt()) update else null
+                        }
+
+                        val otherUpdate = snapshot.documents.firstNotNullOfOrNull { document ->
+                            var json = gson.toJson(document.data)
+                            // Manually add the document ID to the JSON string
+                            json = json.substring(0, json.length - 1) + ",\"id\":\"${document.id}\"}"
                             val update = gson.fromJson(json, Update::class.java)
                             if (update.shouldPrompt()) update else null
-                        } // Get the first match
+                        }
+                        val filteredDocument = firmwareUpdate ?: otherUpdate // firmware update should be first (DASH 2292)
 
                         if (filteredDocument != null) {
                             _mostRelevantUpdate.value = filteredDocument
