@@ -28,6 +28,7 @@ import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import com.vismo.nxgnfirebasemodule.model.isCompleted
 import com.vismo.nxgnfirebasemodule.model.shouldPrompt
+import com.vismo.nxgnfirebasemodule.util.Constant.AUDIT_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CONFIGURATIONS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.CREATED_ON
 import com.vismo.nxgnfirebasemodule.util.Constant.HEARTBEAT_COLLECTION
@@ -434,11 +435,34 @@ class DashManager @Inject constructor(
                 .set(map, SetOptions.merge())
                 .addOnSuccessListener {
                     Log.d(TAG, "updateTripOnFirestore successfully")
+                    // Create an audit trail entry for tracking purposes
+                    createAuditTrailEntry(tripId = updatedTrip.tripId, updatedTripMap = map)
                 }
                 .addOnFailureListener {
                     Log.e(TAG, "updateTripOnFirestore error", it)
                 }
         }
+    }
+
+    private fun createAuditTrailEntry(tripId: String, updatedTripMap: Map<String, Any?>) {
+        val auditTrailCollection = getMeterDocument()
+            .collection(TRIPS_COLLECTION)
+            .document(tripId)
+            .collection(AUDIT_COLLECTION)
+
+        val auditTrailEntry = updatedTripMap.toMutableMap().apply {
+            put("audit_time", Timestamp.now())
+            put("updated_by", "Meter")
+        }.toFirestoreFormat()
+
+        // Add an audit trail document
+        auditTrailCollection.add(auditTrailEntry)
+            .addOnSuccessListener {
+                Log.d(TAG, "Audit trail entry created successfully")
+            }
+            .addOnFailureListener {
+                Log.e(TAG, "Error creating audit trail entry", it)
+            }
     }
 
     fun writeToLoggingCollection(log: Map<String, Any?>) {
