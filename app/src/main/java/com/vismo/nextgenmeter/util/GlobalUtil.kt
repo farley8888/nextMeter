@@ -6,11 +6,14 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import android.util.Base64
+import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.View
 import com.google.firebase.Timestamp
 import com.vismo.nextgenmeter.util.Constant.SLAT_KEY
 import com.vismo.nextgenmeter.util.Constant.VECTOR_KEY
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -190,4 +193,29 @@ object GlobalUtils {
             }
     }
 
+    suspend fun forceOsWideSync(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val process = Runtime.getRuntime().exec("sync")
+            val exitCode = process.waitFor()
+            if (exitCode == 0) {
+                Log.d(TAG, "OS-wide sync executed successfully.")
+                true
+            } else {
+                val errorMessage = process.errorStream.bufferedReader().readText()
+                Log.e(TAG, "Sync command failed with exit code $exitCode. Error: $errorMessage")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception occurred while executing sync: ${e.message}")
+            false
+        }
+    }
+
+    suspend fun <T> withTransactionSync(block: suspend () -> T): T {
+        val result = block()
+        forceOsWideSync()
+        return result
+    }
+
+    private const val TAG = "GlobalUtils"
 }
