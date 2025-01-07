@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.module.IoDispatcher
+import com.vismo.nextgenmeter.util.GlobalUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -83,7 +84,7 @@ class TripFileManager @Inject constructor(
                 // Force the OS to sync changes to the disk
                 fos.fd.sync()
             }
-            if (!forceOsWideSync()) {
+            if (!GlobalUtils.forceOsWideSync()) {
                 Log.e(TAG, "OS-wide sync failed")
             }
 
@@ -98,27 +99,6 @@ class TripFileManager @Inject constructor(
 
         } catch (e: IOException) {
             Log.e(TAG, "Error saving trips", e)
-            false
-        }
-    }
-
-    /**
-     * Some how our meter is not able to sync the file to disk, so we are forcing the OS to sync the file to disk.
-     */
-    private suspend fun forceOsWideSync(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val process = Runtime.getRuntime().exec("sync")
-            val exitCode = process.waitFor()
-            if (exitCode == 0) {
-                Log.d(TAG, "Sync command executed successfully.")
-                true
-            } else {
-                val errorMessage = process.errorOutput()
-                Log.e(TAG, "Sync command failed with exit code $exitCode. Error: $errorMessage")
-                false
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Exception occurred while executing sync: ${e.message}")
             false
         }
     }

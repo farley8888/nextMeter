@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-@Deprecated("Use LocalTripManager instead - room doesn't seem to work well on abrupt restart conditions")
+@Deprecated("Use TripFileManager instead - room doesn't seem to work well on abrupt restart conditions")
 class LocalTripsRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     @DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
