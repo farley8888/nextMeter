@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.meter.MeterOpsViewModel.Companion.TOTAL_LOCK_BEEP_COUNTER
 import com.vismo.nextgenmeter.ui.shared.BlinkingVisibility
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
@@ -82,6 +83,7 @@ fun MeterOpsScreen(
     val lockTitle = if (meterLockState is MeterLockAction.Lock && meterLockState.isAbnormalPulse) "異常脈衝" else if (meterLockState is MeterLockAction.Lock) "被鎖定" else ""
     val lockDialogShowState = remember { mutableStateOf(false) }
     val showSnackBar = viewModel.showSnackBarMessage.collectAsState().value
+    val isTripInProgress by TripDataStore.isTripInProgress.collectAsState(initial = false)
 
     if (showSnackBar != null) {
         snackbarDelegate.showSnackbar(showSnackBar.second,showSnackBar.first)
@@ -105,7 +107,7 @@ fun MeterOpsScreen(
                 true
             }
             .clickable {
-                if (uiState.status == ForHire) {
+                if (uiState.status == ForHire && !isTripInProgress) {
                     localFocusManager.clearFocus(force = true) // Clear focus before navigating so that no key events are triggered
                     navigateToDashBoard()
                     performVirtualTapFeedback(view)

@@ -16,6 +16,9 @@ object TripDataStore {
     private val _mostRecentTripData = MutableStateFlow<TripData?>(null)
     val mostRecentTripData: StateFlow<TripData?> = _mostRecentTripData
 
+    private val _isTripInProgress = MutableStateFlow(false)
+    val isTripInProgress: StateFlow<Boolean> = _isTripInProgress
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun clearTripData() {
@@ -45,6 +48,12 @@ object TripDataStore {
     suspend fun clearMostRecentTripData() {
         mutex.withLock {
             this._mostRecentTripData.value = null
+        }
+    }
+
+    suspend fun setIsTripInProgress(isTripInProgress: Boolean) {
+        mutex.withLock {
+            this._isTripInProgress.value = isTripInProgress
         }
     }
 }

@@ -453,6 +453,7 @@ class MeterOpsViewModel @Inject constructor(
                 return@launch
             }
             if (_ongoingTrip.value == null) {
+                TripDataStore.setIsTripInProgress(true)
                 tripRepository.startTrip()
                 ttsUtil.setWasTripJustStarted(true)
                 return@launch
@@ -468,6 +469,7 @@ class MeterOpsViewModel @Inject constructor(
                 return@launch
             }
             if (_ongoingTrip.value == null) {
+                TripDataStore.setIsTripInProgress(true)
                 tripRepository.startAndPauseTrip()
             } else {
                 tripRepository.pauseTrip()
