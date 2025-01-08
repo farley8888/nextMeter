@@ -137,7 +137,7 @@ class MeterOpsViewModel @Inject constructor(
                     meterLockState.collectLatest {
                         when (it) {
                             is MeterLockAction.Lock -> {
-                                tripRepository.lockMeter(10, 80, TOTAL_LOCK_BEEP_COUNTER)
+                                tripRepository.lockMeter(10, 80, TOTAL_LOCK_BEEP_COUNTER, isAbnormalPulse = it.isAbnormalPulse)
                             }
                             MeterLockAction.Unlock -> {
                                 tripRepository.unlockMeter()

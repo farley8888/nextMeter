@@ -42,6 +42,7 @@ import com.vismo.nxgnfirebasemodule.util.Constant.UPDATES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
 import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
+import com.vismo.nxgnfirebasemodule.util.LogConstant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -356,11 +357,21 @@ class DashManager @Inject constructor(
         }
     }
 
-    fun writeLockMeter() {
+    fun writeLockMeter(isAbormalPulse: Boolean) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val lockedAt = Timestamp.now()
             getMeterDocument()
                 .set(mapOf(LOCKED_AT to lockedAt), SetOptions.merge())
+
+            // write to logging collection
+            val logMap = mapOf(
+                LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                LogConstant.ACTION to LogConstant.ACTION_METER_LOCKED,
+                LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                LogConstant.DEVICE_TIME to Timestamp.now(),
+                LogConstant.LOCK_TYPE to if (isAbormalPulse) LogConstant.LOCK_TYPE_ABNORMAL_PULSE else LogConstant.LOCK_TYPE_ABNORMAL_OVERSPEED
+            )
+            writeToLoggingCollection(logMap)
 
         }
     }

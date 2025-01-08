@@ -24,7 +24,7 @@ interface TripRepository {
 
     fun initObservers(scope: CoroutineScope)
 
-    fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int)
+    fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int, isAbnormalPulse: Boolean)
 
     fun unlockMeter()
 

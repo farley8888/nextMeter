@@ -222,11 +222,11 @@ class TripRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int) {
+    override fun lockMeter(beepDuration: Int, beepInterval: Int, beepRepeatCount: Int, isAbnormalPulse: Boolean) {
         externalScope?.launch(ioDispatcher) {
             measureBoardRepository.emitBeepSound(beepDuration, beepInterval, beepRepeatCount)
             delay(1000)
-            dashManager.writeLockMeter()
+            dashManager.writeLockMeter(isAbormalPulse = isAbnormalPulse)
         }
     }
 
