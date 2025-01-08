@@ -131,7 +131,15 @@ fun HealthCheckDialogContent(title: String, message: String, qrLink: String, dis
             style = Typography.bodyLarge,
             textAlign = TextAlign.Center
         )
-        DashQrCodeView(data = qrLink)
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .background(nobel100)
+                .zIndex(1f),
+            contentAlignment = Alignment.Center
+        ) {
+            DashQrCodeView(data = qrLink)
+        }
         Button(
             onClick = dismiss,
             colors = ButtonDefaults.buttonColors(

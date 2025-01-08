@@ -82,7 +82,7 @@ class TripRepositoryImpl @Inject constructor(
                                 dashManager.endTripDocumentListener()
                             }
                         } else if (trip.tripId.isBlank() && !isLostTripBeingSearched) {
-                            // Handle trip id not found in saved preferences
+                            // Handle trip id not found in saved preferences - should not happen - but just in case it does
                             Log.e(TAG, "Trip ID not found in saved preferences")
                             isLostTripBeingSearched = true
                             val timeoutJob = launch {
