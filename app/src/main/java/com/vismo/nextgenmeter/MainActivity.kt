@@ -44,6 +44,7 @@ import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.repository.UsbEventReceiver
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -166,7 +167,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                     }
 
                     val aValidUpdate = mainViewModel.aValidUpdate.collectAsState().value
-                    val isTripInProgress = mainViewModel.isTripInProgress.collectAsState().value
+                    val isTripInProgress by TripDataStore.isTripInProgress.collectAsState(initial = false)
                     val showUpdateDialog = remember { mutableStateOf(false) }
                     val isDialogShown = remember {
                         mutableStateOf(false)
@@ -196,7 +197,6 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                                 onBackButtonClick = {
                                     lifecycleScope.launch {
                                         repeatOnLifecycle(Lifecycle.State.STARTED) {
-                                            val isTripInProgress = mainViewModel.isTripInProgress.first()
                                             if (!isTripInProgress && navController?.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
                                                 navController!!.popBackStack()
                                             }
@@ -206,7 +206,6 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                                 onLogoLongPress = {
                                     lifecycleScope.launch {
                                         repeatOnLifecycle(Lifecycle.State.STARTED) {
-                                            val isTripInProgress = mainViewModel.isTripInProgress.first()
                                             if (mainViewModel.showLoginToggle.first() == true && isCurrentScreenMeterOps() && !isTripInProgress && !isCurrentScreenUpdateApk()) {
                                                 navigateToSplashScreen(alwaysNavigateToPair = true)
                                             }
