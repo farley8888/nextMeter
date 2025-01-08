@@ -57,13 +57,6 @@ enum class TripStatus {
     ENDED
 }
 
-data class DiscountRule(
-    @SerializedName("discount_fix") var discountFix: Double = 0.0,
-    @SerializedName("discount_rate") var discountRate: Double = 0.0,
-    @SerializedName("from") var from: Double = 0.0,
-    @SerializedName("to") var to: Double = 0.0,
-) : Serializable
-
 data class PairedUserInformation(
     @SerializedName("id") val id: String? = null,
     @SerializedName("phone") val phone: String? = null,

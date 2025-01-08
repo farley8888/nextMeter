@@ -26,6 +26,7 @@ object LogConstant {
     const val CABLE_METER = "CABLE METER"
     const val ACTION = "action"
     const val ACTION_PULSE_COUNTER = "pulse_counter"
+    const val ACTION_METER_LOCKED = "meter_locked"
     const val TRIP_ID = "trip_id"
     const val ABNORMAL_PULSE_COUNTER = "abnormal_pulse_counter"
     const val OVER_SPEED_COUNTER = "over_speed_counter"
@@ -33,4 +34,8 @@ object LogConstant {
     const val OVER_SPEED_LOCKUP_DURATION = "over_speed_lockup_duration"
     const val SERVER_TIME = "server_time"
     const val DEVICE_TIME = "device_time"
+    const val LOCK_TYPE = "lock_type"
+    const val LOCK_TYPE_ABNORMAL_PULSE = "abnormal pulse"
+    const val LOCK_TYPE_ABNORMAL_OVERSPEED = "over speed"
+
 }
