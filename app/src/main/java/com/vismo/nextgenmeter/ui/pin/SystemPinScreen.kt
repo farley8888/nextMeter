@@ -1,7 +1,6 @@
 package com.vismo.nextgenmeter.ui.pin
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +19,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,13 +28,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.lightspark.composeqr.QrCodeView
 import com.vismo.nextgenmeter.ui.shared.FlippableCard
 import com.vismo.nextgenmeter.ui.shared.GlobalPinWidget
+import com.vismo.nextgenmeter.ui.shared.GlobalToast
 import com.vismo.nextgenmeter.ui.theme.mineShaft900
 import com.vismo.nextgenmeter.ui.theme.nobel500
 import com.vismo.nextgenmeter.ui.theme.nobel900
@@ -48,14 +48,23 @@ fun SystemPinScreen(
     viewModel: SystemPinViewModel,
     navigate: () -> Unit
 ) {
+    val toastMessage = viewModel.pinToastMessage.collectAsState(initial = "").value
+    val pinState = remember { mutableStateOf("") }
+    if (toastMessage.isNotBlank()) {
+        GlobalToast.show(toastMessage)
+        viewModel.resetToastMessage()
+        pinState.value = "" // Clear the pin after processing
+    }
     val totpStatus = viewModel.totpStatus.collectAsState()
     val navigationToNextScreen by viewModel.navigationToNextScreen.collectAsState()
+
     if (navigationToNextScreen) {
         navigate.invoke()
         viewModel.resetNavigation()
     }
 
     SystemPinScreenForm(
+        pinState = pinState,
         onOtpInputComplete = { otp ->
             viewModel.verify(otp)
         },
@@ -69,6 +78,7 @@ fun SystemPinScreen(
 
 @Composable
 fun SystemPinScreenForm(
+    pinState: MutableState<String> = mutableStateOf(""),
     dummyQRCodeString: String = "https://d-ash.com",
     onOtpInputComplete: ((otp: String) -> Unit)? = null,
     onRefresh: (() -> Unit)? = null,
@@ -108,17 +118,15 @@ fun SystemPinScreenForm(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            GlobalPinWidget {
-                val otp = it
-                if (otp.length == 6) {
-                    if (otp == "000005") {
-                        isFlipped = !isFlipped
-                    } else {
-                        onOtpInputComplete?.invoke(otp)
-                    }
-                    performVirtualTapFeedback(localView)
+            GlobalPinWidget (pinState = pinState, onOtpEntered = { otp ->
+                // it will always be 6 digits because of filtering done in GlobalPinWidget
+                if (otp == "000005") {
+                    isFlipped = !isFlipped
+                } else {
+                    onOtpInputComplete?.invoke(otp)
                 }
-            }
+                performVirtualTapFeedback(localView)
+            })
         }
     }
 }

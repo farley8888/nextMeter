@@ -6,10 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
@@ -17,8 +14,10 @@ import androidx.compose.ui.unit.dp
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 
 @Composable
-fun GlobalPinWidget(onOtpEntered: (String) -> Unit) {
-    var pin by remember { mutableStateOf("") }
+fun GlobalPinWidget(
+    onOtpEntered: (String) -> Unit,
+    pinState: MutableState<String>,
+) {
 
     Column(
         modifier = Modifier
@@ -30,7 +29,7 @@ fun GlobalPinWidget(onOtpEntered: (String) -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
 
         GlobalPinTextField(
-            pin = pin,
+            pin = pinState.value,
         )
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -38,17 +37,17 @@ fun GlobalPinWidget(onOtpEntered: (String) -> Unit) {
         val view = LocalView.current
         GlobalNumberKeypad(
             onNumberClick = { number ->
-                if (pin.length < 6) {
-                    pin += number.toString()
-                    if (pin.length == 6) {
-                        onOtpEntered(pin)
+                if (pinState.value.length < 6) {
+                    pinState.value += number.toString()
+                    if (pinState.value.length == 6) {
+                        onOtpEntered(pinState.value)
                     }
                 }
                 performVirtualTapFeedback(view)
             },
             onDeleteClick = {
-                if (pin.isNotEmpty()) {
-                    pin = pin.dropLast(1)
+                if (pinState.value.isNotEmpty()) {
+                    pinState.value = pinState.value.dropLast(1)
                 }
                 performVirtualTapFeedback(view)
             }
