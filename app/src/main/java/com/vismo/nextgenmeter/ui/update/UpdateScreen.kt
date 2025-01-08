@@ -62,7 +62,7 @@ fun UpdateScreen(
         ) {
             when (updateState) {
                 is UpdateState.Idle -> {
-                    Text("检查更新", style = Typography.headlineMedium)
+                    Text("檢查更新", style = Typography.headlineMedium)
                 }
                 is UpdateState.Downloading -> {
                     // Downloading UI
@@ -74,11 +74,11 @@ fun UpdateScreen(
                     Text(text = "安装", style = Typography.headlineMedium)
                 }
                 is UpdateState.Success -> {
-                    Text(text = "更新成功。正在重新启动应用程序。请稍候...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
+                    Text(text = "更新成功。正在重新啟動應用程式。請稍候...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
                 }
                 is UpdateState.Error -> {
                     val error = (updateState as UpdateState.Error)
-                    Text("误差: ${error.message}", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
+                    Text("誤差: ${error.message}", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
                     showRetryDialog.value = error.allowRetry
                 }
 
