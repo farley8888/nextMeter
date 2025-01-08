@@ -1,6 +1,5 @@
 package com.vismo.nextgenmeter.ui.pin
 
-import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ilin.util.ShellUtils
@@ -8,14 +7,12 @@ import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.api.NetworkResult
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
-import com.vismo.nextgenmeter.module.MainDispatcher
 import com.vismo.nextgenmeter.repository.MeterApiRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.util.CryptoManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.samstevens.totp.code.DefaultCodeGenerator
 import dev.samstevens.totp.code.DefaultCodeVerifier
 import dev.samstevens.totp.code.HashingAlgorithm
@@ -26,16 +23,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 @HiltViewModel
 class SystemPinViewModel @Inject constructor(
-    @ApplicationContext private val context: android.content.Context,
     private val meterApiRepository: MeterApiRepository,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    @MainDispatcher private val mainDispatcher: CoroutineDispatcher,
     private val meterPreferenceRepository: MeterPreferenceRepository,
     private val remoteMeterControlRepository: RemoteMeterControlRepository
 ): ViewModel() {
@@ -44,6 +38,8 @@ class SystemPinViewModel @Inject constructor(
     val totpStatus: StateFlow<String> = _totpStatus
     private val _navigationToNextScreen: MutableStateFlow<Boolean> = MutableStateFlow(false)
     val navigationToNextScreen: StateFlow<Boolean> = _navigationToNextScreen
+    private val _pinToastMessage: MutableStateFlow<String> = MutableStateFlow("")
+    val pinToastMessage: StateFlow<String> = _pinToastMessage
 
     init {
         initTotpVerifier()
@@ -118,6 +114,7 @@ class SystemPinViewModel @Inject constructor(
             _navigationToNextScreen.value = isVerifiedByTOTP
             if (isVerifiedByTOTP) {
                 _totpStatus.value = "TOTP code verified"
+                _pinToastMessage.value = "成功進入設定狀態"
             } else {
                 _totpStatus.value = "Error verifying TOTP code"
             }
@@ -127,23 +124,24 @@ class SystemPinViewModel @Inject constructor(
             }
             if (code == PIN_REMOTE_UPDATE_K_VALUE) {
                 remoteMeterControlRepository.remoteUpdateKValue()
-                withContext(mainDispatcher) {
-                    Toast.makeText(context, "Remote update K value triggered", Toast.LENGTH_SHORT)
-                        .show()
-                }
+                _pinToastMessage.value = "觸發遠程更新K值"
             }
             if (code == PIN_CLEAR_CACHE) {
                 DeviceDataStore.setClearCacheOfApplication(true)
-                withContext(mainDispatcher) {
-                    Toast.makeText(context, "Clearing cache", Toast.LENGTH_SHORT).show()
-                }
+                _pinToastMessage.value = "清除快取"
             }
             if (BuildConfig.FLAVOR != "prd") {
                 if (code == PIN_WITH_GOD_CODE) {
                     _navigationToNextScreen.value = true
+                    _pinToastMessage.value = "成功進入設定狀態"
                 }
             }
+            _pinToastMessage.value = "您輸入的PIN碼不正確。請重試。"
         }
+    }
+
+    fun resetToastMessage() {
+        _pinToastMessage.value = ""
     }
 
     fun resetNavigation() {
