@@ -229,10 +229,15 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val savedOngoingTripId = meterPreferenceRepository.getOngoingTripId().firstOrNull() ?: ""
 
         val newTrip = if (ongoingTrip == null) {
+            val savedOngoingStartTime = meterPreferenceRepository.getOngoingTripStartTime().firstOrNull()?.run {
+                if (this != 0L) {
+                    Timestamp(this, 0)
+                } else null
+            }
             // start Trip
             TripData(
                 tripId = savedOngoingTripId,
-                startTime = Timestamp.now(),
+                startTime = savedOngoingStartTime ?: Timestamp.now(),
                 tripStatus = heartbeatData.tripStatus,
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
@@ -364,7 +369,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             Log.d(TAG, "handleTripEndSummaryResult: currentOngoingTripInDB is null")
             Sentry.captureMessage("handleTripEndSummaryResult: currentOngoingTripInDB is null")
         }
-        meterPreferenceRepository.saveOngoingTripId("")
+        meterPreferenceRepository.saveOngoingTripId("", 0L)
         addTask {
             // after a trip ends, MCU will only continue sending IDLE heartbeats after it receives this response
             mBusModel?.write(Command.CMD_END_RESPONSE)

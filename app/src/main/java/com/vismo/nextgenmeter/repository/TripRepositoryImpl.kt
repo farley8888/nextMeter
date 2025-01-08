@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.sql.Time
 import javax.inject.Inject
 
 class TripRepositoryImpl @Inject constructor(
@@ -57,7 +58,7 @@ class TripRepositoryImpl @Inject constructor(
     private suspend fun handleTripStart(trip: TripData, tripInFirestore: MeterTripInFirestore) {
         dashManager.createTripOnFirestore(tripInFirestore)
         if (meterPreferenceRepository.getOngoingTripId().first() != trip.tripId) {
-            meterPreferenceRepository.saveOngoingTripId(trip.tripId)
+            meterPreferenceRepository.saveOngoingTripId(trip.tripId, trip.startTime.seconds)
         }
         dashManager.setFirestoreTripDocumentListener(trip.tripId)
     }
@@ -77,7 +78,7 @@ class TripRepositoryImpl @Inject constructor(
                             if (trip.tripStatus == TripStatus.ENDED) {
                                 val tripData = trip.copy(isDash = _currentTripPaidStatus.value == TripPaidStatus.COMPLETELY_PAID)
                                 tripFileManager.addTrip(tripData)
-                                meterPreferenceRepository.saveOngoingTripId("")    // Reset ongoing trip id
+                                meterPreferenceRepository.saveOngoingTripId("", 0L)    // Reset ongoing trip id
                                 _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID // Reset trip paid status
                                 dashManager.endTripDocumentListener()
                             }
@@ -155,11 +156,11 @@ class TripRepositoryImpl @Inject constructor(
                     isNewTrip = true,
                     requiresUpdateOnDatabase = true
                 ))
-                meterPreferenceRepository.saveOngoingTripId(newTripId)
+                meterPreferenceRepository.saveOngoingTripId(newTripId, 0L)
                 Log.i(TAG, "Ongoing lost trip not found in Firestore - creating a new trip: ${newTrip.tripId}")
             } else {
                 val tripData: TripData = dashManager.convertToType(tripInFirestore)
-                meterPreferenceRepository.saveOngoingTripId(tripData.tripId)
+                meterPreferenceRepository.saveOngoingTripId(tripData.tripId, tripData.startTime.seconds)
                 dashManager.setFirestoreTripDocumentListener(tripData.tripId)
                 Log.i(TAG, "Ongoing lost trip found in Firestore - using latest un-ended trip: ${tripData.tripId}")
             }
@@ -169,7 +170,7 @@ class TripRepositoryImpl @Inject constructor(
     override suspend fun startTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
         measureBoardRepository.writeStartTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
-        meterPreferenceRepository.saveOngoingTripId(tripId)
+        meterPreferenceRepository.saveOngoingTripId(tripId, startTime = Timestamp.now().seconds)
         Sentry.configureScope { scope: IScope ->
             scope.setTag("trip_id", tripId)
         }
@@ -184,7 +185,7 @@ class TripRepositoryImpl @Inject constructor(
     override suspend fun startAndPauseTrip() {
         val tripId = MeasureBoardUtils.generateTripId()
         measureBoardRepository.writeStartAndPauseTripCommand(MeasureBoardUtils.getIdWithoutHyphens(tripId))
-        meterPreferenceRepository.saveOngoingTripId(tripId)
+        meterPreferenceRepository.saveOngoingTripId(tripId, startTime = Timestamp.now().seconds)
         Sentry.configureScope { scope: IScope ->
             scope.setTag("trip_id", tripId)
         }
