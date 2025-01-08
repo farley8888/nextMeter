@@ -105,9 +105,6 @@ class MainViewModel @Inject constructor(
 
     private val toolbarUiDataUpdateMutex = Mutex()
 
-    private val _isTripInProgress = MutableStateFlow(false)
-    val isTripInProgress: StateFlow<Boolean> = _isTripInProgress
-
     private var accEnquiryJob: Job? = null
     private var sleepJob: Job? = null
     private val _isScreenOff = MutableStateFlow(false)
@@ -339,7 +336,7 @@ class MainViewModel @Inject constructor(
 
     private suspend fun observeTripData() {
         TripDataStore.ongoingTripData.collectLatest {
-            _isTripInProgress.value = it != null
+            TripDataStore.setIsTripInProgress(it != null)
         }
     }
 
@@ -562,7 +559,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun inquireApplicationStatus() {
+    private suspend fun inquireApplicationStatus() {
         val acc = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio75/value")
         if (acc == ACC_SLEEP_STATUS) {
             sleepDevice()
@@ -571,12 +568,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun sleepDevice() {
-        if (_isTripInProgress.value || _isScreenOff.value) return
+    private suspend fun sleepDevice() {
+        val isTripInProgress = TripDataStore.isTripInProgress.firstOrNull() ?: false
+        if (isTripInProgress || _isScreenOff.value) return
 
         sleepJob = viewModelScope.launch(ioDispatcher) {
             delay(BACKLIGHT_OFF_DELAY)
-            if (!_isTripInProgress.value) {
+            if (!isTripInProgress) {
                 _isScreenOff.value = true
                 toggleBackLight(false)
                 switchToLowPowerMode()
