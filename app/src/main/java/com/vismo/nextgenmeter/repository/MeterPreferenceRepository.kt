@@ -5,6 +5,7 @@ import android.util.Base64
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.vismo.nextgenmeter.BuildConfig
@@ -121,8 +122,9 @@ class MeterPreferenceRepository(
             }
     }
 
-    suspend fun saveOngoingTripId(ongoingTripId: String) {
+    suspend fun saveOngoingTripId(ongoingTripId: String, startTime: Long) {
         withTransactionSync {
+            saveOngoingTripStartTime(startTime)
             context.dataStore.edit { settings ->
                 settings[KEY_ONGOING_TRIP_ID] = ongoingTripId
             }
@@ -133,6 +135,19 @@ class MeterPreferenceRepository(
         return context.dataStore.data
             .map { settings ->
                 settings[KEY_ONGOING_TRIP_ID]
+            }
+    }
+
+    private suspend fun saveOngoingTripStartTime(startTime: Long) {
+        context.dataStore.edit { settings ->
+            settings[KEY_ONGOING_TRIP_START_TIME] = startTime
+        }
+    }
+
+    suspend fun getOngoingTripStartTime(): Flow<Long?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_ONGOING_TRIP_START_TIME]
             }
     }
 
@@ -162,6 +177,7 @@ class MeterPreferenceRepository(
         private val KEY_LOCALE = stringPreferencesKey("selected_language")
         private val KEY_MCU_START_PRICE = stringPreferencesKey("mcu_start_price")
         private val KEY_ONGOING_TRIP_ID = stringPreferencesKey("ongoing_trip_id_${BuildConfig.FLAVOR}")
+        private val KEY_ONGOING_TRIP_START_TIME = longPreferencesKey("ongoing_trip_start_time_${BuildConfig.FLAVOR}")
         private val KEY_FIRMWARE_FILENAME_FOR_OTA = stringPreferencesKey("latest_firmware_filename_for_ota")
     }
 
