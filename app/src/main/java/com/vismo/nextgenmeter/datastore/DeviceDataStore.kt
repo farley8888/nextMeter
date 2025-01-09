@@ -44,6 +44,9 @@ object DeviceDataStore {
     private val _isFirmwareUpdateComplete = MutableStateFlow(false)
     val isFirmwareUpdateComplete: StateFlow<Boolean> = _isFirmwareUpdateComplete
 
+    private val _isDeviceAsleep = MutableStateFlow(false)
+    val isDeviceAsleep: StateFlow<Boolean> = _isDeviceAsleep
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
@@ -101,6 +104,10 @@ object DeviceDataStore {
 
     fun setFirmwareUpdateComplete(isComplete: Boolean) {
         this._isFirmwareUpdateComplete.value = isComplete
+    }
+
+    fun setIsDeviceAsleep(isAsleep: Boolean) {
+        this._isDeviceAsleep.value = isAsleep
     }
 }
 

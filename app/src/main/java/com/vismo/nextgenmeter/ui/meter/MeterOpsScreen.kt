@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.meter.MeterOpsViewModel.Companion.TOTAL_LOCK_BEEP_COUNTER
 import com.vismo.nextgenmeter.ui.shared.BlinkingVisibility
@@ -84,6 +85,7 @@ fun MeterOpsScreen(
     val lockDialogShowState = remember { mutableStateOf(false) }
     val showSnackBar = viewModel.showSnackBarMessage.collectAsState().value
     val isTripInProgress by TripDataStore.isTripInProgress.collectAsState(initial = false)
+    val isDeviceAsleep by DeviceDataStore.isDeviceAsleep.collectAsState(initial = false)
 
     if (showSnackBar != null) {
         snackbarDelegate.showSnackbar(showSnackBar.second,showSnackBar.first)
@@ -107,7 +109,7 @@ fun MeterOpsScreen(
                 true
             }
             .clickable {
-                if (uiState.status == ForHire && !isTripInProgress) {
+                if (uiState.status == ForHire && !isTripInProgress && !isDeviceAsleep) {
                     localFocusManager.clearFocus(force = true) // Clear focus before navigating so that no key events are triggered
                     navigateToDashBoard()
                     performVirtualTapFeedback(view)

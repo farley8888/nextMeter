@@ -61,7 +61,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -578,6 +577,7 @@ class MainViewModel @Inject constructor(
                 _isScreenOff.value = true
                 toggleBackLight(false)
                 switchToLowPowerMode()
+                DeviceDataStore.setIsDeviceAsleep(isAsleep = true)
                 Log.d(TAG, "sleepDevice: Device is in sleep mode")
             }
         }
@@ -589,6 +589,7 @@ class MainViewModel @Inject constructor(
 
         toggleBackLight(true)
         _isScreenOff.value = false
+        DeviceDataStore.setIsDeviceAsleep(isAsleep = false)
         Log.d(TAG, "wakeUpDevice: Device is in wake up mode")
     }
 
