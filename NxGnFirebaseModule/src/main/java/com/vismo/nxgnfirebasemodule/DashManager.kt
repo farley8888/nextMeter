@@ -563,6 +563,7 @@ class DashManager @Inject constructor(
     fun sendHeartbeat() {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val meterLocation = dashManagerConfig.meterLocation.value
+            val isDeviceAsleep = dashManagerConfig.isDeviceAsleep.value
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
                     meterLocation.gpsType.speed
@@ -596,7 +597,8 @@ class DashManager @Inject constructor(
                 bearing = bearing,
                 speed = speed,
                 serverTime = Timestamp.now(), // Server time is actually set by the .toFirestoreFormat extension
-                meterSoftwareVersion = DashManagerConfig.meterSoftwareVersion
+                meterSoftwareVersion = DashManagerConfig.meterSoftwareVersion,
+                deviceAccStatus = if (isDeviceAsleep) ACC_STATUS_ASLEEP else ACC_STATUS_AWAKE
             )
             val json = gson.toJson(heartbeat)
             val map =
@@ -695,5 +697,7 @@ class DashManager @Inject constructor(
         private const val LOCKED_AT = "locked_at"
         private const val TRIGGER_LOG_UPLOAD = "trigger_log_upload"
         var isInitialized = false
+        private const val ACC_STATUS_ASLEEP = "ASLEEP"
+        private const val ACC_STATUS_AWAKE = "AWAKE"
     }
 }
