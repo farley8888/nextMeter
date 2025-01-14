@@ -35,9 +35,11 @@ class AdjustBrightnessOrVolumeViewModel @Inject constructor(
 
     fun updateBrightness(level: Float) {
         viewModelScope.launch(ioDispatcher) {
-            _brightnessLevel.value = level
-            val newBrightness = (level * 255).toInt()
-            ShellUtils.execEcho("echo $newBrightness > /sys/class/backlight/backlight/brightness")
+            if(level > 0.1F) { // don't allow brightness to fully be 0
+                _brightnessLevel.value = level
+                val newBrightness = (level * 255).toInt()
+                ShellUtils.execEcho("echo $newBrightness > /sys/class/backlight/backlight/brightness")
+            }
         }
     }
 
