@@ -1,5 +1,6 @@
 package com.vismo.nxgnfirebasemodule.model
 
+import com.google.firebase.Timestamp
 import com.google.gson.annotations.SerializedName
 
 data class MeterFields(
@@ -43,6 +44,7 @@ data class McuInfo(
     @SerializedName("step_price") val stepPrice: String,
     @SerializedName("changed_step_price") val changedPriceAt: String,
     @SerializedName("step_price_change_at") val changedStepPrice: String,
+    @SerializedName("updated_at") val updatedAt: Timestamp
 )
 
 data class Vehicle(
