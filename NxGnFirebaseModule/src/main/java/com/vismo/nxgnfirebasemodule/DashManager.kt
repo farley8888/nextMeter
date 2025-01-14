@@ -420,8 +420,10 @@ class DashManager @Inject constructor(
 
     fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
-            val json = gson.toJson(mcuInfo)
-            val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>)
+            val json = gson.toJson(mcuInfo.copy(
+                updatedAt = Timestamp.now()
+            ))
+            val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
             getMeterDocument()
                 .set(mapOf(MCU_INFO to map), SetOptions.merge())
