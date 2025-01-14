@@ -578,6 +578,7 @@ class MainViewModel @Inject constructor(
                 toggleBackLight(false)
                 switchToLowPowerMode()
                 DeviceDataStore.setIsDeviceAsleep(isAsleep = true)
+                dashManagerConfig.setIsDeviceAsleep(isAsleep = true)
                 Log.d(TAG, "sleepDevice: Device is in sleep mode")
             }
         }
@@ -590,6 +591,7 @@ class MainViewModel @Inject constructor(
         toggleBackLight(true)
         _isScreenOff.value = false
         DeviceDataStore.setIsDeviceAsleep(isAsleep = false)
+        dashManagerConfig.setIsDeviceAsleep(isAsleep = false)
         Log.d(TAG, "wakeUpDevice: Device is in wake up mode")
     }
 
