@@ -528,7 +528,7 @@ class MainViewModel @Inject constructor(
         startACCStatusInquiries()
         observeInternetStatus()
         observeDriverInfo()
-//        disableADBByDefaultForProd()
+        disableADBByDefaultForProd()
         setCrashlyticsKeys()
         viewModelScope.launch(ioDispatcher) {
             tripFileManager.initializeTrips()
