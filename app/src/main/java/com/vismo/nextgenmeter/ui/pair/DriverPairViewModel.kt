@@ -11,6 +11,8 @@ import com.vismo.nextgenmeter.util.GlobalUtils.encrypt
 import com.vismo.nxgnfirebasemodule.util.Constant.DEFAULT_LICENSE_PLATE
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -33,6 +35,10 @@ class DriverPairViewModel @Inject constructor(
     private val _driverPairScreenUiData = MutableStateFlow(DriverPairUiData())
     val driverPairScreenUiData: StateFlow<DriverPairUiData> = _driverPairScreenUiData
 
+    private val _autoNavigateCountdown = MutableStateFlow(DEFAULT_AUTO_NAVIGATE_COUNTDOWN_VALUE)
+    val autoNavigateCountdown: StateFlow<Int> = _autoNavigateCountdown
+    private var countdownJob: Job? = null
+
     private val uiUpdateMutex = Mutex()
 
     val isLicensePlateAndKVUpdated = MutableStateFlow(false)
@@ -43,6 +49,22 @@ class DriverPairViewModel @Inject constructor(
             launch(ioDispatcher) { observeMeterInfo() }
             launch(ioDispatcher) { observeMeterDevicesProperties() }
         }
+    }
+
+    private fun startCountdown() {
+        countdownJob?.cancel()
+        _autoNavigateCountdown.value = AUTO_NAVIGATE_DURATION
+        countdownJob = viewModelScope.launch {
+            while (_autoNavigateCountdown.value > 0) {
+                delay(1000) // Wait for 1 second
+                _autoNavigateCountdown.value -= 1
+            }
+        }
+    }
+
+    fun resetCountdown() {
+        countdownJob?.cancel()
+        _autoNavigateCountdown.value = DEFAULT_AUTO_NAVIGATE_COUNTDOWN_VALUE
     }
 
     private suspend fun observeMeterDevicesProperties() {
@@ -81,10 +103,12 @@ class DriverPairViewModel @Inject constructor(
                     _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
                         driverPhoneNumber = driver.driverPhoneNumber
                     )
+                    startCountdown()
                 } else {
                     _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
                         driverPhoneNumber = ""
                     )
+                    resetCountdown()
                 }
             }
         }
@@ -140,5 +164,15 @@ class DriverPairViewModel @Inject constructor(
         } catch (e: UninitializedPropertyAccessException) {
             return ""
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        countdownJob?.cancel() // Clean up on ViewModel clear
+    }
+
+    companion object {
+        const val DEFAULT_AUTO_NAVIGATE_COUNTDOWN_VALUE = 10
+        const val AUTO_NAVIGATE_DURATION = 3
     }
 }
