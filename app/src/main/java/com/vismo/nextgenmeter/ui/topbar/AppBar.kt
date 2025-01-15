@@ -227,9 +227,8 @@ fun AppBar(
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.pointerInput(Unit) {
                 detectTapGestures(
-                    onPress = {
+                    onLongPress = {
                         try {
-                            delay(2000)
                             performVirtualTapFeedback(view)
                             onLogoLongPress() // Call the function after 2 seconds
                         } catch (e: CancellationException) {
