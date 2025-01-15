@@ -34,6 +34,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.lightspark.composeqr.QrCodeView
+import com.vismo.nextgenmeter.ui.pair.DriverPairViewModel.Companion.AUTO_NAVIGATE_DURATION
+import com.vismo.nextgenmeter.ui.pair.DriverPairViewModel.Companion.DEFAULT_AUTO_NAVIGATE_COUNTDOWN_VALUE
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
@@ -163,6 +165,12 @@ fun StartSession(
     view: View,
     modifier: Modifier
 ) {
+    val autoNavigateCountDown = viewModel.autoNavigateCountdown.collectAsState(initial = DEFAULT_AUTO_NAVIGATE_COUNTDOWN_VALUE).value
+
+    if (autoNavigateCountDown == 0) {
+        navigateToMeterOps()
+    }
+
     Column(
         modifier = modifier
             .padding(16.dp),
@@ -197,6 +205,12 @@ fun StartSession(
                     text = "已登入",
                     style = Typography.bodyLarge
                 )
+                if (autoNavigateCountDown in 0..AUTO_NAVIGATE_DURATION) {
+                    Text(
+                        text = "$autoNavigateCountDown 秒後跳至下一頁",
+                        style = Typography.labelSmall
+                    )
+                }
             }
 
         }
