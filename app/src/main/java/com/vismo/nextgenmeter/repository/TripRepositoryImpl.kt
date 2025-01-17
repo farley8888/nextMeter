@@ -44,7 +44,6 @@ class TripRepositoryImpl @Inject constructor(
     private val _currentAbnormalPulseCounter = MutableStateFlow<Int?>(null)
     private val _currentOverSpeedCounter = MutableStateFlow<Int?>(null)
     private var externalScope: CoroutineScope? = null
-    private var isLostTripBeingSearched = false
 
     private suspend fun handleFirestoreTripUpdate(trip: TripData) {
         val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(trip)
@@ -81,20 +80,6 @@ class TripRepositoryImpl @Inject constructor(
                                 meterPreferenceRepository.saveOngoingTripId("", 0L)    // Reset ongoing trip id
                                 _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID // Reset trip paid status
                                 dashManager.endTripDocumentListener()
-                            }
-                        } else if (trip.tripId.isBlank() && !isLostTripBeingSearched) {
-                            // Handle trip id not found in saved preferences - should not happen - but just in case it does
-                            Log.e(TAG, "Trip ID not found in saved preferences")
-                            isLostTripBeingSearched = true
-                            val timeoutJob = launch {
-                                delay(10_000) // 10 seconds
-                                isLostTripBeingSearched = false
-                                Log.d(TAG, "Timeout reached, resetting isLostTripBeingSearched to false.")
-                            }
-                            dashManager.getLastUnEndedTrip() { latestTripInFirestore ->
-                                timeoutJob.cancel()
-                                handleOngoingLostTrip(latestTripInFirestore, newTrip = it)
-                                isLostTripBeingSearched = false
                             }
                         }
                         // Handle abnormal pulse and overspeed counters
@@ -142,27 +127,6 @@ class TripRepositoryImpl @Inject constructor(
                         Log.i(TAG, "Trip Paid Status: ${_currentTripPaidStatus.value}")
                     }
                 }
-            }
-        }
-    }
-
-    private fun handleOngoingLostTrip(tripInFirestore: MeterTripInFirestore?, newTrip: TripData) {
-        externalScope?.launch {
-            if (tripInFirestore == null) {
-                // cloud not find trip in firestore - make sure to create a new trip
-                val newTripId = MeasureBoardUtils.generateTripId()
-                handleFirestoreTripUpdate(newTrip.copy(
-                    tripId = newTripId,
-                    isNewTrip = true,
-                    requiresUpdateOnDatabase = true
-                ))
-                meterPreferenceRepository.saveOngoingTripId(newTripId, 0L)
-                Log.i(TAG, "Ongoing lost trip not found in Firestore - creating a new trip: ${newTrip.tripId}")
-            } else {
-                val tripData: TripData = dashManager.convertToType(tripInFirestore)
-                meterPreferenceRepository.saveOngoingTripId(tripData.tripId, tripData.startTime.seconds)
-                dashManager.setFirestoreTripDocumentListener(tripData.tripId)
-                Log.i(TAG, "Ongoing lost trip found in Firestore - using latest un-ended trip: ${tripData.tripId}")
             }
         }
     }
