@@ -115,6 +115,7 @@ class SystemPinViewModel @Inject constructor(
             if (isVerifiedByTOTP) {
                 _totpStatus.value = "TOTP code verified"
                 _pinToastMessage.value = "成功進入設定狀態"
+                return@launch
             } else {
                 _totpStatus.value = "Error verifying TOTP code"
             }
@@ -125,15 +126,18 @@ class SystemPinViewModel @Inject constructor(
             if (code == PIN_REMOTE_UPDATE_K_VALUE) {
                 remoteMeterControlRepository.remoteUpdateKValue()
                 _pinToastMessage.value = "觸發遠程更新K值"
+                return@launch
             }
             if (code == PIN_CLEAR_CACHE) {
                 DeviceDataStore.setClearCacheOfApplication(true)
                 _pinToastMessage.value = "清除快取"
+                return@launch
             }
             if (BuildConfig.FLAVOR != "prd") {
                 if (code == PIN_WITH_GOD_CODE) {
                     _navigationToNextScreen.value = true
                     _pinToastMessage.value = "成功進入設定狀態"
+                    return@launch
                 }
             }
             _pinToastMessage.value = "您輸入的PIN碼不正確。請重試。"
