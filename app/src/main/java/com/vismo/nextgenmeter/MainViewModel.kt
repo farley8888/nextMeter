@@ -396,7 +396,7 @@ class MainViewModel @Inject constructor(
                 toolbarUiDataUpdateMutex.withLock {
                     _topAppBarUiState.value = _topAppBarUiState.value.copy(
                         showLoginToggle = it.settings?.showLoginToggle ?: false,
-                        showConnectionIconsToggle = it.settings?.showConnectionIconsToggle ?: false
+                        showConnectionIconsToggle = it.settings?.showConnectionIconsToggle ?: true
                     )
                 }
                 if (driverPreferenceRepository.getDriverOnce().driverPhoneNumber != it.session?.driver?.driverPhoneNumber) {
