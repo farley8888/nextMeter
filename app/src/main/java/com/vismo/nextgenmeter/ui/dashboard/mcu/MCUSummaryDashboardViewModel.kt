@@ -79,7 +79,7 @@ class MCUSummaryDashboardViewModel @Inject constructor(
                                 vehicle = it.settings?.vehicle,
                                 operatingArea = getOperatingAreaZH(it.settings?.operatingArea),
                                 operatingAreaColor = getOperatingAreaColor(it.settings?.operatingArea ?: OperatingArea.URBAN),
-                                showConnectionIconsToggle = it.settings?.showConnectionIconsToggle ?: false
+                                showConnectionIconsToggle = it.settings?.showConnectionIconsToggle ?: true
                             )
                         }
                     }
