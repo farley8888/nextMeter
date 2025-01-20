@@ -32,7 +32,7 @@ data class Settings(
     @SerializedName("sim_iccid") val simIccid: String,
     @SerializedName("vehicle") val vehicle: Vehicle,
     @SerializedName("operating_area") val operatingArea: OperatingArea,
-    @SerializedName("show_connection_icons_toggle") val showConnectionIconsToggle: Boolean = false,
+    @SerializedName("show_connection_icons_toggle") val showConnectionIconsToggle: Boolean = true,
     @SerializedName("trigger_log_upload") val triggerLogUpload: Boolean = false,
 )
 
