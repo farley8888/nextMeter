@@ -58,7 +58,7 @@ class MeterPreferenceRepository(
     suspend fun getShowConnectionIconsToggle(): Flow<Boolean> {
         return context.dataStore.data
             .map { settings ->
-                settings[KEY_SHOW_CONNECTION_ICONS_TOGGLE]?.toBoolean() ?: false
+                settings[KEY_SHOW_CONNECTION_ICONS_TOGGLE]?.toBoolean() ?: true
             }
     }
 
