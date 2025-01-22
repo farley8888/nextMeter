@@ -302,13 +302,12 @@ class DashManager @Inject constructor(
         }
     }
 
-    fun updateFirestoreTripTotalAndFee(tripId: String, total: Double, fee: Double) {
+    fun updateFirestoreTripTotalAndFee(tripId: String, total: Double) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             updateTripOnFirestore(
                 MeterTripInFirestore(
                     tripId = tripId,
                     total = total.roundTo(2).toDouble(),
-                    dashFee = fee.roundTo(2).toDouble()
                 )
             )
         }

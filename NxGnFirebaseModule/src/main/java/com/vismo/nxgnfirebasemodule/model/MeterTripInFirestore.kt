@@ -70,11 +70,10 @@ enum class TripPaidStatus {
 
 fun MeterTripInFirestore.paidStatus(): TripPaidStatus {
     val amountPaid = amountPaid()
-    val pricingResult = getPricingResult(amountPaid > 0)
-    Log.d("MeterTripInFirestore", "amountPaid: $amountPaid, pricingResult - applicableTotal: ${pricingResult.applicableTotal}")
+    Log.d("MeterTripInFirestore", "amountPaid: $amountPaid")
     return when {
         // if user is not null - it means the user's card is already processed by the user app
-        (pricingResult.applicableTotal > 0 && amountPaid >= pricingResult.applicableTotal) || user != null -> TripPaidStatus.COMPLETELY_PAID
+        isDashPayment() || user != null -> TripPaidStatus.COMPLETELY_PAID
         amountPaid > 0 -> TripPaidStatus.PARTIALLY_PAID
         else -> TripPaidStatus.NOT_PAID
     }
@@ -101,24 +100,18 @@ private fun MeterTripInFirestore.amountPaid(): Double {
     }
 }
 
-fun MeterTripInFirestore.getPricingResult(asDashTransaction: Boolean): PricingResult {
+fun MeterTripInFirestore.getPricingResult(): PricingResult {
     val feeAndExtra = tripTotal ?: 0.0
-    val feeRate = dashFeeRate ?: 0.0
-    val feeConstant = dashFeeConstant ?: 0.0
     val applicableTip = tips ?: 0.0
     val discountAmount = discountAmountNegative ?: 0.0
 
 
-    val applicableFee = if (asDashTransaction) {
-        ((feeAndExtra + applicableTip) * feeRate).roundTo(2) + BigDecimal(feeConstant)
-    } else {
-        0.0
-    }
+    val applicableFee = dashFee ?: 0.0
 
-    val applicableTotal = (feeAndExtra + applicableTip + applicableFee.toDouble() + discountAmount).roundTo(2)
+    val applicableTotal = (feeAndExtra + applicableTip + applicableFee + discountAmount).roundTo(1)
 
     return PricingResult(
-        applicableFee = applicableFee.toDouble(),
+        applicableFee = applicableFee,
         applicableDiscount = discountAmount,
         applicableTotal = applicableTotal.toDouble()
     )
