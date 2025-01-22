@@ -114,13 +114,11 @@ class TripRepositoryImpl @Inject constructor(
             launch {
                 dashManager.tripInFirestore.collectLatest { tripInFirestore ->
                     tripInFirestore?.let {
-                        val pricingResult = tripInFirestore.getPricingResult(tripInFirestore.isDashPayment())
-                        if (pricingResult.applicableTotal != tripInFirestore.total
-                            || pricingResult.applicableFee != tripInFirestore.dashFee) {
+                        val pricingResult = tripInFirestore.getPricingResult()
+                        if (pricingResult.applicableTotal != tripInFirestore.total) {
                             dashManager.updateFirestoreTripTotalAndFee(
                                 tripId = tripInFirestore.tripId,
                                 total = pricingResult.applicableTotal,
-                                fee = pricingResult.applicableFee
                             )
                         }
                         _currentTripPaidStatus.value = tripInFirestore.paidStatus()
