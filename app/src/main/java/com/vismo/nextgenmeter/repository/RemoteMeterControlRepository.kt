@@ -13,7 +13,7 @@ interface RemoteMeterControlRepository {
     val meterIdentifier: StateFlow<String>
     val remoteUpdateRequest: StateFlow<Update?>
 
-    fun initDashManager(scope: CoroutineScope)
+    suspend fun initDashManager(scope: CoroutineScope)
 
     fun observeFlows(scope: CoroutineScope)
 
@@ -32,5 +32,7 @@ interface RemoteMeterControlRepository {
     fun remoteUpdateKValue()
 
     fun requestPatchFirmwareToMCU(fileName: String)
+
+    suspend fun saveRecentlyCompletedUpdateId(id: String)
 
 }

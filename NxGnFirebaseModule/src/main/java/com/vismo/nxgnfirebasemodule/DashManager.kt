@@ -26,6 +26,7 @@ import com.vismo.nxgnfirebasemodule.model.Settings
 import com.vismo.nxgnfirebasemodule.model.TripSession
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
+import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.isCompleted
 import com.vismo.nxgnfirebasemodule.model.shouldPrompt
 import com.vismo.nxgnfirebasemodule.util.Constant.AUDIT_COLLECTION
@@ -94,7 +95,7 @@ class DashManager @Inject constructor(
 
     private var externalScope: CoroutineScope? = null
 
-    fun init(scope: CoroutineScope) {
+    fun init(scope: CoroutineScope, mostRecentlyCompletedUpdateId: String?) {
         externalScope = scope
         setMeterInfoToSettings()
         meterSdkConfigurationListener()
@@ -103,8 +104,28 @@ class DashManager @Inject constructor(
             launch { observeMeterDeviceId() }
         }
         checkForMostRelevantOTAUpdate()
+        writeUpdateStatus(mostRecentlyCompletedUpdateId)
         isInitialized = true
         Log.d(TAG, "DashManager initialized")
+    }
+
+    private fun writeUpdateStatus(mostRecentlyCompletedUpdateId: String?) {
+        externalScope?.launch {
+            if (!mostRecentlyCompletedUpdateId.isNullOrBlank()) {
+                val updatesCollection = getMeterDocument()
+                    .collection(UPDATES_COLLECTION)
+
+                updatesCollection
+                    .document(mostRecentlyCompletedUpdateId)
+                    .update("status", UpdateStatus.RESTART_COMPLETE.name)
+                    .addOnSuccessListener {
+                        Log.d(TAG, "writeUpdateStatus RESTART_COMPLETE successfully")
+                    }
+                    .addOnFailureListener {
+                        Log.e(TAG, "writeUpdateStatus RESTART_COMPLETE error", it)
+                    }
+            }
+        }
     }
 
     private suspend fun observeMeterDeviceId() {

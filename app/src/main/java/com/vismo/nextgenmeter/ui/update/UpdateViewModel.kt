@@ -18,6 +18,7 @@ import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.OnUpdateCompletedReceiver
 import com.vismo.nxgnfirebasemodule.model.Update
+import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.util.Constant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -59,8 +60,10 @@ class UpdateViewModel @Inject constructor(
                     if(it) {
                         _updateState.value = UpdateState.Success
                         updateDetails.firstOrNull()?.let { update ->
+                            remoteMeterControlRepository.saveRecentlyCompletedUpdateId(update.id)
                             writeUpdateResultToFireStore(update.copy(
-                                completedOn = Timestamp.now()
+                                completedOn = Timestamp.now(),
+                                status = UpdateStatus.WAITING_FOR_RESTART
                             ))
                         }
                         delay(4000)
@@ -99,6 +102,11 @@ class UpdateViewModel @Inject constructor(
         // Download the APK
         viewModelScope.launch(ioDispatcher) {
             _updateState.value = UpdateState.Downloading(0)
+            writeUpdateResultToFireStore(
+                update.copy(
+                    status = UpdateStatus.DOWNLOADING
+                )
+            )
             try {
                 val fileName = update.url.substringAfterLast("/").ifEmpty { "update.apk" }
                 val externalFilesDir = context.getExternalFilesDir(null)
@@ -154,13 +162,24 @@ class UpdateViewModel @Inject constructor(
 
                 // Validate the downloaded APK
                 _updateState.value = UpdateState.Installing
+                writeUpdateResultToFireStore(
+                    update.copy(
+                        status = UpdateStatus.INSTALLING
+                    )
+                )
                 if (update.type == Constant.OTA_METERAPP_TYPE) {
+                    remoteMeterControlRepository.saveRecentlyCompletedUpdateId(updateDetails.firstOrNull()?.id ?: "")
                     installApk(targetFile)
                 } else if (update.type == Constant.OTA_FIRMWARE_TYPE) {
                     remoteMeterControlRepository.requestPatchFirmwareToMCU(targetFile.absolutePath)
                 }
             } catch (e: Exception) {
                 _updateState.value = UpdateState.Error(e.message ?: "Unknown error", allowRetry = true)
+                writeUpdateResultToFireStore(
+                    update.copy(
+                        status = UpdateStatus.DOWNLOAD_ERROR
+                    )
+                )
             }
         }
     }
@@ -208,7 +227,8 @@ class UpdateViewModel @Inject constructor(
                 _updateState.value = UpdateState.Success
                 updateDetails.firstOrNull()?.let {
                     writeUpdateResultToFireStore(it.copy(
-                        completedOn = Timestamp.now()
+                        completedOn = Timestamp.now(),
+                        status = UpdateStatus.WAITING_FOR_RESTART
                     ))
                 }
             } catch (e: Exception) {
@@ -224,9 +244,7 @@ class UpdateViewModel @Inject constructor(
     }
 
     private fun writeUpdateResultToFireStore(update: Update) {
-        viewModelScope.launch(ioDispatcher) {
-            remoteMeterControlRepository.writeUpdateResultToFireStore(update)
-        }
+        remoteMeterControlRepository.writeUpdateResultToFireStore(update)
     }
 
     companion object {
