@@ -43,12 +43,18 @@ data class McuInfo(
     @SerializedName("step_price") val stepPrice: String,
     @SerializedName("changed_step_price") val changedPriceAt: String,
     @SerializedName("step_price_change_at") val changedStepPrice: String,
+    @SerializedName("status") val status: McuInfoStatus
 )
 
 data class Vehicle(
     @SerializedName("make") val make: String,
     @SerializedName("model") val model: String,
 )
+
+enum class McuInfoStatus {
+    REQUESTED,
+    UPDATED,
+}
 
 enum class OperatingArea {
     LANTAU,

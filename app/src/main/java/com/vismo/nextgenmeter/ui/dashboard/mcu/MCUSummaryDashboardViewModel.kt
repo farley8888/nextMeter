@@ -49,9 +49,9 @@ class MCUSummaryDashboardViewModel @Inject constructor(
                             _mcuSummaryUiState.value = _mcuSummaryUiState.value.copy(
                                 fareParams = it
                             )
-                            val newMcuStartPrice = mcuPriceParams.value?.startingPrice?.replace("$", "")
+                            val newMcuStartPrice = it.startingPrice.replace("$", "")
                             val savedMcuStartPrice = meterPreferenceRepository.getMcuStartPrice().first()
-                            if (newMcuStartPrice != null && savedMcuStartPrice != newMcuStartPrice && newMcuStartPrice.toDoubleOrNull() != null) {
+                            if (savedMcuStartPrice != newMcuStartPrice && newMcuStartPrice.toDoubleOrNull() != null) {
                                 meterPreferenceRepository.saveMcuStartPrice(newMcuStartPrice)
                             }
                         }
