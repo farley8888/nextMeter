@@ -14,6 +14,7 @@ import com.google.gson.Gson
 import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.Driver
 import com.vismo.nxgnfirebasemodule.model.GPS
+import com.vismo.nxgnfirebasemodule.model.HealthCheckStatus
 import com.vismo.nxgnfirebasemodule.model.Heartbeat
 import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.McuInfoStatus
@@ -160,8 +161,16 @@ class DashManager @Inject constructor(
         }
     }
 
-    fun resetMeterDeviceProperties() {
-        _meterDeviceProperties.value = null
+    fun healthCheckApprovedAndLicensePlateSet() {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
+            _meterDeviceProperties.value = null // Reset the meter device properties flow
+
+            getMeterDevicesDocument()
+                .set(
+                    mapOf("health_check_status" to HealthCheckStatus.LICENSE_PLATE_SET.name),
+                    SetOptions.merge()
+                )
+        }
     }
 
     fun performHealthCheck() {
@@ -176,7 +185,7 @@ class DashManager @Inject constructor(
             val location = dashManagerConfig.meterLocation
             val gpsType = location.value.gpsType.toString()
             val map = mapOf(
-                "is_health_check_complete" to null,
+                "health_check_status" to HealthCheckStatus.UPDATED.name,
                 "gps_type" to gpsType,
                 "location" to location.value.geoPoint,
                 "env" to env
