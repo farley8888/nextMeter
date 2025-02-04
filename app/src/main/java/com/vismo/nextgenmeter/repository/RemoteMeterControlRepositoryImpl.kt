@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +25,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     private val dashManager: DashManager,
     private val measureBoardRepository: MeasureBoardRepository,
     private val logShippingRepository: LogShippingRepository,
+    private val meterPreferenceRepository: MeterPreferenceRepository
 ) : RemoteMeterControlRepository {
 
     private val TAG = "RemoteMeterControlRepositoryImpl"
@@ -40,10 +42,12 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     private var externalScope: CoroutineScope? = null
 
-    override fun initDashManager(scope: CoroutineScope) {
+    override suspend fun initDashManager(scope: CoroutineScope) {
         DashManagerConfig.simIccId = getICCID() ?: ""
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
-        dashManager.init(scope)
+        val mostRecentlyCompletedUpdateId = meterPreferenceRepository.getRecentlyCompletedUpdateId().firstOrNull()
+        dashManager.init(scope, mostRecentlyCompletedUpdateId = mostRecentlyCompletedUpdateId)
+        meterPreferenceRepository.saveRecentlyCompletedUpdateId("") // clear the recently completed update id
     }
 
     private fun getICCID(): String? {
@@ -156,6 +160,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         externalScope?.launch {
             measureBoardRepository.requestPatchFirmware(fileName)
         }
+    }
+
+    override suspend fun saveRecentlyCompletedUpdateId(id: String) {
+        meterPreferenceRepository.saveRecentlyCompletedUpdateId(id = id)
     }
 
 

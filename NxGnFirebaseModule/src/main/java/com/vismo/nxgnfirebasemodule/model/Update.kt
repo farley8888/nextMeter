@@ -13,7 +13,20 @@ data class Update(
     @SerializedName("snooze_until") val snoozeUntil: Timestamp?,
     @SerializedName("url") val url: String,
     @SerializedName("version") val version: String,
+    @SerializedName("is_admin") val isAdmin: Boolean?,
+    @SerializedName("status") val status: UpdateStatus?,
 )
+
+enum class UpdateStatus {
+    REQUESTED,
+    WAITING_FOR_DOWNLOAD,
+    VERSION_ERROR,
+    DOWNLOADING,
+    DOWNLOAD_ERROR,
+    INSTALLING,
+    WAITING_FOR_RESTART,
+    RESTART_COMPLETE
+}
 
 fun Update.canBeSnoozed(): Boolean {
     val now = Timestamp.now()
