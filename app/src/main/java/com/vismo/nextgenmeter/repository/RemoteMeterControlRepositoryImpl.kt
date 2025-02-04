@@ -5,6 +5,7 @@ import com.google.firebase.Timestamp
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nextgenmeter.model.McuInfoStatus
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nextgenmeter.model.format
 import com.vismo.nxgnfirebasemodule.DashManager
@@ -16,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -59,7 +61,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         externalScope = scope
         externalScope?.launch {
             launch {
-                DeviceDataStore.mcuPriceParams.collectLatest { mcuParams ->
+                DeviceDataStore.mcuPriceParams.collect { mcuParams ->
                     mcuParams?.let {
                         val mcuInfo: McuInfo = dashManager.convertToType(it.format())
                         dashManager.setMCUInfoOnFirestore(mcuInfo)
@@ -96,6 +98,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
                         // Trigger log shipping if needed
                         if (meterInfo.settings?.triggerLogUpload == true) {
                             triggerLogUpload()
+                        }
+
+                        if (meterInfo.mcuInfo?.status == McuInfoStatus.REQUESTED) {
+                            measureBoardRepository.enquireParameters()
                         }
                     }
                 }
