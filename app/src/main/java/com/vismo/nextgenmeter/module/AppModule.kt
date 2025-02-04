@@ -194,12 +194,14 @@ object AppModule {
     fun providesRemoteMCUControlRepository(
         dashManager: DashManager,
         measureBoardRepository: MeasureBoardRepository,
-        logShippingRepository: LogShippingRepository
+        logShippingRepository: LogShippingRepository,
+        meterPreferenceRepository: MeterPreferenceRepository
     ): RemoteMeterControlRepository {
         return RemoteMeterControlRepositoryImpl(
             dashManager = dashManager,
             measureBoardRepository = measureBoardRepository,
             logShippingRepository = logShippingRepository,
+            meterPreferenceRepository = meterPreferenceRepository
         )
     }
 

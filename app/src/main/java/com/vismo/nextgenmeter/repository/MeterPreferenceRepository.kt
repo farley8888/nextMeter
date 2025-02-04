@@ -166,6 +166,20 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveRecentlyCompletedUpdateId(id: String) {
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_MOST_RECENTLY_COMPLETED_OTA_UPDATE_ID] = id
+            }
+        }
+    }
+
+    fun getRecentlyCompletedUpdateId(): Flow<String?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_MOST_RECENTLY_COMPLETED_OTA_UPDATE_ID]
+            }
+    }
 
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
@@ -179,6 +193,7 @@ class MeterPreferenceRepository(
         private val KEY_ONGOING_TRIP_ID = stringPreferencesKey("ongoing_trip_id_${BuildConfig.FLAVOR}")
         private val KEY_ONGOING_TRIP_START_TIME = longPreferencesKey("ongoing_trip_start_time_${BuildConfig.FLAVOR}")
         private val KEY_FIRMWARE_FILENAME_FOR_OTA = stringPreferencesKey("latest_firmware_filename_for_ota")
+        private val KEY_MOST_RECENTLY_COMPLETED_OTA_UPDATE_ID = stringPreferencesKey("completed_update_id_${BuildConfig.FLAVOR}")
     }
 
 }

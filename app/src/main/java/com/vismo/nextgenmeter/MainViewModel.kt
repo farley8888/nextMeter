@@ -44,6 +44,7 @@ import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
+import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
@@ -116,11 +117,20 @@ class MainViewModel @Inject constructor(
 
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
-        .filter { if(it?.type == OTA_METERAPP_TYPE) {
-            isBuildVersionHigherThanCurrentVersion(it.version)
-        }else if (it?.type == OTA_FIRMWARE_TYPE) {
-            it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion // valid only if the firmware versions are not equal
-        } else false }
+        .filter {
+            val isValid = when (it?.type) {
+                OTA_METERAPP_TYPE -> {
+                    isBuildVersionHigherThanCurrentVersion(it.version)
+                }
+                OTA_FIRMWARE_TYPE -> {
+                    it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion // valid only if the firmware versions are not equal
+                }
+                else -> false
+            }
+            val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.VERSION_ERROR
+            it?.let { it1 -> remoteMeterControlRepository.writeUpdateResultToFireStore(it1.copy(status = newStatus)) }
+            isValid
+        }
         .stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
 
     private var isMCUTimeSet = false

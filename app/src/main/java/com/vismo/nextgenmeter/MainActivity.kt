@@ -167,12 +167,16 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                     }
 
                     val aValidUpdate = mainViewModel.aValidUpdate.collectAsState().value
+                    if (aValidUpdate != null && aValidUpdate.isAdmin == true) {
+                        // start download process automatically
+                        navigateToUpdateScreen()
+                    }
                     val isTripInProgress by TripDataStore.isTripInProgress.collectAsState(initial = false)
                     val showUpdateDialog = remember { mutableStateOf(false) }
                     val isDialogShown = remember {
                         mutableStateOf(false)
                     }
-                    showUpdateDialog.value = aValidUpdate != null && !isDialogShown.value && !isTripInProgress
+                    showUpdateDialog.value = aValidUpdate != null && !isDialogShown.value && !isTripInProgress && aValidUpdate.isAdmin != true
                     val clearAppCache = mainViewModel.clearApplicationCache.collectAsState().value
                     if (clearAppCache) {
                         clearApplicationCache()
@@ -234,16 +238,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                                         title = "設備需升級軟件",
                                         message = aValidUpdate?.description ?: "",
                                         confirmButtonText = "立即更新",
-                                        onConfirm = {
-                                            // navigate to update
-                                            navController?.navigate(NavigationDestination.UpdateApk.route) {
-                                                navController?.graph?.id?.let { it1 -> popUpTo(it1) {
-                                                    inclusive = true
-                                                } } // Clear the backstack
-                                                restoreState = true
-                                                launchSingleTop = true
-                                            }
-                                        },
+                                        onConfirm = { navigateToUpdateScreen() },
                                         confirmButtonColor = pastelGreen600,
                                         cancelButtonText = if(aValidUpdate?.canBeSnoozed() == true) "稍后更新" else null,
                                         onCancel = {
@@ -262,6 +257,21 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun navigateToUpdateScreen() {
+        // navigate to update
+        if (!isCurrentScreenUpdateApk()) {
+            navController?.navigate(NavigationDestination.UpdateApk.route) {
+                navController?.graph?.id?.let { it1 ->
+                    popUpTo(it1) {
+                        inclusive = true
+                    }
+                } // Clear the backstack
+                restoreState = true
+                launchSingleTop = true
             }
         }
     }
