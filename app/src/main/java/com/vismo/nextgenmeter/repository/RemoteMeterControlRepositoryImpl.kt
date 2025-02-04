@@ -17,7 +17,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -129,7 +128,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
             measureBoardRepository.updateKValue(kValue.toInt())
             delay(3000L) // seems like this delay is necessary for the measure board to process the kValue update
             measureBoardRepository.updateLicensePlate(licensePlate)
-            resetMeterDevicesFlow()
+            healthCheckApprovedAndLicensePlateSet()
         }
     }
 
@@ -138,8 +137,8 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     }
 
 
-    private fun resetMeterDevicesFlow() {
-        dashManager.resetMeterDeviceProperties()
+    private fun healthCheckApprovedAndLicensePlateSet() {
+        dashManager.healthCheckApprovedAndLicensePlateSet()
     }
 
     override fun performHealthCheck() {
