@@ -118,12 +118,12 @@ class DashManager @Inject constructor(
 
                 updatesCollection
                     .document(mostRecentlyCompletedUpdateId)
-                    .update("status", UpdateStatus.RESTART_COMPLETE.name)
+                    .update("status", UpdateStatus.COMPLETE.name)
                     .addOnSuccessListener {
-                        Log.d(TAG, "writeUpdateStatus RESTART_COMPLETE successfully")
+                        Log.d(TAG, "writeUpdateStatus COMPLETE successfully")
                     }
                     .addOnFailureListener {
-                        Log.e(TAG, "writeUpdateStatus RESTART_COMPLETE error", it)
+                        Log.e(TAG, "writeUpdateStatus COMPLETE error", it)
                     }
             }
         }
