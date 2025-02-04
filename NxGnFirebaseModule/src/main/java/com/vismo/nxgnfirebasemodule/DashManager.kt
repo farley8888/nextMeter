@@ -16,6 +16,7 @@ import com.vismo.nxgnfirebasemodule.model.Driver
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.Heartbeat
 import com.vismo.nxgnfirebasemodule.model.McuInfo
+import com.vismo.nxgnfirebasemodule.model.McuInfoStatus
 import com.vismo.nxgnfirebasemodule.model.MeterDeviceProperties
 import com.vismo.nxgnfirebasemodule.model.MeterFields
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
@@ -420,7 +421,8 @@ class DashManager @Inject constructor(
     fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val json = gson.toJson(mcuInfo.copy(
-                updatedAt = Timestamp.now()
+                updatedAt = Timestamp.now(),
+                status = McuInfoStatus.UPDATED
             ))
             val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 

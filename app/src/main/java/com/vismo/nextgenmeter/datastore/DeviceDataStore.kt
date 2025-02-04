@@ -5,14 +5,17 @@ import com.vismo.nextgenmeter.model.MCUFareParams
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 object DeviceDataStore {
-    private val _mcuFareParams = MutableStateFlow<MCUFareParams?>(null)
-    val mcuPriceParams: StateFlow<MCUFareParams?> = _mcuFareParams
+    private val _mcuFareParams = MutableSharedFlow<MCUFareParams>(replay = 1)
+    val mcuPriceParams: SharedFlow<MCUFareParams?> = _mcuFareParams.asSharedFlow()
 
     private val _deviceIdData = MutableStateFlow<DeviceIdData?>(null)
     val deviceIdData = _deviceIdData
@@ -51,7 +54,7 @@ object DeviceDataStore {
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
         mutex.withLock {
-            this._mcuFareParams.value = mcuData
+            this._mcuFareParams.emit(mcuData)
         }
     }
 
