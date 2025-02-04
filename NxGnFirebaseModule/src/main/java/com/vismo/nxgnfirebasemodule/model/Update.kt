@@ -25,7 +25,7 @@ enum class UpdateStatus {
     DOWNLOAD_ERROR,
     INSTALLING,
     WAITING_FOR_RESTART,
-    RESTART_COMPLETE
+    COMPLETE
 }
 
 fun Update.canBeSnoozed(): Boolean {
