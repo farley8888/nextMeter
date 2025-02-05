@@ -109,7 +109,7 @@ jobs:
           echo "${apk_link}" >> build_links.json
 
       - name: Upload Environment Links
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-links-${{ matrix.env }}
           path: build_links.json
@@ -128,7 +128,7 @@ jobs:
     needs: build-android
     steps:
       - name: Download All Links
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: all_links
 
