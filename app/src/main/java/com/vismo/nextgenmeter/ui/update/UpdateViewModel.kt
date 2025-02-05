@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.net.Uri
+import android.net.wifi.WifiConfiguration
+import android.net.wifi.WifiManager
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.FileProvider
@@ -78,9 +80,11 @@ class UpdateViewModel @Inject constructor(
     private fun checkForUpdates() {
         viewModelScope.launch(ioDispatcher) {
             val update = remoteMeterControlRepository.remoteUpdateRequest.firstOrNull()
+            val wifiCredential = remoteMeterControlRepository.meterSdkConfiguration.firstOrNull()?.wifiCredential
             if (update != null && (update.type == Constant.OTA_FIRMWARE_TYPE || update.type == Constant.OTA_METERAPP_TYPE)) {
                 FirebaseStorage.getInstance().getReferenceFromUrl(update.url).downloadUrl
                     .addOnSuccessListener {
+                        connectToWifiLegacy(context, ssid = wifiCredential?.ssid, password = wifiCredential?.password)
                         downloadFile(it, update)
                     }
                     .addOnFailureListener {
@@ -240,6 +244,47 @@ class UpdateViewModel @Inject constructor(
                     apkFile.delete()
                 }
             }
+        }
+    }
+
+    private fun connectToWifiLegacy(context: Context, ssid: String?, password: String?) {
+        try {
+            if (ssid == null || password == null) {
+                Log.e("WiFiConnection", "SSID or password is null")
+                return
+            }
+
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+            // Check if WiFi is enabled
+            if (!wifiManager.isWifiEnabled) {
+                wifiManager.isWifiEnabled = true // Enable WiFi if it's disabled
+            }
+
+            // Create a WiFi configuration
+            val wifiConfig = WifiConfiguration().apply {
+                SSID = "\"$ssid\""
+                preSharedKey = "\"$password\""
+                allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK) // WPA2
+            }
+
+            // Add the WiFi configuration to the system
+            val networkId = wifiManager.addNetwork(wifiConfig)
+
+            if (networkId != -1) {
+                // Disconnect from the current network
+                wifiManager.disconnect()
+
+                // Enable and connect to the new network
+                wifiManager.enableNetwork(networkId, true)
+                wifiManager.reconnect()
+
+                Log.d("WiFiConnection", "Connected to $ssid")
+            } else {
+                Log.e("WiFiConnection", "Failed to connect to $ssid")
+            }
+        } catch (e: Exception) {
+            Log.e("WiFiConnection", "Error connecting to WiFi: ${e.message}")
         }
     }
 
