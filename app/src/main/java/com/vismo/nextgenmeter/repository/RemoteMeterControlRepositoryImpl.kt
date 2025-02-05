@@ -11,6 +11,7 @@ import com.vismo.nextgenmeter.model.format
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
+import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     override val meterDeviceProperties = dashManager.meterDeviceProperties
     override val meterIdentifier = measureBoardRepository.meterIdentifierInRemote
+    override val meterSdkConfiguration = dashManager.meterSdkConfig
 
     override val remoteUpdateRequest: StateFlow<Update?> = dashManager.mostRelevantUpdate
 
