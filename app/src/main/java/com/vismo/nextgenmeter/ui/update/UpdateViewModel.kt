@@ -9,6 +9,7 @@ import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.os.PowerManager
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
@@ -250,6 +251,7 @@ class UpdateViewModel @Inject constructor(
     private fun connectToWifiLegacy(context: Context, ssid: String?, password: String?) {
         try {
             if (ssid == null || password == null) {
+                Toast.makeText(context, "SSID is null", Toast.LENGTH_SHORT).show()
                 Log.e("WiFiConnection", "SSID or password is null")
                 return
             }
@@ -280,11 +282,14 @@ class UpdateViewModel @Inject constructor(
                 wifiManager.reconnect()
 
                 Log.d("WiFiConnection", "Connected to $ssid")
+                Toast.makeText(context, "Connected to $ssid", Toast.LENGTH_SHORT).show()
             } else {
                 Log.e("WiFiConnection", "Failed to connect to $ssid")
+                Toast.makeText(context, "Failed to connect to $ssid", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
             Log.e("WiFiConnection", "Error connecting to WiFi: ${e.message}")
+            Toast.makeText(context, "Error connecting to WiFi: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
