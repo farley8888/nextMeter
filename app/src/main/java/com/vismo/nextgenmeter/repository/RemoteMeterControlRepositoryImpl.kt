@@ -50,6 +50,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
         val mostRecentlyCompletedUpdateId = meterPreferenceRepository.getRecentlyCompletedUpdateId().firstOrNull()
         dashManager.init(scope, mostRecentlyCompletedUpdateId = mostRecentlyCompletedUpdateId)
+        if (!mostRecentlyCompletedUpdateId.isNullOrBlank()) {
+            // this is to ensure that the most recently completed update is written to firestore
+            measureBoardRepository.enquireParameters()
+        }
         meterPreferenceRepository.saveRecentlyCompletedUpdateId("") // clear the recently completed update id
     }
 
