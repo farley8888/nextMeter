@@ -16,10 +16,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.storage.FirebaseStorage
+import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.OnUpdateCompletedReceiver
+import com.vismo.nextgenmeter.util.Constant.ENV_PRD
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.util.Constant
@@ -185,6 +187,10 @@ class UpdateViewModel @Inject constructor(
                         status = UpdateStatus.DOWNLOAD_ERROR
                     )
                 )
+            } finally {
+                if(BuildConfig.FLAVOR == ENV_PRD) {
+                    disconnectAndDisableWifi(context)
+                }
             }
         }
     }
@@ -245,6 +251,16 @@ class UpdateViewModel @Inject constructor(
                     apkFile.delete()
                 }
             }
+        }
+    }
+
+    private fun disconnectAndDisableWifi(context: Context) {
+        try {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wifiManager.disconnect()
+            wifiManager.isWifiEnabled = false
+        } catch (e: Exception) {
+            Log.e("WiFiConnection", "Error disconnecting from WiFi: ${e.message}")
         }
     }
 
