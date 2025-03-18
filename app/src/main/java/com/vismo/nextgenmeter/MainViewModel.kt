@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.ilin.util.ShellUtils
@@ -118,18 +119,26 @@ class MainViewModel @Inject constructor(
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
         .filter {
-            val isValid = when (it?.type) {
-                OTA_METERAPP_TYPE -> {
-                    isBuildVersionHigherThanCurrentVersion(it.version)
-                }
-                OTA_FIRMWARE_TYPE -> {
-                    it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion // valid only if the firmware versions are not equal
-                }
-                else -> false
+            when (it?.type) {
+            OTA_METERAPP_TYPE -> {
+                val isValid = isBuildVersionHigherThanCurrentVersion(it.version)
+                val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.VERSION_ERROR
+                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus))
+                isValid
             }
-            val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.VERSION_ERROR
-            it?.let { it1 -> remoteMeterControlRepository.writeUpdateResultToFireStore(it1.copy(status = newStatus)) }
-            isValid
+            OTA_FIRMWARE_TYPE -> {
+                val isValid = it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion
+                val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.COMPLETE
+                remoteMeterControlRepository.writeUpdateResultToFireStore(
+                    it.copy(
+                        status = newStatus,
+                        completedOn = if (newStatus == UpdateStatus.COMPLETE) Timestamp.now() else null
+                    )
+                )
+                isValid
+            }
+            else -> false
+        }
         }
         .stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
 
