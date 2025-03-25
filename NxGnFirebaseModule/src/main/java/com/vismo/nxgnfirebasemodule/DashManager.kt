@@ -43,7 +43,6 @@ import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
-import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import com.vismo.nxgnfirebasemodule.util.LogConstant
 import kotlinx.coroutines.CoroutineDispatcher
@@ -330,17 +329,6 @@ class DashManager @Inject constructor(
             getMeterDocument()
                 .set(mapOf(LOCKED_AT to FieldValue.delete()), SetOptions.merge())
             _remoteUnlockMeter.value = false
-        }
-    }
-
-    fun updateFirestoreTripTotalAndFee(tripId: String, total: Double) {
-        externalScope?.launch(ioDispatcher + exceptionHandler) {
-            updateTripOnFirestore(
-                MeterTripInFirestore(
-                    tripId = tripId,
-                    total = total.roundTo(2).toDouble(),
-                )
-            )
         }
     }
 

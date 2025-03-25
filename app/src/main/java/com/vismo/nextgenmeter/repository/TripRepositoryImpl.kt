@@ -12,22 +12,18 @@ import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
-import com.vismo.nxgnfirebasemodule.model.getPricingResult
-import com.vismo.nxgnfirebasemodule.model.isDashPayment
 import com.vismo.nxgnfirebasemodule.model.paidStatus
 import com.vismo.nxgnfirebasemodule.util.LogConstant
 import io.sentry.IScope
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.sql.Time
 import javax.inject.Inject
 
 class TripRepositoryImpl @Inject constructor(
@@ -114,13 +110,6 @@ class TripRepositoryImpl @Inject constructor(
             launch {
                 dashManager.tripInFirestore.collectLatest { tripInFirestore ->
                     tripInFirestore?.let {
-                        val pricingResult = tripInFirestore.getPricingResult()
-                        if (pricingResult.applicableTotal != tripInFirestore.total) {
-                            dashManager.updateFirestoreTripTotalAndFee(
-                                tripId = tripInFirestore.tripId,
-                                total = pricingResult.applicableTotal,
-                            )
-                        }
                         _currentTripPaidStatus.value = tripInFirestore.paidStatus()
                         Log.i(TAG, "Trip Paid Status: ${_currentTripPaidStatus.value}")
                     }
