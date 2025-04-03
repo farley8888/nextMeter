@@ -79,8 +79,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                         val receiveData = msg.obj?.toString() ?: continue
                         // Check checksum and see if the message is valid
                         if(!validateChecksum(receiveData)){
-                            Log.d(TAG, "Checksum validation failed")
-                            Sentry.captureMessage("Checksum validation failed")
+                            Log.d(TAG, TAG_CHECKSUM_VALIDATION_FAILED)
+                            Sentry.captureMessage(TAG_CHECKSUM_VALIDATION_FAILED)
                             continue
                         }
                         checkStatues(receiveData)
@@ -387,8 +387,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             REQUEST_UPGRADE_FIRMWARE -> handleUpgradeFirmwareRequestResult(result)
             UPGRADING_FIRMWARE -> handleFirmwareUpdate(result)
             else -> {
-                Log.d(TAG, "Unknown result type: ${getResultType(result)}")
-                Sentry.captureMessage("Unknown result: $result")
+                Log.d(TAG, "$TAG_UNKNOWN_RESULT type: ${getResultType(result)}")
+                Sentry.captureMessage("$TAG_UNKNOWN_RESULT: $result")
             }
         }
     }
@@ -685,5 +685,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         private const val WHAT_PRINT_STATUS: Int = 110
         private const val TAG = "MeasureBoardRepository"
         private const val HEARTBEAT_IDENTIFIER = "55AA"
+        const val TAG_CHECKSUM_VALIDATION_FAILED = "Checksum validation failed"
+        const val TAG_UNKNOWN_RESULT = "Unknown result"
     }
 }

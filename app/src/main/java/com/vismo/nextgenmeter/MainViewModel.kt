@@ -387,9 +387,9 @@ class MainViewModel @Inject constructor(
                 // Recheck if it's still inactive after the delay
                 if (!isHeartbeatActive) {
                     startCommunicate()
-                    Sentry.captureException(Throwable(message = "Restarting MCU communication"))
+                    Sentry.captureException(Throwable(message = TAG_RESTARTING_MCU_COMMUNICATION))
                     withContext(mainDispatcher) {
-                        Toast.makeText(context, "Restarting MCU communication", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, TAG_RESTARTING_MCU_COMMUNICATION, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -721,5 +721,6 @@ class MainViewModel @Inject constructor(
         private const val TOOLBAR_UI_DATE_FORMAT = "M月d日 HH:mm"
         private const val MCU_DATE_FORMAT = "yyyyMMddHHmm"
         private const val ACC_SLEEP_STATUS = "1"
+        const val TAG_RESTARTING_MCU_COMMUNICATION = "Restarting MCU communication"
     }
 }
