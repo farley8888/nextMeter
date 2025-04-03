@@ -45,6 +45,7 @@ import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
+import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl
 import com.vismo.nextgenmeter.repository.UsbEventReceiver
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -64,6 +65,7 @@ import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.canBeSnoozed
 import com.vismo.nxgnfirebasemodule.util.DashUtil
 import dagger.hilt.android.AndroidEntryPoint
+import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -136,6 +138,20 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         registerUsbReceiver()
         SentryAndroid.init(this) { options ->
             options.environment = BuildConfig.FLAVOR.uppercase()
+            options.beforeSend = SentryOptions.BeforeSendCallback { event, _ ->
+                val formatted = event.message?.formatted
+                val tags = listOf(
+                    MainViewModel.TAG_RESTARTING_MCU_COMMUNICATION,
+                    MeasureBoardRepositoryImpl.TAG_CHECKSUM_VALIDATION_FAILED,
+                    MeasureBoardRepositoryImpl.TAG_UNKNOWN_RESULT
+                )
+
+                if (formatted != null && tags.any { formatted.contains(it) } && Math.random() > 0.1) {
+                    null  // Drop event (90% chance)
+                } else {
+                    event // Keep event
+                }
+            }
         }
         setContent {
             CableMeterTheme {
