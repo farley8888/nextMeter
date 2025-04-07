@@ -12,6 +12,7 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.Source
 import com.google.gson.Gson
 import com.vismo.nxgnfirebasemodule.model.AGPS
+import com.vismo.nxgnfirebasemodule.model.AndroidGPS
 import com.vismo.nxgnfirebasemodule.model.Driver
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.HealthCheckStatus
@@ -564,12 +565,24 @@ class DashManager @Inject constructor(
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val meterLocation = dashManagerConfig.meterLocation.value
             val isDeviceAsleep = dashManagerConfig.isDeviceAsleep.value
+
+            // reset location if timestamp difference from now is greater than 30 seconds
+            if (meterLocation.timestamp.seconds - Timestamp.now().seconds > 30) {
+                Log.d(TAG, "resetting location")
+                dashManagerConfig.resetLocation()
+                return@launch
+            }
+
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
                     meterLocation.gpsType.speed
                 }
 
                 is GPS -> {
+                    meterLocation.gpsType.speed
+                }
+
+                is AndroidGPS -> {
                     meterLocation.gpsType.speed
                 }
 
@@ -585,6 +598,10 @@ class DashManager @Inject constructor(
                     meterLocation.gpsType.bearing
                 }
 
+                is AndroidGPS -> {
+                    meterLocation.gpsType.bearing
+                }
+
                 else -> null
             }
 
@@ -593,7 +610,7 @@ class DashManager @Inject constructor(
                 id = id,
                 location = meterLocation.geoPoint,
                 gpsType = meterLocation.gpsType.toString(),
-                deviceTime = Timestamp.now(),
+                deviceTime = meterLocation.timestamp,
                 bearing = bearing,
                 speed = speed,
                 serverTime = Timestamp.now(), // Server time is actually set by the .toFirestoreFormat extension

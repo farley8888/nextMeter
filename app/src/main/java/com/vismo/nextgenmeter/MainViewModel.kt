@@ -120,8 +120,6 @@ class MainViewModel @Inject constructor(
     private val _clearApplicationCache = MutableStateFlow(false)
     val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
 
-    private var gpsLocationResetJob: Job? = null
-
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
         .filter {
@@ -548,18 +546,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun setLocation(meterLocation: MeterLocation) {
-        gpsLocationResetJob?.cancel() // Cancel any existing job
-        gpsLocationResetJob = viewModelScope.launch(ioDispatcher) {
-            dashManagerConfig.setLocation(meterLocation)
-            while (isActive) {
-                delay(10_000L)
-                dashManagerConfig.meterLocation.firstOrNull()?.let { currentLocation ->
-                    if (currentLocation.gpsType is GPS) {
-                        dashManagerConfig.resetLocation()
-                    }
-                }
-            }
-        }
+        dashManagerConfig.setLocation(meterLocation)
     }
 
     fun startCommunicate() {
@@ -743,7 +730,6 @@ class MainViewModel @Inject constructor(
         accEnquiryJob?.cancel()
         busModelJob?.cancel()
         heartbeatJob?.cancel()
-        gpsLocationResetJob?.cancel()
     }
 
     companion object {

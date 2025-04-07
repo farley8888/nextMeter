@@ -62,6 +62,7 @@ import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import com.vismo.nxgnfirebasemodule.model.AGPS
+import com.vismo.nxgnfirebasemodule.model.AndroidGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.canBeSnoozed
@@ -441,7 +442,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
             mainViewModel.setLocation(
                 MeterLocation(
                     geoPoint = GeoPoint(location.latitude, location.longitude),
-                    gpsType = GPS(
+                    gpsType = AndroidGPS(
                         speed = location.speed.toDouble(),
                         bearing = location.bearing.toDouble()
                     )
@@ -477,15 +478,30 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                 val locType = jsonObject.getInt("locType")
                 Log.d(TAG, "onLocationChanged: locType = $locType")
                 location?.let {
-                    mainViewModel.setLocation(
-                        MeterLocation(
-                            geoPoint = it,
-                            gpsType = AGPS(
-                                speed = speed,
-                                bearing = bearing
+                    when (locType) {
+                        1 -> {
+                            mainViewModel.setLocation(
+                                MeterLocation(
+                                    geoPoint = it,
+                                    gpsType = GPS(
+                                        speed = speed,
+                                        bearing = bearing
+                                    )
+                                )
                             )
-                        )
-                    )
+                        }
+                        else -> {
+                            mainViewModel.setLocation(
+                                MeterLocation(
+                                    geoPoint = it,
+                                    gpsType = AGPS(
+                                        speed = speed,
+                                        bearing = bearing
+                                    )
+                                )
+                            )
+                        }
+                    }
                 }
             }
         AmapLocationUtils.getInstance().startLocation()
