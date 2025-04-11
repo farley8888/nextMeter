@@ -257,10 +257,19 @@ class DashManager @Inject constructor(
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val currentSessionId = _meterFields.value?.session?.sessionId
             if (currentSessionId != null) {
+                updateSessionEndTime(currentSessionId, Timestamp.now())
                 val deleteSessionMap = mapOf(SESSION to FieldValue.delete())
                 getMeterDocument().update(deleteSessionMap)
             }
         }
+    }
+
+    private fun updateSessionEndTime(sessionId: String, endTime: Timestamp) {
+        firestore.collection("sessions")
+            .document(sessionId)
+            .update(
+                "end_time", endTime
+            )
     }
 
     fun isMCUParamsUpdateRequired() {
