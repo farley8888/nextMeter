@@ -32,3 +32,8 @@ object NOT_SET: GPSType() {
         return "NOT_SET"
     }
 }
+object RESET: GPSType() {
+    override fun toString(): String {
+        return "RESET"
+    }
+}

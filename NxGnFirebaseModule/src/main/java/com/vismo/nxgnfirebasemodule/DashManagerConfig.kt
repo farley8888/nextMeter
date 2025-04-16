@@ -3,6 +3,7 @@ package com.vismo.nxgnfirebasemodule
 import com.google.firebase.firestore.GeoPoint
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.NOT_SET
+import com.vismo.nxgnfirebasemodule.model.RESET
 import com.vismo.nxgnfirebasemodule.util.Constant.DEFAULT_LICENSE_PLATE
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -46,7 +47,7 @@ class DashManagerConfig @Inject constructor(
 
     fun resetLocation() {
         CoroutineScope(ioDispatcher).launch {
-            _meterLocation.value = defaultMeterLocation
+            _meterLocation.value = MeterLocation(GeoPoint(0.0, 0.0), RESET)
         }
     }
 

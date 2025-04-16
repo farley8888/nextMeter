@@ -46,6 +46,7 @@ import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.NOT_SET
+import com.vismo.nxgnfirebasemodule.model.RESET
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
@@ -68,7 +69,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -195,8 +195,9 @@ class MainViewModel @Inject constructor(
                 is GPS -> {
                     AmapLocationUtils.getInstance().stopLocation()
                 }
-                NOT_SET -> {
+                RESET -> {
                     AmapLocationUtils.getInstance().startLocation()
+                    dashManagerConfig.setLocation(it.copy(gpsType = NOT_SET))
                 }
                 else -> {}
             }
