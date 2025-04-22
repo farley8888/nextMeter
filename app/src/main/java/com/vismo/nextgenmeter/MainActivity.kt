@@ -53,6 +53,7 @@ import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
 import com.vismo.nextgenmeter.service.WifiBroadcastReceiver
+import com.vismo.nextgenmeter.service.WifiStateChangeListener
 import com.vismo.nextgenmeter.ui.NavigationGraph
 import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
@@ -82,12 +83,13 @@ import java.util.TimeZone
 
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity(), UsbEventReceiver {
+class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListener {
     private val mainViewModel: MainViewModel by viewModels()
     private var navController: NavHostController? = null
     private var storageReceiver : StorageBroadcastReceiver? = null
     private var usbBroadcastReceiver: UsbBroadcastReceiver? = null
-    private var wifiReceiver: WifiBroadcastReceiver? = null
+    private val wifiReceiver = WifiBroadcastReceiver(this)
+
 
     private fun registerStorageReceiver() {
         storageReceiver = StorageBroadcastReceiver()
@@ -112,12 +114,12 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
     }
 
     private fun registerWifiReceiver() {
-        wifiReceiver = WifiBroadcastReceiver()
-        val filter = IntentFilter().apply {
+        val intentFilter = IntentFilter().apply {
             addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
-            addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+            addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION)
+            addAction("android.net.wifi.STATE_CHANGE")
         }
-        registerReceiver(wifiReceiver, filter)
+        registerReceiver(wifiReceiver, intentFilter)
     }
 
     override fun onResume() {
@@ -527,9 +529,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         usbBroadcastReceiver?.let {
             unregisterReceiver(it)
         }
-        wifiReceiver?.let {
-            unregisterReceiver(it)
-        }
+
+        unregisterReceiver(wifiReceiver)
+
     }
 
     companion object {
@@ -559,5 +561,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
             USBReceiverStatus.Detached
         }
         DeviceDataStore.setUSBReceiverStatus(status)
+    }
+
+    override fun onWifiStateChanged(isEnabled: Boolean) {
+        mainViewModel.setWifiIconVisibility(isEnabled)
     }
 }
