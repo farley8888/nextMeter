@@ -50,6 +50,7 @@ import com.vismo.nextgenmeter.repository.UsbEventReceiver
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
+import com.vismo.nextgenmeter.service.WifiBroadcastReceiver
 import com.vismo.nextgenmeter.ui.NavigationGraph
 import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
@@ -83,6 +84,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
     private var navController: NavHostController? = null
     private var storageReceiver : StorageBroadcastReceiver? = null
     private var usbBroadcastReceiver: UsbBroadcastReceiver? = null
+    private var wifiReceiver: WifiBroadcastReceiver? = null
 
     private fun registerStorageReceiver() {
         storageReceiver = StorageBroadcastReceiver()
@@ -104,6 +106,15 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         }
 
         registerReceiver(usbBroadcastReceiver, filter)
+    }
+
+    private fun registerWifiReceiver() {
+        wifiReceiver = WifiBroadcastReceiver()
+        val filter = IntentFilter().apply {
+            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+        }
+        registerReceiver(wifiReceiver, filter)
     }
 
     override fun onResume() {
@@ -134,6 +145,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         startAMapLocation()
         listenToSignalStrength()
         setWifiStatus()
+        registerWifiReceiver()
         registerStorageReceiver()
         registerUsbReceiver()
         SentryAndroid.init(this) { options ->
@@ -492,6 +504,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
             unregisterReceiver(it)
         }
         usbBroadcastReceiver?.let {
+            unregisterReceiver(it)
+        }
+        wifiReceiver?.let {
             unregisterReceiver(it)
         }
     }
