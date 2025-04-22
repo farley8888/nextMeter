@@ -177,10 +177,12 @@ object AppModule {
     fun providesPeripheralControlRepository(
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         measureBoardRepository: MeasureBoardRepository,
+        dashManagerConfig: DashManagerConfig
     ): PeripheralControlRepository {
         return PeripheralControlRepositoryImpl(
             ioDispatcher = ioDispatcher,
-            measureBoardRepository = measureBoardRepository
+            measureBoardRepository = measureBoardRepository,
+            dashManagerConfig = dashManagerConfig
         )
     }
 
