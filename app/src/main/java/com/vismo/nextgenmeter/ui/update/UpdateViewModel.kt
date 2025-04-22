@@ -298,7 +298,6 @@ class UpdateViewModel @Inject constructor(
                 wifiManager.reconnect()
 
                 Log.d("WiFiConnection", "Connected to $ssid")
-                Toast.makeText(context, "Connected to $ssid", Toast.LENGTH_SHORT).show()
             } else {
                 Log.e("WiFiConnection", "Failed to connect to $ssid")
                 Toast.makeText(context, "Failed to connect to $ssid", Toast.LENGTH_SHORT).show()
