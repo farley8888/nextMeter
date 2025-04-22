@@ -574,6 +574,7 @@ class DashManager @Inject constructor(
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val meterLocation = dashManagerConfig.meterLocation.value
             val isDeviceAsleep = dashManagerConfig.isDeviceAsleep.value
+            val isFlagDown = dashManagerConfig.isFlagDown.value
 
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
@@ -617,7 +618,8 @@ class DashManager @Inject constructor(
                 speed = speed,
                 serverTime = Timestamp.now(), // Server time is actually set by the .toFirestoreFormat extension
                 meterSoftwareVersion = DashManagerConfig.meterSoftwareVersion,
-                deviceAccStatus = if (isDeviceAsleep) ACC_STATUS_ASLEEP else ACC_STATUS_AWAKE
+                deviceAccStatus = if (isDeviceAsleep) ACC_STATUS_ASLEEP else ACC_STATUS_AWAKE,
+                isFlagDown = isFlagDown
             )
             val json = gson.toJson(heartbeat)
             val map =

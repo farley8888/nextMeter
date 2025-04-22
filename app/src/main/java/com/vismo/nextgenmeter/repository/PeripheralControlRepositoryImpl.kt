@@ -10,10 +10,10 @@ import com.vismo.nextgenmeter.model.TripData
 import com.vismo.nextgenmeter.model.TripStatus
 import com.vismo.nextgenmeter.model.TripSummary
 import com.vismo.nextgenmeter.module.IoDispatcher
-import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl.Companion
 import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.formatToNDecimalPlace
 import com.vismo.nextgenmeter.ui.meter.MeterOpsUtil.getDistanceInKm
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
+import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import io.sentry.Sentry
 import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -29,7 +29,8 @@ import java.util.logging.Logger
 
 class PeripheralControlRepositoryImpl(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-    private val measureBoardRepository: MeasureBoardRepository
+    private val measureBoardRepository: MeasureBoardRepository,
+    private val dashManagerConfig: DashManagerConfig
 ) : PeripheralControlRepository{
     private var mWorkCh3: UartWorkerCH? = null
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
@@ -80,10 +81,12 @@ class PeripheralControlRepositoryImpl(
                     ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio117/value"))
                     delay(300)
                     ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio116/value"))
+                    dashManagerConfig.setFlagDown(true)
                 } else if (!goDown && isCurrentlyDown) {
                     ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio117/value"))
                     delay(300)
                     ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio116/value"))
+                    dashManagerConfig.setFlagDown(false)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

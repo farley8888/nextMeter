@@ -25,7 +25,8 @@ data class Heartbeat(
     @SerializedName("bearing") val bearing: Number?,
     @SerializedName("speed") val speed: Number?,
     @SerializedName("meter_software_version") val meterSoftwareVersion: String? = null,
-    @SerializedName("acc_status") val deviceAccStatus: String? = null
+    @SerializedName("acc_status") val deviceAccStatus: String? = null,
+    @SerializedName("is_flag_down") val isFlagDown: Boolean? = null
 )
 
 class HeartbeatSerializer : JsonSerializer<Heartbeat> {
@@ -39,6 +40,7 @@ class HeartbeatSerializer : JsonSerializer<Heartbeat> {
         jsonObject.add(SERVER_TIME, context.serialize(src.serverTime))
         jsonObject.addProperty("meter_software_version", src.meterSoftwareVersion)
         jsonObject.addProperty("acc_status", src.deviceAccStatus)
+        jsonObject.addProperty("is_flag_down", src.isFlagDown)
 
         src.bearing?.let { jsonObject.addProperty("bearing", it) }
         src.speed?.let { jsonObject.addProperty("speed", it) }

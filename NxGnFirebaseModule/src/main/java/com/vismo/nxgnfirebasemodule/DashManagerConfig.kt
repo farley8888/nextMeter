@@ -27,6 +27,9 @@ class DashManagerConfig @Inject constructor(
     private val _isDeviceAsleep = MutableStateFlow(false)
     val isDeviceAsleep: StateFlow<Boolean> = _isDeviceAsleep
 
+    private val _isFlagDown = MutableStateFlow<Boolean?>(null)
+    val isFlagDown: StateFlow<Boolean?> = _isFlagDown
+
     fun setDeviceIdData(deviceId: String, licensePlate: String) {
         CoroutineScope(ioDispatcher).launch {
             _deviceId.value = deviceId
@@ -37,6 +40,10 @@ class DashManagerConfig @Inject constructor(
                 _meterIdentifier.value = licensePlate
             }
         }
+    }
+
+    suspend fun setFlagDown(isFlagDown: Boolean) {
+        _isFlagDown.value = isFlagDown
     }
 
     fun setLocation(location: MeterLocation) {
