@@ -575,13 +575,6 @@ class DashManager @Inject constructor(
             val meterLocation = dashManagerConfig.meterLocation.value
             val isDeviceAsleep = dashManagerConfig.isDeviceAsleep.value
 
-            // reset location if timestamp difference from now is greater than 30 seconds
-            if (meterLocation.timestamp.seconds - Timestamp.now().seconds > 30) {
-                Log.d(TAG, "resetting location")
-                dashManagerConfig.resetLocation()
-                return@launch
-            }
-
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
                     meterLocation.gpsType.speed

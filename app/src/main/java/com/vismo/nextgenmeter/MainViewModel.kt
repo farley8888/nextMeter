@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
@@ -42,7 +43,9 @@ import com.vismo.nextgenmeter.ui.theme.primary700
 import com.vismo.nextgenmeter.util.Constant
 import com.vismo.nextgenmeter.util.GlobalUtils.maskLast
 import com.vismo.nxgnfirebasemodule.DashManager
+import com.vismo.nxgnfirebasemodule.DashManager.Companion
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
+import com.vismo.nxgnfirebasemodule.model.AndroidGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.NOT_SET
@@ -78,6 +81,7 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.math.abs
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -192,12 +196,18 @@ class MainViewModel @Inject constructor(
         dashManagerConfig.meterLocation.collectLatest {
             updateLocationIconVisibility(isVisible = it.gpsType != NOT_SET)
             when (it.gpsType) {
-                is GPS -> {
+                is GPS, is AndroidGPS -> {
                     AmapLocationUtils.getInstance().stopLocation()
+                    // reset location if timestamp difference from now is greater than 30 seconds
+                    if (abs(Timestamp.now().seconds - it.timestamp.seconds) > 30) {
+                        Log.d(TAG, "resetting location")
+                        dashManagerConfig.resetLocation()
+                    }
                 }
+
                 RESET -> {
                     AmapLocationUtils.getInstance().startLocation()
-                    dashManagerConfig.setLocation(it.copy(gpsType = NOT_SET))
+                    dashManagerConfig.setLocation(MeterLocation(GeoPoint(0.0, 0.0), NOT_SET))
                 }
                 else -> {}
             }
