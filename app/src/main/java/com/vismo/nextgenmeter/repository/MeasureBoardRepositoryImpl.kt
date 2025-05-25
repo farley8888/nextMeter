@@ -254,7 +254,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
                 mcuStatus = heartbeatData.mcuStatus,
-                isNewTrip = true
             )
         } else {
             // update Trip
@@ -273,7 +272,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
                 mcuStatus = heartbeatData.mcuStatus,
-                isNewTrip = false
             )
         }
 
