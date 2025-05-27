@@ -33,6 +33,8 @@ class PeripheralControlRepositoryImpl(
     private val dashManagerConfig: DashManagerConfig
 ) : PeripheralControlRepository{
     private var mWorkCh3: UartWorkerCH? = null
+    private var mWorkCh2: UartWorkerCH? = null
+
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
         Sentry.addBreadcrumb("PeripheralControlRepositoryImpl Scope exception", "PeripheralControlRepositoryImpl Scope exception")
@@ -106,6 +108,10 @@ class PeripheralControlRepositoryImpl(
             openCH3()
             delay(2000) // Consider optimizing this delay
         }
+        if (mWorkCh2 == null) {
+            openCH1()
+            delay(2000) // Consider optimizing this delay
+        }
     }
 
     private fun openCH3() {
@@ -117,6 +123,20 @@ class PeripheralControlRepositoryImpl(
                 }
             }
             mWorkCh3?.startCommunicate()
+        } catch (e: IOException) {
+            Logger.getLogger(TAG).warning("openCH3: $e")
+        }
+    }
+
+    private fun openCH1() {
+        try {
+            mWorkCh2 = UartWorkerCH(Config.SERIAL_CH2, Config.BATE_CH, 0, "CH2")
+            mWorkCh2?.setOnReceiveListener { data: String ->
+                scope.launch {
+                    println("CH3.Opt receive = $data")
+                }
+            }
+            mWorkCh2?.startCommunicate()
         } catch (e: IOException) {
             Logger.getLogger(TAG).warning("openCH3: $e")
         }
@@ -168,6 +188,27 @@ class PeripheralControlRepositoryImpl(
             printData(data)
         } catch (e: Exception) {
             Logger.getLogger(TAG).warning("writePrintSummaryCommand: $e")
+        }
+    }
+
+    override suspend fun controlLight(
+        greenOnTime: String,
+        greenOffTime: String,
+        blueOnTime: String,
+        blueOffTime: String
+    ) {
+        ensureCH3Initialized()
+        if (mWorkCh2 == null) {
+            Log.w(TAG, "mWorkCh3 is still null after initialization")
+            return
+        }
+
+        try {
+            val command = "$greenOnTime,$greenOffTime,$blueOnTime,$blueOffTime#"
+            val bytes = command.toByteArray()
+            mWorkCh2?.writer?.writeData(bytes)
+        } catch (e: Exception) {
+            Logger.getLogger(TAG).warning("controlLight: $e")
         }
     }
 
@@ -226,6 +267,7 @@ class PeripheralControlRepositoryImpl(
 
     override fun close() {
         mWorkCh3?.stopCommunicate()
+        mWorkCh2?.stopCommunicate()
         scope.cancel()
     }
 

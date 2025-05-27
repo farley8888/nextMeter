@@ -421,10 +421,22 @@ class MainViewModel @Inject constructor(
                 if (driverPreferenceRepository.getDriverOnce().driverPhoneNumber != it.session?.driver?.driverPhoneNumber) {
                     if (it.session?.driver?.driverPhoneNumber != null) {
                         driverPreferenceRepository.saveDriver(it.session.driver)
+                        peripheralControlRepository.controlLight(
+                            greenOnTime = "00000",
+                            greenOffTime = "00000",
+                            blueOnTime = "55555",
+                            blueOffTime = "00000"
+                        )
                         Sentry.configureScope { scope: IScope ->
                             scope.setTag("driver_phone_number", it.session.driver.driverPhoneNumber )
                         }
                     } else {
+                        peripheralControlRepository.controlLight(
+                            greenOnTime = "00000",
+                            greenOffTime = "99999",
+                            blueOnTime = "00000",
+                            blueOffTime = "99999"
+                        )
                         driverPreferenceRepository.resetDriver()
                         Sentry.configureScope { scope: IScope ->
                             scope.removeTag("driver_phone_number")
