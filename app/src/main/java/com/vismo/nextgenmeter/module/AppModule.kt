@@ -4,6 +4,8 @@ import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.firestore.PersistentCacheSettings
 import com.google.firebase.storage.FirebaseStorage
 import com.google.gson.Gson
 import com.vismo.nextgenmeter.dao.TripsDao
@@ -47,7 +49,18 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesFirebaseFirestore() = FirebaseFirestore.getInstance()
+    fun providesFirebaseFirestore(): FirebaseFirestore {
+        val settings = FirebaseFirestoreSettings.Builder()
+            .setLocalCacheSettings(
+                PersistentCacheSettings.newBuilder()
+                    .setSizeBytes(100 * 1024 * 1024) // 100 MB
+                    .build()
+            )
+            .build()
+        return FirebaseFirestore.getInstance().apply {
+            firestoreSettings = settings
+        }
+    }
 
     @Provides
     @Singleton
@@ -164,10 +177,12 @@ object AppModule {
     fun providesPeripheralControlRepository(
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         measureBoardRepository: MeasureBoardRepository,
+        dashManagerConfig: DashManagerConfig
     ): PeripheralControlRepository {
         return PeripheralControlRepositoryImpl(
             ioDispatcher = ioDispatcher,
-            measureBoardRepository = measureBoardRepository
+            measureBoardRepository = measureBoardRepository,
+            dashManagerConfig = dashManagerConfig
         )
     }
 
@@ -194,12 +209,14 @@ object AppModule {
     fun providesRemoteMCUControlRepository(
         dashManager: DashManager,
         measureBoardRepository: MeasureBoardRepository,
-        logShippingRepository: LogShippingRepository
+        logShippingRepository: LogShippingRepository,
+        meterPreferenceRepository: MeterPreferenceRepository
     ): RemoteMeterControlRepository {
         return RemoteMeterControlRepositoryImpl(
             dashManager = dashManager,
             measureBoardRepository = measureBoardRepository,
             logShippingRepository = logShippingRepository,
+            meterPreferenceRepository = meterPreferenceRepository
         )
     }
 

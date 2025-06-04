@@ -14,8 +14,10 @@ import com.google.gson.Gson
 import com.vismo.nxgnfirebasemodule.model.AGPS
 import com.vismo.nxgnfirebasemodule.model.Driver
 import com.vismo.nxgnfirebasemodule.model.GPS
+import com.vismo.nxgnfirebasemodule.model.HealthCheckStatus
 import com.vismo.nxgnfirebasemodule.model.Heartbeat
 import com.vismo.nxgnfirebasemodule.model.McuInfo
+import com.vismo.nxgnfirebasemodule.model.McuInfoStatus
 import com.vismo.nxgnfirebasemodule.model.MeterDeviceProperties
 import com.vismo.nxgnfirebasemodule.model.MeterFields
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
@@ -26,6 +28,7 @@ import com.vismo.nxgnfirebasemodule.model.Settings
 import com.vismo.nxgnfirebasemodule.model.TripSession
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
+import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.isCompleted
 import com.vismo.nxgnfirebasemodule.model.shouldPrompt
 import com.vismo.nxgnfirebasemodule.util.Constant.AUDIT_COLLECTION
@@ -40,7 +43,6 @@ import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.TRIPS_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATES_COLLECTION
 import com.vismo.nxgnfirebasemodule.util.Constant.UPDATE_MCU_PARAMS
-import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import com.vismo.nxgnfirebasemodule.util.DashUtil.toFirestoreFormat
 import com.vismo.nxgnfirebasemodule.util.LogConstant
 import kotlinx.coroutines.CoroutineDispatcher
@@ -94,7 +96,7 @@ class DashManager @Inject constructor(
 
     private var externalScope: CoroutineScope? = null
 
-    fun init(scope: CoroutineScope) {
+    fun init(scope: CoroutineScope, mostRecentlyCompletedUpdateId: String?) {
         externalScope = scope
         setMeterInfoToSettings()
         meterSdkConfigurationListener()
@@ -103,8 +105,28 @@ class DashManager @Inject constructor(
             launch { observeMeterDeviceId() }
         }
         checkForMostRelevantOTAUpdate()
+        writeUpdateStatus(mostRecentlyCompletedUpdateId)
         isInitialized = true
         Log.d(TAG, "DashManager initialized")
+    }
+
+    private fun writeUpdateStatus(mostRecentlyCompletedUpdateId: String?) {
+        externalScope?.launch {
+            if (!mostRecentlyCompletedUpdateId.isNullOrBlank()) {
+                val updatesCollection = getMeterDocument()
+                    .collection(UPDATES_COLLECTION)
+
+                updatesCollection
+                    .document(mostRecentlyCompletedUpdateId)
+                    .update("status", UpdateStatus.COMPLETE.name)
+                    .addOnSuccessListener {
+                        Log.d(TAG, "writeUpdateStatus COMPLETE successfully")
+                    }
+                    .addOnFailureListener {
+                        Log.e(TAG, "writeUpdateStatus COMPLETE error", it)
+                    }
+            }
+        }
     }
 
     private suspend fun observeMeterDeviceId() {
@@ -138,8 +160,16 @@ class DashManager @Inject constructor(
         }
     }
 
-    fun resetMeterDeviceProperties() {
-        _meterDeviceProperties.value = null
+    fun healthCheckApprovedAndLicensePlateSet() {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
+            _meterDeviceProperties.value = null // Reset the meter device properties flow
+
+            getMeterDevicesDocument()
+                .set(
+                    mapOf("health_check_status" to HealthCheckStatus.LICENSE_PLATE_SET.name),
+                    SetOptions.merge()
+                )
+        }
     }
 
     fun performHealthCheck() {
@@ -154,7 +184,7 @@ class DashManager @Inject constructor(
             val location = dashManagerConfig.meterLocation
             val gpsType = location.value.gpsType.toString()
             val map = mapOf(
-                "is_health_check_complete" to null,
+                "health_check_status" to HealthCheckStatus.UPDATED.name,
                 "gps_type" to gpsType,
                 "location" to location.value.geoPoint,
                 "env" to env
@@ -227,10 +257,19 @@ class DashManager @Inject constructor(
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val currentSessionId = _meterFields.value?.session?.sessionId
             if (currentSessionId != null) {
+                updateSessionEndTime(currentSessionId, Timestamp.now())
                 val deleteSessionMap = mapOf(SESSION to FieldValue.delete())
                 getMeterDocument().update(deleteSessionMap)
             }
         }
+    }
+
+    private fun updateSessionEndTime(sessionId: String, endTime: Timestamp) {
+        firestore.collection("sessions")
+            .document(sessionId)
+            .update(
+                "end_time", endTime
+            )
     }
 
     fun isMCUParamsUpdateRequired() {
@@ -299,17 +338,6 @@ class DashManager @Inject constructor(
             getMeterDocument()
                 .set(mapOf(LOCKED_AT to FieldValue.delete()), SetOptions.merge())
             _remoteUnlockMeter.value = false
-        }
-    }
-
-    fun updateFirestoreTripTotalAndFee(tripId: String, total: Double) {
-        externalScope?.launch(ioDispatcher + exceptionHandler) {
-            updateTripOnFirestore(
-                MeterTripInFirestore(
-                    tripId = tripId,
-                    total = total.roundTo(2).toDouble(),
-                )
-            )
         }
     }
 
@@ -399,7 +427,8 @@ class DashManager @Inject constructor(
     fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val json = gson.toJson(mcuInfo.copy(
-                updatedAt = Timestamp.now()
+                updatedAt = Timestamp.now(),
+                status = McuInfoStatus.UPDATED
             ))
             val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
@@ -544,6 +573,8 @@ class DashManager @Inject constructor(
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             val meterLocation = dashManagerConfig.meterLocation.value
             val isDeviceAsleep = dashManagerConfig.isDeviceAsleep.value
+            val isFlagDown = dashManagerConfig.isFlagDown.value
+
             val speed = when (meterLocation.gpsType) {
                 is AGPS -> {
                     meterLocation.gpsType.speed
@@ -578,7 +609,8 @@ class DashManager @Inject constructor(
                 speed = speed,
                 serverTime = Timestamp.now(), // Server time is actually set by the .toFirestoreFormat extension
                 meterSoftwareVersion = DashManagerConfig.meterSoftwareVersion,
-                deviceAccStatus = if (isDeviceAsleep) ACC_STATUS_ASLEEP else ACC_STATUS_AWAKE
+                deviceAccStatus = if (isDeviceAsleep) ACC_STATUS_ASLEEP else ACC_STATUS_AWAKE,
+                isFlagDown = isFlagDown
             )
             val json = gson.toJson(heartbeat)
             val map =

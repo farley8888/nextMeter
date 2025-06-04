@@ -5,19 +5,25 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.net.Uri
+import android.net.wifi.WifiConfiguration
+import android.net.wifi.WifiManager
 import android.os.PowerManager
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.storage.FirebaseStorage
+import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.OnUpdateCompletedReceiver
+import com.vismo.nextgenmeter.util.Constant.ENV_PRD
 import com.vismo.nxgnfirebasemodule.model.Update
+import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.util.Constant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -59,8 +65,10 @@ class UpdateViewModel @Inject constructor(
                     if(it) {
                         _updateState.value = UpdateState.Success
                         updateDetails.firstOrNull()?.let { update ->
+                            remoteMeterControlRepository.saveRecentlyCompletedUpdateId(update.id)
                             writeUpdateResultToFireStore(update.copy(
-                                completedOn = Timestamp.now()
+                                completedOn = Timestamp.now(),
+                                status = UpdateStatus.WAITING_FOR_RESTART
                             ))
                         }
                         delay(4000)
@@ -75,9 +83,11 @@ class UpdateViewModel @Inject constructor(
     private fun checkForUpdates() {
         viewModelScope.launch(ioDispatcher) {
             val update = remoteMeterControlRepository.remoteUpdateRequest.firstOrNull()
+            val wifiCredential = remoteMeterControlRepository.meterSdkConfiguration.firstOrNull()?.wifiCredential
             if (update != null && (update.type == Constant.OTA_FIRMWARE_TYPE || update.type == Constant.OTA_METERAPP_TYPE)) {
                 FirebaseStorage.getInstance().getReferenceFromUrl(update.url).downloadUrl
                     .addOnSuccessListener {
+                        connectToWifiLegacy(context, ssid = wifiCredential?.ssid, password = wifiCredential?.password)
                         downloadFile(it, update)
                     }
                     .addOnFailureListener {
@@ -99,6 +109,11 @@ class UpdateViewModel @Inject constructor(
         // Download the APK
         viewModelScope.launch(ioDispatcher) {
             _updateState.value = UpdateState.Downloading(0)
+            writeUpdateResultToFireStore(
+                update.copy(
+                    status = UpdateStatus.DOWNLOADING
+                )
+            )
             try {
                 val fileName = update.url.substringAfterLast("/").ifEmpty { "update.apk" }
                 val externalFilesDir = context.getExternalFilesDir(null)
@@ -154,13 +169,28 @@ class UpdateViewModel @Inject constructor(
 
                 // Validate the downloaded APK
                 _updateState.value = UpdateState.Installing
+                writeUpdateResultToFireStore(
+                    update.copy(
+                        status = UpdateStatus.INSTALLING
+                    )
+                )
                 if (update.type == Constant.OTA_METERAPP_TYPE) {
+                    remoteMeterControlRepository.saveRecentlyCompletedUpdateId(updateDetails.firstOrNull()?.id ?: "")
                     installApk(targetFile)
                 } else if (update.type == Constant.OTA_FIRMWARE_TYPE) {
                     remoteMeterControlRepository.requestPatchFirmwareToMCU(targetFile.absolutePath)
                 }
             } catch (e: Exception) {
                 _updateState.value = UpdateState.Error(e.message ?: "Unknown error", allowRetry = true)
+                writeUpdateResultToFireStore(
+                    update.copy(
+                        status = UpdateStatus.DOWNLOAD_ERROR
+                    )
+                )
+            } finally {
+                if(BuildConfig.FLAVOR == ENV_PRD) {
+                    disconnectAndDisableWifi(context)
+                }
             }
         }
     }
@@ -208,7 +238,8 @@ class UpdateViewModel @Inject constructor(
                 _updateState.value = UpdateState.Success
                 updateDetails.firstOrNull()?.let {
                     writeUpdateResultToFireStore(it.copy(
-                        completedOn = Timestamp.now()
+                        completedOn = Timestamp.now(),
+                        status = UpdateStatus.WAITING_FOR_RESTART
                     ))
                 }
             } catch (e: Exception) {
@@ -223,10 +254,62 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
-    private fun writeUpdateResultToFireStore(update: Update) {
-        viewModelScope.launch(ioDispatcher) {
-            remoteMeterControlRepository.writeUpdateResultToFireStore(update)
+    private fun disconnectAndDisableWifi(context: Context) {
+        try {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wifiManager.disconnect()
+            wifiManager.isWifiEnabled = false
+        } catch (e: Exception) {
+            Log.e("WiFiConnection", "Error disconnecting from WiFi: ${e.message}")
         }
+    }
+
+    private fun connectToWifiLegacy(context: Context, ssid: String?, password: String?) {
+        try {
+            if (ssid == null || password == null) {
+                Toast.makeText(context, "SSID is null", Toast.LENGTH_SHORT).show()
+                Log.e("WiFiConnection", "SSID or password is null")
+                return
+            }
+
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+            // Check if WiFi is enabled
+            if (!wifiManager.isWifiEnabled) {
+                wifiManager.isWifiEnabled = true // Enable WiFi if it's disabled
+            }
+
+            // Create a WiFi configuration
+            val wifiConfig = WifiConfiguration().apply {
+                SSID = "\"$ssid\""
+                preSharedKey = "\"$password\""
+                allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK) // WPA2
+            }
+
+            // Add the WiFi configuration to the system
+            val networkId = wifiManager.addNetwork(wifiConfig)
+
+            if (networkId != -1) {
+                // Disconnect from the current network
+                wifiManager.disconnect()
+
+                // Enable and connect to the new network
+                wifiManager.enableNetwork(networkId, true)
+                wifiManager.reconnect()
+
+                Log.d("WiFiConnection", "Connected to $ssid")
+            } else {
+                Log.e("WiFiConnection", "Failed to connect to $ssid")
+                Toast.makeText(context, "Failed to connect to $ssid", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Log.e("WiFiConnection", "Error connecting to WiFi: ${e.message}")
+            Toast.makeText(context, "Error connecting to WiFi: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun writeUpdateResultToFireStore(update: Update) {
+        remoteMeterControlRepository.writeUpdateResultToFireStore(update)
     }
 
     companion object {

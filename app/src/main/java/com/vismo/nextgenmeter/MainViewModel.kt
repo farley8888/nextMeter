@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.ilin.util.ShellUtils
@@ -44,6 +45,7 @@ import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
+import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
@@ -116,11 +118,28 @@ class MainViewModel @Inject constructor(
 
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
-        .filter { if(it?.type == OTA_METERAPP_TYPE) {
-            isBuildVersionHigherThanCurrentVersion(it.version)
-        }else if (it?.type == OTA_FIRMWARE_TYPE) {
-            it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion // valid only if the firmware versions are not equal
-        } else false }
+        .filter {
+            when (it?.type) {
+            OTA_METERAPP_TYPE -> {
+                val isValid = isBuildVersionHigherThanCurrentVersion(it.version)
+                val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.VERSION_ERROR
+                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus))
+                isValid
+            }
+            OTA_FIRMWARE_TYPE -> {
+                val isValid = it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion
+                val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.COMPLETE
+                remoteMeterControlRepository.writeUpdateResultToFireStore(
+                    it.copy(
+                        status = newStatus,
+                        completedOn = if (newStatus == UpdateStatus.COMPLETE) Timestamp.now() else null
+                    )
+                )
+                isValid
+            }
+            else -> false
+        }
+        }
         .stateIn(viewModelScope, started = SharingStarted.Eagerly, initialValue = null)
 
     private var isMCUTimeSet = false
@@ -368,9 +387,9 @@ class MainViewModel @Inject constructor(
                 // Recheck if it's still inactive after the delay
                 if (!isHeartbeatActive) {
                     startCommunicate()
-                    Sentry.captureException(Throwable(message = "Restarting MCU communication"))
+                    Sentry.captureException(Throwable(message = TAG_RESTARTING_MCU_COMMUNICATION))
                     withContext(mainDispatcher) {
-                        Toast.makeText(context, "Restarting MCU communication", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, TAG_RESTARTING_MCU_COMMUNICATION, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -702,5 +721,6 @@ class MainViewModel @Inject constructor(
         private const val TOOLBAR_UI_DATE_FORMAT = "M月d日 HH:mm"
         private const val MCU_DATE_FORMAT = "yyyyMMddHHmm"
         private const val ACC_SLEEP_STATUS = "1"
+        const val TAG_RESTARTING_MCU_COMMUNICATION = "Restarting MCU communication"
     }
 }

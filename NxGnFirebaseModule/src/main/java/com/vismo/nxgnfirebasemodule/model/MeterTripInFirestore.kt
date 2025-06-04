@@ -7,7 +7,6 @@ import com.google.gson.annotations.SerializedName
 import com.vismo.nxgnfirebasemodule.util.DashUtil.roundTo
 import org.json.JSONObject
 import java.io.Serializable
-import java.math.BigDecimal
 
 
 data class MeterTripInFirestore(
@@ -34,7 +33,6 @@ data class MeterTripInFirestore(
     @SerializedName("dash_fee_rate") val dashFeeRate: Double? = null,
     @SerializedName("dash_fee_constant") val dashFeeConstant: Double? = null,
     @SerializedName("user") val user: PairedUserInformation? = null,
-    @SerializedName("applicable_payment_method_for_discount") val applicablePaymentMethodForDiscount: List<String>? = null,
     @SerializedName("payment_method_selected") val paymentMethodSelectedOnPOS: String? = null,
     @SerializedName("payment_information") val paymentInformation: List<Map<String, *>>? = null,
     @SerializedName("session") val session: TripSession? = null,

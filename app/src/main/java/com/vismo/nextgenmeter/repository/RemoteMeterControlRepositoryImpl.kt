@@ -5,11 +5,13 @@ import com.google.firebase.Timestamp
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nextgenmeter.model.McuInfoStatus
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nextgenmeter.model.format
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
+import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,6 +27,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     private val dashManager: DashManager,
     private val measureBoardRepository: MeasureBoardRepository,
     private val logShippingRepository: LogShippingRepository,
+    private val meterPreferenceRepository: MeterPreferenceRepository
 ) : RemoteMeterControlRepository {
 
     private val TAG = "RemoteMeterControlRepositoryImpl"
@@ -35,15 +39,22 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     override val meterDeviceProperties = dashManager.meterDeviceProperties
     override val meterIdentifier = measureBoardRepository.meterIdentifierInRemote
+    override val meterSdkConfiguration = dashManager.meterSdkConfig
 
     override val remoteUpdateRequest: StateFlow<Update?> = dashManager.mostRelevantUpdate
 
     private var externalScope: CoroutineScope? = null
 
-    override fun initDashManager(scope: CoroutineScope) {
+    override suspend fun initDashManager(scope: CoroutineScope) {
         DashManagerConfig.simIccId = getICCID() ?: ""
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
-        dashManager.init(scope)
+        val mostRecentlyCompletedUpdateId = meterPreferenceRepository.getRecentlyCompletedUpdateId().firstOrNull()
+        dashManager.init(scope, mostRecentlyCompletedUpdateId = mostRecentlyCompletedUpdateId)
+        if (!mostRecentlyCompletedUpdateId.isNullOrBlank()) {
+            // this is to ensure that the most recently completed update is written to firestore
+            measureBoardRepository.enquireParameters()
+        }
+        meterPreferenceRepository.saveRecentlyCompletedUpdateId("") // clear the recently completed update id
     }
 
     private fun getICCID(): String? {
@@ -55,7 +66,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         externalScope = scope
         externalScope?.launch {
             launch {
-                DeviceDataStore.mcuPriceParams.collectLatest { mcuParams ->
+                DeviceDataStore.mcuPriceParams.collect { mcuParams ->
                     mcuParams?.let {
                         val mcuInfo: McuInfo = dashManager.convertToType(it.format())
                         dashManager.setMCUInfoOnFirestore(mcuInfo)
@@ -93,6 +104,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
                         if (meterInfo.settings?.triggerLogUpload == true) {
                             triggerLogUpload()
                         }
+
+                        if (meterInfo.mcuInfo?.status == McuInfoStatus.REQUESTED) {
+                            measureBoardRepository.enquireParameters()
+                        }
                     }
                 }
             }
@@ -119,7 +134,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
             measureBoardRepository.updateKValue(kValue.toInt())
             delay(3000L) // seems like this delay is necessary for the measure board to process the kValue update
             measureBoardRepository.updateLicensePlate(licensePlate)
-            resetMeterDevicesFlow()
+            healthCheckApprovedAndLicensePlateSet()
         }
     }
 
@@ -128,8 +143,8 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     }
 
 
-    private fun resetMeterDevicesFlow() {
-        dashManager.resetMeterDeviceProperties()
+    private fun healthCheckApprovedAndLicensePlateSet() {
+        dashManager.healthCheckApprovedAndLicensePlateSet()
     }
 
     override fun performHealthCheck() {
@@ -156,6 +171,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         externalScope?.launch {
             measureBoardRepository.requestPatchFirmware(fileName)
         }
+    }
+
+    override suspend fun saveRecentlyCompletedUpdateId(id: String) {
+        meterPreferenceRepository.saveRecentlyCompletedUpdateId(id = id)
     }
 
 

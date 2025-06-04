@@ -45,10 +45,13 @@ import com.google.firebase.firestore.GeoPoint
 import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
+import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl
 import com.vismo.nextgenmeter.repository.UsbEventReceiver
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
+import com.vismo.nextgenmeter.service.WifiBroadcastReceiver
+import com.vismo.nextgenmeter.service.WifiStateChangeListener
 import com.vismo.nextgenmeter.ui.NavigationGraph
 import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
@@ -64,6 +67,7 @@ import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.canBeSnoozed
 import com.vismo.nxgnfirebasemodule.util.DashUtil
 import dagger.hilt.android.AndroidEntryPoint
+import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -76,11 +80,13 @@ import java.util.TimeZone
 
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity(), UsbEventReceiver {
+class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListener {
     private val mainViewModel: MainViewModel by viewModels()
     private var navController: NavHostController? = null
     private var storageReceiver : StorageBroadcastReceiver? = null
     private var usbBroadcastReceiver: UsbBroadcastReceiver? = null
+    private val wifiReceiver = WifiBroadcastReceiver(this)
+
 
     private fun registerStorageReceiver() {
         storageReceiver = StorageBroadcastReceiver()
@@ -102,6 +108,15 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         }
 
         registerReceiver(usbBroadcastReceiver, filter)
+    }
+
+    private fun registerWifiReceiver() {
+        val intentFilter = IntentFilter().apply {
+            addAction(WifiManager.WIFI_STATE_CHANGED_ACTION)
+            addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION)
+            addAction("android.net.wifi.STATE_CHANGE")
+        }
+        registerReceiver(wifiReceiver, intentFilter)
     }
 
     override fun onResume() {
@@ -132,10 +147,25 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         startAMapLocation()
         listenToSignalStrength()
         setWifiStatus()
+        registerWifiReceiver()
         registerStorageReceiver()
         registerUsbReceiver()
         SentryAndroid.init(this) { options ->
             options.environment = BuildConfig.FLAVOR.uppercase()
+            options.beforeSend = SentryOptions.BeforeSendCallback { event, _ ->
+                val formatted = event.message?.formatted
+                val tags = listOf(
+                    MainViewModel.TAG_RESTARTING_MCU_COMMUNICATION,
+                    MeasureBoardRepositoryImpl.TAG_CHECKSUM_VALIDATION_FAILED,
+                    MeasureBoardRepositoryImpl.TAG_UNKNOWN_RESULT
+                )
+
+                if (formatted != null && tags.any { formatted.contains(it) } && Math.random() > 0.1) {
+                    null  // Drop event (90% chance)
+                } else {
+                    event // Keep event
+                }
+            }
         }
         setContent {
             CableMeterTheme {
@@ -167,12 +197,16 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                     }
 
                     val aValidUpdate = mainViewModel.aValidUpdate.collectAsState().value
+                    if (aValidUpdate != null && aValidUpdate.isAdmin == true) {
+                        // start download process automatically
+                        navigateToUpdateScreen()
+                    }
                     val isTripInProgress by TripDataStore.isTripInProgress.collectAsState(initial = false)
                     val showUpdateDialog = remember { mutableStateOf(false) }
                     val isDialogShown = remember {
                         mutableStateOf(false)
                     }
-                    showUpdateDialog.value = aValidUpdate != null && !isDialogShown.value && !isTripInProgress
+                    showUpdateDialog.value = aValidUpdate != null && !isDialogShown.value && !isTripInProgress && aValidUpdate.isAdmin != true
                     val clearAppCache = mainViewModel.clearApplicationCache.collectAsState().value
                     if (clearAppCache) {
                         clearApplicationCache()
@@ -234,16 +268,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                                         title = "設備需升級軟件",
                                         message = aValidUpdate?.description ?: "",
                                         confirmButtonText = "立即更新",
-                                        onConfirm = {
-                                            // navigate to update
-                                            navController?.navigate(NavigationDestination.UpdateApk.route) {
-                                                navController?.graph?.id?.let { it1 -> popUpTo(it1) {
-                                                    inclusive = true
-                                                } } // Clear the backstack
-                                                restoreState = true
-                                                launchSingleTop = true
-                                            }
-                                        },
+                                        onConfirm = { navigateToUpdateScreen() },
                                         confirmButtonColor = pastelGreen600,
                                         cancelButtonText = if(aValidUpdate?.canBeSnoozed() == true) "稍后更新" else null,
                                         onCancel = {
@@ -262,6 +287,21 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun navigateToUpdateScreen() {
+        // navigate to update
+        if (!isCurrentScreenUpdateApk()) {
+            navController?.navigate(NavigationDestination.UpdateApk.route) {
+                navController?.graph?.id?.let { it1 ->
+                    popUpTo(it1) {
+                        inclusive = true
+                    }
+                } // Clear the backstack
+                restoreState = true
+                launchSingleTop = true
             }
         }
     }
@@ -468,6 +508,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
         usbBroadcastReceiver?.let {
             unregisterReceiver(it)
         }
+
+        unregisterReceiver(wifiReceiver)
+
     }
 
     companion object {
@@ -497,5 +540,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver {
             USBReceiverStatus.Detached
         }
         DeviceDataStore.setUSBReceiverStatus(status)
+    }
+
+    override fun onWifiStateChanged(isEnabled: Boolean) {
+        mainViewModel.setWifiIconVisibility(isEnabled)
     }
 }

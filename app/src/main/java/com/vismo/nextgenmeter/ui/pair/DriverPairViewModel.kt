@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.ui.pair
 
+
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +9,7 @@ import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.DriverPreferenceRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.util.GlobalUtils.encrypt
+import com.vismo.nxgnfirebasemodule.model.HealthCheckStatus
 import com.vismo.nxgnfirebasemodule.util.Constant.DEFAULT_LICENSE_PLATE
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -74,9 +76,9 @@ class DriverPairViewModel @Inject constructor(
         ) { meterDeviceProperties, licensePlateInRemote -> Pair(meterDeviceProperties, licensePlateInRemote) }
             .collectLatest { (meterDeviceProperties, licensePlateInRemote) ->
             meterDeviceProperties?.let {
-                if (meterDeviceProperties.isHealthCheckComplete == false) {
+                if (meterDeviceProperties.healthCheckStatus == HealthCheckStatus.REQUESTED) {
                     remoteMeterControlRepository.performHealthCheck()
-                } else if (meterDeviceProperties.isHealthCheckComplete == true && licensePlateInRemote == DEFAULT_LICENSE_PLATE &&
+                } else if (meterDeviceProperties.healthCheckStatus == HealthCheckStatus.APPROVED && licensePlateInRemote == DEFAULT_LICENSE_PLATE &&
                     !meterDeviceProperties.licensePlate.isNullOrEmpty() && !meterDeviceProperties.kValue.isNullOrEmpty()) {
 
                     val formattedKValue = meterDeviceProperties.kValue.toString().padStart(4, '0')
