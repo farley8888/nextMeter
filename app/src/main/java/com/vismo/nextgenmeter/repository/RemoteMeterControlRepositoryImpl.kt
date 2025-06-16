@@ -11,7 +11,6 @@ import com.vismo.nextgenmeter.model.format
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
-import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import kotlinx.coroutines.CoroutineScope
@@ -48,13 +47,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     override suspend fun initDashManager(scope: CoroutineScope) {
         DashManagerConfig.simIccId = getICCID() ?: ""
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
-        val mostRecentlyCompletedUpdateId = meterPreferenceRepository.getRecentlyCompletedUpdateId().firstOrNull()
-        dashManager.init(scope, mostRecentlyCompletedUpdateId = mostRecentlyCompletedUpdateId)
-        if (!mostRecentlyCompletedUpdateId.isNullOrBlank()) {
-            // this is to ensure that the most recently completed update is written to firestore
-            measureBoardRepository.enquireParameters()
-        }
-        meterPreferenceRepository.saveRecentlyCompletedUpdateId("") // clear the recently completed update id
+        dashManager.init(scope)
+        delay(10_000L) // wait for the initial heartbeats to slow down
+        measureBoardRepository.enquireParameters()
+        Log.d(TAG, "Parameters enquired after initialization")
     }
 
     private fun getICCID(): String? {
@@ -70,6 +66,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
                     mcuParams?.let {
                         val mcuInfo: McuInfo = dashManager.convertToType(it.format())
                         dashManager.setMCUInfoOnFirestore(mcuInfo)
+                        Log.d(TAG, "MCU Info updated: $mcuInfo")
                     }
                 }
             }

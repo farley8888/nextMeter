@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.datastore
 
+import android.util.Log
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
@@ -55,6 +56,7 @@ object DeviceDataStore {
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
         mutex.withLock {
             this._mcuFareParams.emit(mcuData)
+            Log.d("DeviceDataStore", "MCU Fare Params updated: $mcuData")
         }
     }
 

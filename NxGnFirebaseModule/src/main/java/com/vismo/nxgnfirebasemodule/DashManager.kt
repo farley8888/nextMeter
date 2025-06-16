@@ -96,7 +96,7 @@ class DashManager @Inject constructor(
 
     private var externalScope: CoroutineScope? = null
 
-    fun init(scope: CoroutineScope, mostRecentlyCompletedUpdateId: String?) {
+    fun init(scope: CoroutineScope) {
         externalScope = scope
         setMeterInfoToSettings()
         meterSdkConfigurationListener()
@@ -105,28 +105,8 @@ class DashManager @Inject constructor(
             launch { observeMeterDeviceId() }
         }
         checkForMostRelevantOTAUpdate()
-        writeUpdateStatus(mostRecentlyCompletedUpdateId)
         isInitialized = true
         Log.d(TAG, "DashManager initialized")
-    }
-
-    private fun writeUpdateStatus(mostRecentlyCompletedUpdateId: String?) {
-        externalScope?.launch {
-            if (!mostRecentlyCompletedUpdateId.isNullOrBlank()) {
-                val updatesCollection = getMeterDocument()
-                    .collection(UPDATES_COLLECTION)
-
-                updatesCollection
-                    .document(mostRecentlyCompletedUpdateId)
-                    .update("status", UpdateStatus.COMPLETE.name)
-                    .addOnSuccessListener {
-                        Log.d(TAG, "writeUpdateStatus COMPLETE successfully")
-                    }
-                    .addOnFailureListener {
-                        Log.e(TAG, "writeUpdateStatus COMPLETE error", it)
-                    }
-            }
-        }
     }
 
     private suspend fun observeMeterDeviceId() {
@@ -425,7 +405,9 @@ class DashManager @Inject constructor(
     }
 
     fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
+        Log.d(TAG, "setMCUInfoOnFirestore - mcuInfo: $mcuInfo")
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            Log.d(TAG, "setMCUInfoOnFirestore - mcuInfo: $mcuInfo")
             val json = gson.toJson(mcuInfo.copy(
                 updatedAt = Timestamp.now(),
                 status = McuInfoStatus.UPDATED
@@ -434,6 +416,8 @@ class DashManager @Inject constructor(
 
             getMeterDocument()
                 .set(mapOf(MCU_INFO to map), SetOptions.merge())
+
+            Log.d(TAG, "setMCUInfoOnFirestore successfully - mcuInfo: $mcuInfo, meterdocument: ${getMeterDocument().path}")
         }
     }
 
