@@ -45,6 +45,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import java.util.logging.Logger
 import javax.inject.Inject
 
@@ -56,8 +60,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private val meterPreferenceRepository: MeterPreferenceRepository,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
-    private var taskChannel = Channel<suspend () -> Unit>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-    private var messageChannel = Channel<MCUMessage>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private var taskChannel = Channel<suspend () -> Unit>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private var messageChannel = Channel<MCUMessage>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
@@ -72,27 +76,41 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private fun startMessageProcessor() {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
-            for (msg in messageChannel) {
-                when (msg.what) {
-                    IAtCmd.W_MSG_DISPLAY -> {
-                        Log.d(TAG, "startMessageProcessor: ${msg.obj}")
-                        val receiveData = msg.obj?.toString() ?: continue
-                        // Check checksum and see if the message is valid
-                        if(!validateChecksum(receiveData)){
-                            Log.d(TAG, TAG_CHECKSUM_VALIDATION_FAILED)
-                            Sentry.captureMessage(TAG_CHECKSUM_VALIDATION_FAILED)
-                            continue
+            while (true) {
+                try {
+                    currentCoroutineContext().ensureActive() // Check for cancellation
+                    for (msg in messageChannel) {
+                        currentCoroutineContext().ensureActive() // Check for cancellation in the loop
+                        
+                        when (msg.what) {
+                            IAtCmd.W_MSG_DISPLAY -> {
+                                Log.d(TAG, "startMessageProcessor: ${msg.obj}")
+                                val receiveData = msg.obj?.toString() ?: continue
+                                // Check checksum and see if the message is valid
+                                if(!validateChecksum(receiveData)){
+                                    Log.d(TAG, TAG_CHECKSUM_VALIDATION_FAILED)
+                                    Sentry.captureMessage(TAG_CHECKSUM_VALIDATION_FAILED)
+                                    continue
+                                }
+                                checkStatues(receiveData)
+                            }
+                            WHAT_PRINT_STATUS -> {
+                                ShellUtils.execShellCmd("cat /sys/class/gpio/gpio73/value")
+                                addTask {
+                                    delay(1800)
+                                    sendMessage(MCUMessage(WHAT_PRINT_STATUS, null))
+                                    Log.d(TAG, "startMessageProcessor: WHAT_PRINT_STATUS")
+                                }
+                            }
                         }
-                        checkStatues(receiveData)
                     }
-                    WHAT_PRINT_STATUS -> {
-                        ShellUtils.execShellCmd("cat /sys/class/gpio/gpio73/value")
-                        addTask {
-                            delay(1800)
-                            sendMessage(MCUMessage(WHAT_PRINT_STATUS, null))
-                            Log.d(TAG, "startMessageProcessor: WHAT_PRINT_STATUS")
-                        }
-                    }
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "Message processor cancelled")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in message processor: ${e.message}", e)
+                    Sentry.captureException(e)
+                    delay(1000)
                 }
             }
         }
@@ -101,8 +119,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun sendMessage(msg: MCUMessage) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             if (messageChannel.isClosedForSend || messageChannel.isClosedForReceive) {
-                messageChannel = Channel<MCUMessage>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-                startMessageProcessor() // Restart the message processor
+                messageChannel = Channel<MCUMessage>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                startMessageProcessor()
                 Log.d(TAG, "sendMessage: messageChannel is closed")
             }
 
@@ -113,9 +131,23 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private fun startTaskProcessor() {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
-            for (task in taskChannel) {
-                task()
-                Log.d(TAG, "startTaskProcessor: $task")
+            while (true) {
+                try {
+                    currentCoroutineContext().ensureActive() // Check for cancellation
+                    for (task in taskChannel) {
+                        currentCoroutineContext().ensureActive() // Check for cancellation in the loop
+                        
+                        task()
+                        Log.d(TAG, "startTaskProcessor: $task")
+                    }
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "Task processor cancelled")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in task processor: ${e.message}", e)
+                    Sentry.captureException(e)
+                    delay(1000)
+                }
             }
         }
     }
@@ -123,8 +155,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun addTask(task: suspend () -> Unit) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             if (taskChannel.isClosedForSend || taskChannel.isClosedForReceive) {
-                taskChannel = Channel<suspend () -> Unit>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-                startTaskProcessor() // Restart the task processor
+                taskChannel = Channel<suspend () -> Unit>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                startTaskProcessor()
                 Log.d(TAG, "addTask: taskChannel is closed")
             }
             taskChannel.send(task)
@@ -596,9 +628,21 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     override fun close() {
-        taskChannel.close()
-        messageChannel.close()
-        Log.d(TAG, "close")
+        try {
+            // Cancel the external scope to stop all coroutines
+            externalScope?.cancel()
+            
+            // Close channels
+            taskChannel.close()
+            messageChannel.close()
+            
+            // Stop communication
+            mBusModel?.stopCommunicate()
+            
+            Log.d(TAG, "MeasureBoardRepositoryImpl closed successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during close: ${e.message}", e)
+        }
     }
 
     private fun setReceiveEvalDataLs() {

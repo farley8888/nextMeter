@@ -74,6 +74,9 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -108,6 +111,7 @@ class MainViewModel @Inject constructor(
 
     private var accEnquiryJob: Job? = null
     private var sleepJob: Job? = null
+    private var memoryMonitoringJob: Job? = null
     private val _isScreenOff = MutableStateFlow(false)
 
     private val _snackBarContent = MutableStateFlow<Pair<String, SnackbarState>?>(null)
@@ -454,8 +458,18 @@ class MainViewModel @Inject constructor(
         remoteMeterControlRepository.heartBeatInterval.collectLatest { interval ->
             if (interval > 0) {
                 while (true) {
-                    remoteMeterControlRepository.sendHeartBeat()
-                    delay(interval* 1000L)
+                    try {
+                        currentCoroutineContext().ensureActive() // Check for cancellation
+                        remoteMeterControlRepository.sendHeartBeat()
+                        delay(interval * 1000L)
+                    } catch (e: CancellationException) {
+                        Log.d(TAG, "HeartBeat interval observer cancelled")
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error in heartbeat interval: ${e.message}", e)
+                        Sentry.captureException(e)
+                        delay(interval * 1000L)
+                    }
                 }
             }
         }
@@ -545,6 +559,7 @@ class MainViewModel @Inject constructor(
         tripRepository.initObservers(viewModelScope)
         observeFlows()
         startACCStatusInquiries()
+        startMemoryMonitoring()
         observeInternetStatus()
         observeDriverInfo()
         disableADBByDefaultForProd()
@@ -571,8 +586,54 @@ class MainViewModel @Inject constructor(
     private fun startACCStatusInquiries() {
         accEnquiryJob = viewModelScope.launch(ioDispatcher) {
             while (true) {
-                inquireApplicationStatus()
-                delay(INQUIRE_ACC_STATUS_INTERVAL)
+                try {
+                    currentCoroutineContext().ensureActive() // Check for cancellation
+                    inquireApplicationStatus()
+                    delay(INQUIRE_ACC_STATUS_INTERVAL)
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "ACC status inquiries cancelled")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in ACC status inquiry: ${e.message}", e)
+                    Sentry.captureException(e)
+                    delay(INQUIRE_ACC_STATUS_INTERVAL)
+                }
+            }
+        }
+    }
+
+    private fun startMemoryMonitoring() {
+        memoryMonitoringJob = viewModelScope.launch(ioDispatcher) {
+            while (true) {
+                try {
+                    currentCoroutineContext().ensureActive() // Check for cancellation
+                    val runtime = Runtime.getRuntime()
+                    val usedMemory = runtime.totalMemory() - runtime.freeMemory()
+                    val maxMemory = runtime.maxMemory()
+                    val memoryPercent = (usedMemory * 100 / maxMemory).toInt()
+                    
+                    if (memoryPercent > 80) {
+                        Log.w(TAG, "High memory usage: $memoryPercent% (${usedMemory / 1024 / 1024}MB / ${maxMemory / 1024 / 1024}MB)")
+                        Sentry.captureMessage("High memory usage: $memoryPercent%")
+                        
+                        // Suggest garbage collection when memory is high
+                        if (memoryPercent > 90) {
+                            System.gc()
+                            Log.w(TAG, "Triggered garbage collection due to high memory usage")
+                        }
+                    } else if (memoryPercent > 60) {
+                        // Log moderate memory usage less frequently
+                        Log.d(TAG, "Memory usage: $memoryPercent%")
+                    }
+                    
+                    delay(MEMORY_CHECK_INTERVAL)
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "Memory monitoring cancelled")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in memory monitoring: ${e.message}", e)
+                    delay(MEMORY_CHECK_INTERVAL)
+                }
             }
         }
     }
@@ -711,6 +772,7 @@ class MainViewModel @Inject constructor(
         accEnquiryJob?.cancel()
         busModelJob?.cancel()
         heartbeatJob?.cancel()
+        memoryMonitoringJob?.cancel()
     }
 
     companion object {
@@ -722,5 +784,6 @@ class MainViewModel @Inject constructor(
         private const val MCU_DATE_FORMAT = "yyyyMMddHHmm"
         private const val ACC_SLEEP_STATUS = "1"
         const val TAG_RESTARTING_MCU_COMMUNICATION = "Restarting MCU communication"
+        private const val MEMORY_CHECK_INTERVAL = 5000L // 5 seconds
     }
 }
