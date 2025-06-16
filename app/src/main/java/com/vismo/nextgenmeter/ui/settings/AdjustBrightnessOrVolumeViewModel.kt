@@ -44,9 +44,11 @@ class AdjustBrightnessOrVolumeViewModel @Inject constructor(
     }
 
     fun updateVolume(level: Float) {
-        _volumeLevel.value = level
+        // Enforce minimum volume of 50% - don't allow total turn off
+        val adjustedLevel = if (level < 0.5f) 0.5f else level
+        _volumeLevel.value = adjustedLevel
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val newVolume = (level * audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)).toInt()
+        val newVolume = (adjustedLevel * audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)).toInt()
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
     }
 
@@ -56,7 +58,16 @@ class AdjustBrightnessOrVolumeViewModel @Inject constructor(
             _brightnessLevel.value = brightness
 
             val volume = getSystemVolume()
-            _volumeLevel.value = volume
+            // Enforce minimum volume of 50% even when fetching current system volume
+            val adjustedVolume = if (volume < 0.5f) 0.5f else volume
+            _volumeLevel.value = adjustedVolume
+            
+            // If system volume was below 50%, update it to 50%
+            if (volume < 0.5f) {
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                val newVolume = (0.5f * audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)).toInt()
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
+            }
         }
     }
 
