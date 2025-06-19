@@ -1,5 +1,4 @@
 import io.sentry.android.gradle.instrumentation.logcat.LogcatLevel
-import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
 import java.util.Properties
 
 plugins {
@@ -11,6 +10,7 @@ plugins {
     alias(libs.plugins.googleServices)
     alias(libs.plugins.crashlyticsGradle)
 
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.20"
     id("io.sentry.android.gradle") version "4.14.1"
 }
 
@@ -74,18 +74,15 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
         resources {
@@ -103,19 +100,19 @@ android {
     productFlavors {
         create("dev") {
             dimension = "env"
-            archivesName = "CM-$${getVersionName()}.${getVersionCode()}"
+            base.archivesName.set("CM-${getVersionName()}.${getVersionCode()}")
         }
         create("dev2") {
             dimension = "env"
-            archivesName = "CM-$${getVersionName()}.${getVersionCode()}"
+            base.archivesName.set("CM-${getVersionName()}.${getVersionCode()}")
         }
         create("qa") {
             dimension = "env"
-            archivesName = "CM-${getVersionName()}.${getVersionCode()}"
+            base.archivesName.set("CM-${getVersionName()}.${getVersionCode()}")
         }
         create("prd") {
             dimension = "env"
-            archivesName = "CM-${getVersionName()}.${getVersionCode()}"
+            base.archivesName.set("CM-${getVersionName()}.${getVersionCode()}")
         }
     }
 }

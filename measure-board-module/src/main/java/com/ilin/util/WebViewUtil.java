@@ -90,9 +90,9 @@ public class WebViewUtil {
      * 内链接无法打开时设置
      * @param webView
      */
-    public static void setInnerLinkEnable(WebView webView){
+    public static void ussetInnerLinkEnable(WebView webView){
         WebSettings webSettings = webView.getSettings();
-        webSettings.setAppCacheEnabled(true);
+        // webSettings.setAppCacheEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.supportMultipleWindows();
         webSettings.setAllowContentAccess(true);
