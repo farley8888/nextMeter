@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.repository
 
+import com.google.firebase.Timestamp
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nxgnfirebasemodule.model.MeterDeviceProperties
 import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
@@ -36,5 +37,7 @@ interface RemoteMeterControlRepository {
     fun requestPatchFirmwareToMCU(fileName: String)
 
     suspend fun saveRecentlyCompletedUpdateId(id: String)
+
+    fun write4GModuleRestarting(timestamp: Long, reason: String)
 
 }

@@ -18,7 +18,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -172,6 +171,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     override suspend fun saveRecentlyCompletedUpdateId(id: String) {
         meterPreferenceRepository.saveRecentlyCompletedUpdateId(id = id)
+    }
+
+    override fun write4GModuleRestarting(timestamp: Long, reason: String) {
+        dashManager.write4GModuleRestarting(timestamp, reason)
     }
 
 

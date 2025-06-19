@@ -1,8 +1,12 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.vismo.nextgenmeter.ui.topbar
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +29,7 @@ import androidx.compose.material.icons.outlined.SignalCellularAlt1Bar
 import androidx.compose.material.icons.outlined.SignalCellularAlt2Bar
 import androidx.compose.material.icons.outlined.SignalCellularNodata
 import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.MainViewModel
+import com.vismo.nextgenmeter.ui.theme.red
 import com.vismo.nextgenmeter.util.Constant
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import kotlinx.coroutines.delay
@@ -54,7 +60,8 @@ import kotlin.coroutines.cancellation.CancellationException
 fun AppBar(
     viewModel: MainViewModel,
     onBackButtonClick: () -> Unit,
-    onLogoLongPress : () -> Unit
+    onLogoLongPress : () -> Unit,
+    onManualModuleRestart: () -> Unit = {}
 ) {
     val uiState = viewModel.topAppBarUiState.collectAsState().value
     val view = LocalView.current
@@ -172,7 +179,7 @@ fun AppBar(
                             .padding(end = 4.dp)
                     )
                 }
-                if (uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
+                if (uiState.showLoginToggle && uiState.showConnectionIconsToggle && !uiState.show4GModuleRestarting) {
                     when (uiState.signalStrength) {
                         1 -> {
                             Icon(
@@ -180,6 +187,13 @@ fun AppBar(
                                 contentDescription = "Low Signal",
                                 modifier = Modifier.wrapContentSize(align = Alignment.Center)
                                     .padding(end = 4.dp)
+                                    .combinedClickable(
+                                        onLongClick = {
+                                            performVirtualTapFeedback(view)
+                                            onManualModuleRestart()
+                                        },
+                                        onClick = { /* No action on regular click */ }
+                                    )
                             )
                         }
 
@@ -189,6 +203,13 @@ fun AppBar(
                                 contentDescription = "Low Signal",
                                 modifier = Modifier.wrapContentSize(align = Alignment.Center)
                                     .padding(end = 4.dp)
+                                    .combinedClickable(
+                                        onLongClick = {
+                                            performVirtualTapFeedback(view)
+                                            onManualModuleRestart()
+                                        },
+                                        onClick = { /* No action on regular click */ }
+                                    )
                             )
                         }
 
@@ -198,6 +219,13 @@ fun AppBar(
                                 contentDescription = "High Signal",
                                 modifier = Modifier.wrapContentSize(align = Alignment.Center)
                                     .padding(end = 4.dp)
+                                    .combinedClickable(
+                                        onLongClick = {
+                                            performVirtualTapFeedback(view)
+                                            onManualModuleRestart()
+                                        },
+                                        onClick = { /* No action on regular click */ }
+                                    )
                             )
                         }
 
@@ -207,9 +235,25 @@ fun AppBar(
                                 contentDescription = "No Signal",
                                 modifier = Modifier.wrapContentSize(align = Alignment.Center)
                                     .padding(end = 4.dp)
+                                    .combinedClickable(
+                                        onLongClick = {
+                                            performVirtualTapFeedback(view)
+                                            onManualModuleRestart()
+                                        },
+                                        onClick = { /* No action on regular click */ }
+                                    )
                             )
                         }
                     }
+                }
+                if (uiState.show4GModuleRestarting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .padding(end = 8.dp),
+                        strokeWidth = 2.dp,
+                        color = red
+                    )
                 }
             }
         },

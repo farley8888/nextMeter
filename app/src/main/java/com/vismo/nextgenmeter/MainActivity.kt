@@ -47,6 +47,7 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl
 import com.vismo.nextgenmeter.repository.UsbEventReceiver
+import com.vismo.nextgenmeter.service.SimCardTest
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
@@ -86,7 +87,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
     private var storageReceiver : StorageBroadcastReceiver? = null
     private var usbBroadcastReceiver: UsbBroadcastReceiver? = null
     private val wifiReceiver = WifiBroadcastReceiver(this)
-
+    private var simCardTest: SimCardTest? = null
 
     private fun registerStorageReceiver() {
         storageReceiver = StorageBroadcastReceiver()
@@ -150,6 +151,10 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
         registerWifiReceiver()
         registerStorageReceiver()
         registerUsbReceiver()
+        // Initialize SIM monitoring
+        simCardTest = SimCardTest(this)
+        simCardTest?.startMonitoring()
+
         SentryAndroid.init(this) { options ->
             options.environment = BuildConfig.FLAVOR.uppercase()
             options.beforeSend = SentryOptions.BeforeSendCallback { event, _ ->
@@ -245,6 +250,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
                                             }
                                         }
                                     }
+                                },
+                                onManualModuleRestart = {
+                                    mainViewModel.triggerManualModuleRestart()
                                 }
                             )
                         }
@@ -510,7 +518,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
         }
 
         unregisterReceiver(wifiReceiver)
-
+        simCardTest?.stopMonitoring()
     }
 
     companion object {

@@ -53,6 +53,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.Date
 import java.util.UUID
 import javax.inject.Inject
 
@@ -359,6 +360,22 @@ class DashManager @Inject constructor(
             )
             writeToLoggingCollection(logMap)
 
+        }
+    }
+
+    fun write4GModuleRestarting(
+        timestamp: Long,
+        reason: String,
+    ) {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
+            val map = mapOf(
+                LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                LogConstant.ACTION to LogConstant.MODULE_4G_RESTARTING,
+                "restarted_at" to Timestamp(Date(timestamp)),
+                "reason" to reason,
+                LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+            )
+            writeToLoggingCollection(map)
         }
     }
 

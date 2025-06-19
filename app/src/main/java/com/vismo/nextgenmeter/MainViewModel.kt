@@ -30,6 +30,7 @@ import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
+import com.vismo.nextgenmeter.service.ModuleRestartManager
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -94,8 +95,9 @@ class MainViewModel @Inject constructor(
     private val networkTimeRepository: NetworkTimeRepository,
     private val meterPreferenceRepository: MeterPreferenceRepository,
     private val crashlytics: FirebaseCrashlytics,
-    tripFileManager: TripFileManager
-    ) : ViewModel(){
+    tripFileManager: TripFileManager,
+    private val moduleRestartManager: ModuleRestartManager
+) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
 
@@ -184,6 +186,20 @@ class MainViewModel @Inject constructor(
             launch { observeReInitMCURepository() }
             launch { observeMCUHeartbeatSignal() }
             launch { observeBusModelSignal() }
+            launch { observe4GModuleRestart() }
+        }
+    }
+
+    private suspend fun observe4GModuleRestart() {
+        moduleRestartManager.isRestarting.collectLatest { isRestarting ->
+            update4GModuleRestarting(isRestarting)
+            if (isRestarting) {
+                val latestRestartEvent = moduleRestartManager.restartHistory.firstOrNull()?.getOrNull(0)
+                remoteMeterControlRepository.write4GModuleRestarting(
+                    timestamp = latestRestartEvent?.timestamp ?: Timestamp.now().seconds,
+                    reason = latestRestartEvent?.reason ?: "Unknown reason"
+                )
+            }
         }
     }
 
@@ -267,6 +283,20 @@ class MainViewModel @Inject constructor(
 
     fun setClearApplicationCache(boolean: Boolean) {
         _clearApplicationCache.value = boolean
+    }
+    
+    /**
+     * Trigger manual 4G module restart (bypasses rate limiting)
+     */
+    fun triggerManualModuleRestart() {
+        viewModelScope.launch {
+            try {
+                Log.i("MainViewModel", "Manual 4G module restart triggered from UI")
+                moduleRestartManager.manualRestart()
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error triggering manual module restart", e)
+            }
+        }
     }
 
     fun snoozeUpdate(update: Update?) {
@@ -524,6 +554,17 @@ class MainViewModel @Inject constructor(
             toolbarUiDataUpdateMutex.withLock {
                 _topAppBarUiState.value = _topAppBarUiState.value.copy(
                     signalStrength = signalStrength
+                )
+            }
+        }
+    }
+
+    private fun update4GModuleRestarting(isRestarting: Boolean) {
+        if (_topAppBarUiState.value.show4GModuleRestarting == isRestarting) return
+        viewModelScope.launch {
+            toolbarUiDataUpdateMutex.withLock {
+                _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                    show4GModuleRestarting = isRestarting
                 )
             }
         }
