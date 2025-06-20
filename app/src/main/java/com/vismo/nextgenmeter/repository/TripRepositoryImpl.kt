@@ -78,7 +78,7 @@ class TripRepositoryImpl @Inject constructor(
                             handleFirestoreTripUpdate(trip)
                             if (trip.tripStatus == TripStatus.ENDED) {
                                 val tripData = trip.copy(isDash = _currentTripPaidStatus.value == TripPaidStatus.COMPLETELY_PAID)
-                                tripFileManager.addTrip(tripData)
+                                tripFileManager.updateTrip(tripData)
                                 meterPreferenceRepository.saveOngoingTripId("", 0L)    // Reset ongoing trip id
                                 _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID // Reset trip paid status
                                 _isCurrentTripCreatedInFirestore = false // Reset the flag for next trip

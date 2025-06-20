@@ -129,13 +129,15 @@ class TripFileManager @Inject constructor(
             withTimeout(DATABASE_OPERATION_TIMEOUT) {
                 mutex.withLock {
                     val trips = loadTrips().toMutableList()
-                    val index = trips.indexOfFirst { it.internalId == updatedTrip.internalId }
+                    val index = trips.indexOfFirst { it.tripId == updatedTrip.tripId }
                     return@withLock if (index != -1) {
                         trips[index] = updatedTrip
                         saveTrips(trips)
                     } else {
-                        Log.e(TAG, "Trip with ID ${updatedTrip.internalId} not found for update.")
-                        false
+                        // Trip not found, add directly to the list instead of calling addTrip (to avoid deadlock)
+                        Log.w(TAG, "Trip with ID ${updatedTrip.tripId} not found for update. Creating new trip")
+                        trips.add(updatedTrip)
+                        saveTrips(trips)
                     }
                 }
             }
