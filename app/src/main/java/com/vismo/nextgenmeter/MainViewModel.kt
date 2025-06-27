@@ -15,6 +15,8 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
+import com.vismo.nextgenmeter.util.ACCStateUtil
+import com.vismo.nextgenmeter.util.OTAUpdateManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.module.MainDispatcher
@@ -96,7 +98,8 @@ class MainViewModel @Inject constructor(
     private val meterPreferenceRepository: MeterPreferenceRepository,
     private val crashlytics: FirebaseCrashlytics,
     tripFileManager: TripFileManager,
-    private val moduleRestartManager: ModuleRestartManager
+    private val moduleRestartManager: ModuleRestartManager,
+    private val otaUpdateManager: OTAUpdateManager,
 ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -609,6 +612,11 @@ class MainViewModel @Inject constructor(
             tripFileManager.initializeTrips()
         }
         Log.d(TAG, "MainViewModel initialized")
+        // TODO: Temp for testing - put in the correct place later
+        viewModelScope.launch(ioDispatcher) {
+            delay(20000) // Delay to ensure all initializations are complete
+            otaUpdateManager.attemptROMUpdate()
+        }
     }
 
     private fun setCrashlyticsKeys() {
@@ -680,8 +688,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun inquireApplicationStatus() {
-        val acc = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio75/value")
-        if (acc == ACC_SLEEP_STATUS) {
+        if (ACCStateUtil.isACCSleeping()) {
             sleepDevice()
         } else {
             wakeUpDevice()
@@ -691,6 +698,7 @@ class MainViewModel @Inject constructor(
     private suspend fun sleepDevice() {
         val isTripInProgress = TripDataStore.isTripInProgress.firstOrNull() ?: false
         if (isTripInProgress || _isScreenOff.value) return
+
 
         sleepJob = viewModelScope.launch(ioDispatcher) {
             delay(BACKLIGHT_OFF_DELAY)
@@ -823,7 +831,6 @@ class MainViewModel @Inject constructor(
         private const val TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY = 60_000L // 1 minute - standby mode
         private const val TOOLBAR_UI_DATE_FORMAT = "M月d日 HH:mm"
         private const val MCU_DATE_FORMAT = "yyyyMMddHHmm"
-        private const val ACC_SLEEP_STATUS = "1"
         const val TAG_RESTARTING_MCU_COMMUNICATION = "Restarting MCU communication"
         private const val MEMORY_CHECK_INTERVAL = 5000L // 5 seconds
     }
