@@ -28,6 +28,7 @@ import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.repository.TripRepositoryImpl
 import com.vismo.nextgenmeter.util.LocaleHelper
+import com.vismo.nextgenmeter.util.OTAUpdateManager
 import com.vismo.nextgenmeter.util.TtsUtil
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
@@ -265,6 +266,18 @@ object AppModule {
     ): InternetConnectivityObserver {
         return InternetConnectivityObserver(
             context = context,
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesOTAUpdateManager(
+        @ApplicationContext context: Context,
+        internetConnectivityObserver: InternetConnectivityObserver
+    ): OTAUpdateManager {
+        return OTAUpdateManager(
+            context = context,
+            internetConnectivityObserver = internetConnectivityObserver
         )
     }
 }
