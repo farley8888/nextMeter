@@ -3,9 +3,7 @@ package com.vismo.nextgenmeter.ui.dashboard.mcu
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
-import com.vismo.nextgenmeter.datastore.DeviceDataStore.mcuPriceParams
 import com.vismo.nextgenmeter.model.OperatingArea
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.MeasureBoardRepository
@@ -14,6 +12,8 @@ import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.ui.theme.lantauBlue
 import com.vismo.nextgenmeter.ui.theme.ntGreen
 import com.vismo.nextgenmeter.ui.theme.urbanRed
+import com.vismo.nextgenmeter.util.ShellStateUtil.getAndroidId
+import com.vismo.nextgenmeter.util.ShellStateUtil.getROMVersion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -107,13 +107,5 @@ class MCUSummaryDashboardViewModel @Inject constructor(
             OperatingArea.NT -> ntGreen
             OperatingArea.URBAN -> urbanRed
         }
-    }
-
-    private fun getROMVersion(): String {
-        return ShellUtils.execShellCmd("getprop firmwareVersion")
-    }
-
-    private fun getAndroidId(): String {
-        return ShellUtils.execShellCmd("getprop ro.serialno")
     }
 }

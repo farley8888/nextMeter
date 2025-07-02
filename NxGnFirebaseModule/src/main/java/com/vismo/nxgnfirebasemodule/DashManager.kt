@@ -188,7 +188,8 @@ class DashManager @Inject constructor(
             getMeterDocument()
                 .update(
                     FieldPath.of("settings", "meter_software_version"), DashManagerConfig.meterSoftwareVersion,
-                    FieldPath.of("settings", "sim_iccid"), DashManagerConfig.simIccId
+                    FieldPath.of("settings", "sim_iccid"), DashManagerConfig.simIccId,
+                    FieldPath.of("settings", "meter_android_rom_version"), DashManagerConfig.androidRomVersion
                 )
                 .addOnSuccessListener {
                     Log.d(TAG, "setMeterInfoToSettings successfully")

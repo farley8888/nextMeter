@@ -8,6 +8,7 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.model.McuInfoStatus
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nextgenmeter.model.format
+import com.vismo.nextgenmeter.util.ShellStateUtil.getROMVersion
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
@@ -46,6 +47,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     override suspend fun initDashManager(scope: CoroutineScope) {
         DashManagerConfig.simIccId = getICCID() ?: ""
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
+        DashManagerConfig.androidRomVersion = getROMVersion()
         dashManager.init(scope)
         delay(10_000L) // wait for the initial heartbeats to slow down
         measureBoardRepository.enquireParameters()

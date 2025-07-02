@@ -59,5 +59,6 @@ class DashManagerConfig @Inject constructor(
         private val defaultMeterLocation = MeterLocation(GeoPoint(0.0, 0.0), NOT_SET)
         var meterSoftwareVersion = ""
         var simIccId = ""
+        var androidRomVersion = ""
     }
 }

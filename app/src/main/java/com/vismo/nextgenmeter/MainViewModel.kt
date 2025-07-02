@@ -15,7 +15,7 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
-import com.vismo.nextgenmeter.util.ACCStateUtil
+import com.vismo.nextgenmeter.util.ShellStateUtil
 import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.nextgenmeter.module.IoDispatcher
@@ -694,7 +694,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun inquireApplicationStatus() {
-        if (ACCStateUtil.isACCSleeping()) {
+        if (ShellStateUtil.isACCSleeping()) {
             sleepDevice()
         } else {
             wakeUpDevice()
