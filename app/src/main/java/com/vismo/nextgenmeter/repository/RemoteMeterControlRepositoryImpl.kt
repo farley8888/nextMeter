@@ -74,11 +74,12 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
                 dashManager.mcuParamsUpdateRequired.collectLatest { updateRequest ->
                     updateRequest?.let {
                         if (it.completedOn == null) {
-                            measureBoardRepository.updateKValue(it.kValue)
+                            measureBoardRepository.updateKValue(it.kValue, it.accOffAndroidBoardShutdownDelayMins)
                             val completedRequest = UpdateMCUParamsRequest(
                                 id = it.id,
                                 createdOn = it.createdOn,
                                 kValue = it.kValue,
+                                accOffAndroidBoardShutdownDelayMins = it.accOffAndroidBoardShutdownDelayMins,
                                 completedOn = Timestamp.now(),
                             )
                             dashManager.setMCUParamsUpdateComplete(completedRequest)

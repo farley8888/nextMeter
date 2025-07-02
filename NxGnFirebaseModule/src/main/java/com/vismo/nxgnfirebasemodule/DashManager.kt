@@ -48,6 +48,7 @@ import com.vismo.nxgnfirebasemodule.util.LogConstant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -106,6 +107,7 @@ class DashManager @Inject constructor(
             launch { observeMeterDeviceId() }
         }
         checkForMostRelevantOTAUpdate()
+        isMCUParamsUpdateRequired(isAtInitialization = true)
         isInitialized = true
         Log.d(TAG, "DashManager initialized")
     }
@@ -253,8 +255,9 @@ class DashManager @Inject constructor(
             )
     }
 
-    fun isMCUParamsUpdateRequired() {
+    fun isMCUParamsUpdateRequired(isAtInitialization: Boolean = false) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            if (isAtInitialization) delay(10_000L) // wait for the initial heartbeats to slow down
             _mcuParamsUpdateRequired.value = null
             val mcuParamsUpdateCollection = getMeterDocument()
                 .collection(UPDATE_MCU_PARAMS)
@@ -271,8 +274,9 @@ class DashManager @Inject constructor(
                             json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
                         val update = gson.fromJson(json, UpdateMCUParamsRequest::class.java)
 
-                        if (!update.isCompleted()) {
+                        if (!update.isCompleted() && ((isAtInitialization && update.kValue == null) || !isAtInitialization)) { // we only want to update at initialization if kValue is not in the request
                             _mcuParamsUpdateRequired.value = update
+                            Log.d(TAG, "isMCUParamsUpdateRequired - value set to: $update")
                         }
                         Log.d(TAG, "isMCUParamsUpdateRequired $json")
                     }
@@ -507,6 +511,7 @@ class DashManager @Inject constructor(
     private fun checkForMostRelevantOTAUpdate() {
         // apk or firmware updates
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            delay(10_000L) // wait for the initial heartbeats to slow down
             _mostRelevantUpdate.value = null
             val updatesCollection = getMeterDocument()
                 .collection(UPDATES_COLLECTION)

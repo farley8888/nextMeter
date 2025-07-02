@@ -15,7 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class OTAUpdateManager @Inject constructor(
+class AndroidROMOTAUpdateManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val internetConnectivityObserver: InternetConnectivityObserver
 ) {

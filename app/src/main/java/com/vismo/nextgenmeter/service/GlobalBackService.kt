@@ -23,8 +23,8 @@ class GlobalBackService: ExpandableBubbleService() {
 
     override fun onCreate() {
         super.onCreate()
-        startForegroundServiceWithNotification()
         createNotificationChannel()
+        startForegroundServiceWithNotification()
         minimize()
     }
 

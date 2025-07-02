@@ -30,7 +30,8 @@ interface MeasureBoardRepository {
         repeatCount: Int,
     )
 
-    fun updateKValue(kValue: Int)
+    fun updateKValue(kValue: Int?,
+                     boardShutdownMinsDelayAfterAcc: Int? = null)
 
     fun updateLicensePlate(licensePlate: String)
 

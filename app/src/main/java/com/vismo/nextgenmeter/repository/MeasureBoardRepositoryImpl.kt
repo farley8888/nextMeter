@@ -515,10 +515,22 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun updateKValue(kValue: Int) {
+    override fun updateKValue(kValue: Int?, boardShutdownMinsDelayAfterAcc: Int?) {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getUpdateKValueCmd(kValue = kValue))
-            delay(200)
+            try {
+                val cmd = MeasureBoardUtils.getUpdateKValueCmd(
+                    kValue = kValue,
+                    powerOffTimeInMins = boardShutdownMinsDelayAfterAcc
+                )
+                mBusModel?.write(cmd)
+                Log.d(TAG, "updateKValue: $kValue, boardShutdownMinsDelayAfterAcc: $boardShutdownMinsDelayAfterAcc")
+                Log.d(TAG, "updateKValue cmd: $cmd")
+                delay(200)
+            }
+            catch (e: Exception) {
+                Log.e(TAG, "Error updating K value or android board shutdown time: ${e.message}", e)
+                Sentry.captureException(e)
+            }
         }
     }
 

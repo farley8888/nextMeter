@@ -16,7 +16,7 @@ import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
 import com.vismo.nextgenmeter.util.ACCStateUtil
-import com.vismo.nextgenmeter.util.OTAUpdateManager
+import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.module.MainDispatcher
@@ -99,7 +99,7 @@ class MainViewModel @Inject constructor(
     private val crashlytics: FirebaseCrashlytics,
     tripFileManager: TripFileManager,
     private val moduleRestartManager: ModuleRestartManager,
-    private val otaUpdateManager: OTAUpdateManager,
+    private val androidROMOTAUpdateManager: AndroidROMOTAUpdateManager,
 ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -124,6 +124,10 @@ class MainViewModel @Inject constructor(
 
     private val _clearApplicationCache = MutableStateFlow(false)
     val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
+
+    private var backlightOffDelay: Long? = null
+    private var switchPowerModeDelay: Long? = null
+
 
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
@@ -468,6 +472,8 @@ class MainViewModel @Inject constructor(
                         }
                     }
                 }
+                backlightOffDelay = it.settings?.accOffTurnOffBacklightDelaySeconds
+                switchPowerModeDelay = it.settings?.accOffSwitchToLowPowerModeDelaySeconds
             }
 
             manageDashPayColor(tripPaidStatus, meterInfo?.session != null)
@@ -612,11 +618,11 @@ class MainViewModel @Inject constructor(
             tripFileManager.initializeTrips()
         }
         Log.d(TAG, "MainViewModel initialized")
-        // TODO: Temp for testing - put in the correct place later
-        viewModelScope.launch(ioDispatcher) {
-            delay(20000) // Delay to ensure all initializations are complete
-            otaUpdateManager.attemptROMUpdate()
-        }
+//         TODO: Temp for testing - put in the correct place later
+//        viewModelScope.launch(ioDispatcher) {
+//            delay(20000) // Delay to ensure all initializations are complete
+//            androidROMOTAUpdateManager.attemptROMUpdate()
+//        }
     }
 
     private fun setCrashlyticsKeys() {
@@ -701,7 +707,8 @@ class MainViewModel @Inject constructor(
 
 
         sleepJob = viewModelScope.launch(ioDispatcher) {
-            delay(BACKLIGHT_OFF_DELAY)
+            Log.d(TAG, "sleepDevice: Device is going to sleep - backlightOffDelay: $backlightOffDelay, switchPowerModeDelay: $switchPowerModeDelay")
+            delay((backlightOffDelay ?: BACKLIGHT_OFF_DELAY).toLong() * 1000)
             if (!isTripInProgress) {
                 _isScreenOff.value = true
                 toggleBackLight(false)
@@ -739,8 +746,9 @@ class MainViewModel @Inject constructor(
     private fun switchToLowPowerMode() {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$TAG::LowPowerModeWakelock")
-        wakeLock.acquire(TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY) // Acquire for 1 minute
+        wakeLock.acquire((switchPowerModeDelay ?: TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY).toLong() * 1000)
         wakeLock.release()
+        Log.d(TAG, "switchToLowPowerMode: Device switched to low power mode")
     }
 
     private fun onUsbConnected() {
@@ -827,8 +835,8 @@ class MainViewModel @Inject constructor(
     companion object {
         private const val TAG = "MainViewModel"
         private const val INQUIRE_ACC_STATUS_INTERVAL = 5000L // 5 seconds
-        private const val BACKLIGHT_OFF_DELAY = 10_000L // 10 seconds
-        private const val TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY = 60_000L // 1 minute - standby mode
+        private const val BACKLIGHT_OFF_DELAY = 10 // 10 seconds
+        private const val TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY = 60 // 1 minute - standby mode
         private const val TOOLBAR_UI_DATE_FORMAT = "M月d日 HH:mm"
         private const val MCU_DATE_FORMAT = "yyyyMMddHHmm"
         const val TAG_RESTARTING_MCU_COMMUNICATION = "Restarting MCU communication"

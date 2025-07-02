@@ -34,6 +34,8 @@ data class Settings(
     @SerializedName("operating_area") val operatingArea: OperatingArea,
     @SerializedName("show_connection_icons_toggle") val showConnectionIconsToggle: Boolean? = true,
     @SerializedName("trigger_log_upload") val triggerLogUpload: Boolean = false,
+    @SerializedName("acc_off_turn_off_backlight_delay_seconds") val accOffTurnOffBacklightDelaySeconds: Long?,
+    @SerializedName("acc_off_switch_to_low_power_mode_delay_seconds") val accOffSwitchToLowPowerModeDelaySeconds: Long?,
 )
 
 data class McuInfo(

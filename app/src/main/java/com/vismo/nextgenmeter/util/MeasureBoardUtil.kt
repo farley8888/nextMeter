@@ -200,8 +200,8 @@ object MeasureBoardUtils {
             "${formattedDateStr}00".chunked(2).joinToString(" ")
         else
             "2024-01-01T16:17:18".chunked(2).joinToString(" ")
-        val formattedKValue = "10 00" //this kValue won't be applied to the measure board
-        val formattedPowerOffTime = "00 15" // 15mins
+        val formattedKValue = "10 00" //this kValue won't be applied to the measure board (01 in the cmd means it will only update time)
+        val formattedPowerOffTime = "00 15" // this kValue won't be applied to the measure board (01 in the cmd means it will only update time)
         val CMD_UPDATE_PARAMETERS = "00 10 00 00 10 A5 01 $formattedDateTime $formattedKValue $formattedPowerOffTime"
         val checkSum = xorHexStrings(CMD_UPDATE_PARAMETERS.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
@@ -209,12 +209,22 @@ object MeasureBoardUtils {
         return cmdStringBuilder.toString().replace(" ", "")
     }
 
-    fun getUpdateKValueCmd(kValue: Int): String {
+    fun getUpdateKValueCmd(kValue: Int?, powerOffTimeInMins: Int?): String {
+        val type = if (kValue != null && powerOffTimeInMins != null)  {
+            "06" // update both kValue and powerOffTime
+        } else if (kValue != null) {
+            "02" // update only kValue
+        } else if (powerOffTimeInMins != null) {
+            "04" // update only powerOffTime
+        } else {
+            throw IllegalArgumentException("Either kValue or powerOffTimeInMins must be provided")
+        }
+
         val parsedDate = LocalDateTime.parse("2024-01-01T16:17:18", DateTimeFormatter.ISO_DATE_TIME) // a random date to be placed here, it won't be used to update the time in measureboard
         val formattedDateTime = parsedDate.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")).chunked(2).joinToString(" ")
-        val formattedKValue = kValue.toString().padStart(4, '0').chunked(2).joinToString(" ")
-        val formattedPowerOffTime = "00 15" // 15mins
-        val CMD_UPDATE_PARAMETERS = "00 10 00 00 10 A5 06 $formattedDateTime $formattedKValue $formattedPowerOffTime"
+        val formattedKValue = (kValue ?: 650).toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val formattedPowerOffTime = (powerOffTimeInMins ?: 15).toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val CMD_UPDATE_PARAMETERS = "00 10 00 00 10 A5 $type $formattedDateTime $formattedKValue $formattedPowerOffTime"
         val checkSum = xorHexStrings(CMD_UPDATE_PARAMETERS.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
         cmdStringBuilder.append("55 AA ").append(CMD_UPDATE_PARAMETERS).append(checkSum).append(" 55 AA")
