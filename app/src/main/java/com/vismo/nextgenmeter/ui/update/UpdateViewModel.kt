@@ -21,6 +21,7 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.OnUpdateCompletedReceiver
+import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
 import com.vismo.nextgenmeter.util.Constant.ENV_PRD
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
@@ -46,6 +47,7 @@ class UpdateViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val remoteMeterControlRepository: RemoteMeterControlRepository,
+    private val androidROMOTAUpdateManager: AndroidROMOTAUpdateManager
 ): ViewModel() {
     private val _updateState: MutableStateFlow<UpdateState> = MutableStateFlow(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState
@@ -84,8 +86,11 @@ class UpdateViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) {
             val update = remoteMeterControlRepository.remoteUpdateRequest.firstOrNull()
             val wifiCredential = remoteMeterControlRepository.meterSdkConfiguration.firstOrNull()?.wifiCredential
-            if (update != null && (update.type == Constant.OTA_FIRMWARE_TYPE || update.type == Constant.OTA_METERAPP_TYPE)) {
-                FirebaseStorage.getInstance().getReferenceFromUrl(update.url).downloadUrl
+            if (update != null &&
+                (update.type == Constant.OTA_FIRMWARE_TYPE ||
+                update.type == Constant.OTA_METERAPP_TYPE && update.url != null)
+                ) {
+                FirebaseStorage.getInstance().getReferenceFromUrl(update.url!!).downloadUrl
                     .addOnSuccessListener {
                         connectToWifiLegacy(context, ssid = wifiCredential?.ssid, password = wifiCredential?.password)
                         downloadFile(it, update)
@@ -94,7 +99,10 @@ class UpdateViewModel @Inject constructor(
                         _updateState.value = UpdateState.Error(it.message ?: "Could not download error")
                     }
 
-            } else {
+            } else if (update != null && update.type == Constant.OTA_ANDROID_ROM_TYPE) {
+                androidROMOTAUpdateManager.attemptROMUpdate()
+                _updateState.value = UpdateState.DownloadingFireAndForgetUpdate
+            }else {
                 _updateState.value = UpdateState.NoUpdateFound
             }
         }
@@ -115,7 +123,7 @@ class UpdateViewModel @Inject constructor(
                 )
             )
             try {
-                val fileName = update.url.substringAfterLast("/").ifEmpty { "update.apk" }
+                val fileName = update.url?.substringAfterLast("/")?.ifEmpty { "update.apk" } ?: "update.apk"
                 val externalFilesDir = context.getExternalFilesDir(null)
                 if (externalFilesDir == null) {
                     _updateState.value = UpdateState.Error("External files directory not available.")
@@ -308,6 +316,10 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
+    fun skipAndroidROMOta() {
+        androidROMOTAUpdateManager.terminateOngoingROMUpdate()
+    }
+
     private fun writeUpdateResultToFireStore(update: Update) {
         remoteMeterControlRepository.writeUpdateResultToFireStore(update)
     }
@@ -324,4 +336,5 @@ sealed class UpdateState {
     data object Installing : UpdateState()
     data object Success : UpdateState()
     data class Error(val message: String, val allowRetry: Boolean = false) : UpdateState()
+    data object DownloadingFireAndForgetUpdate : UpdateState() // for ROM updates - maybe later we have some broadcasts for progress
 }

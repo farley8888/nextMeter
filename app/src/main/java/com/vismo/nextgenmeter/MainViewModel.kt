@@ -16,7 +16,6 @@ import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
 import com.vismo.nextgenmeter.util.ShellStateUtil
-import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.module.MainDispatcher
@@ -50,6 +49,7 @@ import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
+import com.vismo.nxgnfirebasemodule.util.Constant.OTA_ANDROID_ROM_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -99,7 +99,6 @@ class MainViewModel @Inject constructor(
     private val crashlytics: FirebaseCrashlytics,
     tripFileManager: TripFileManager,
     private val moduleRestartManager: ModuleRestartManager,
-    private val androidROMOTAUpdateManager: AndroidROMOTAUpdateManager,
 ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -149,6 +148,14 @@ class MainViewModel @Inject constructor(
                     )
                 )
                 isValid
+            }
+            OTA_ANDROID_ROM_TYPE -> {
+                remoteMeterControlRepository.writeUpdateResultToFireStore(
+                    it.copy(
+                        status = UpdateStatus.DOWNLOADING,
+                    )
+                )
+                true
             }
             else -> false
         }
@@ -618,11 +625,6 @@ class MainViewModel @Inject constructor(
             tripFileManager.initializeTrips()
         }
         Log.d(TAG, "MainViewModel initialized")
-//         TODO: Temp for testing - put in the correct place later
-//        viewModelScope.launch(ioDispatcher) {
-//            delay(20000) // Delay to ensure all initializations are complete
-//            androidROMOTAUpdateManager.attemptROMUpdate()
-//        }
     }
 
     private fun setCrashlyticsKeys() {

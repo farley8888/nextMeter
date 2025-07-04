@@ -64,6 +64,17 @@ class AndroidROMOTAUpdateManager @Inject constructor(
         context.sendBroadcast(intent)
         Log.i(TAG, "ROM OTA broadcast sent with option=2 (device sleeping)")
     }
+
+    @SuppressLint("WrongConstant")
+    fun terminateOngoingROMUpdate() {
+        val intent = Intent("android.intent.action.askillsdk.ota").apply {
+            flags = 0x01000000
+            component = ComponentName("com.ota.skillsdk", "com.ota.skillsdk.SkillSdkOtaReceiver")
+            putExtra("option", 4)
+        }
+        context.sendBroadcast(intent)
+        Log.i(TAG, "Skipping ROM OTA update")
+    }
     
     companion object {
         private const val TAG = "OTAUpdateManager"
