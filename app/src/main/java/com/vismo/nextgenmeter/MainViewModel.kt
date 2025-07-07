@@ -10,10 +10,12 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.firestore.FieldValue
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
 import com.vismo.nextgenmeter.datastore.TripDataStore
+import com.vismo.nextgenmeter.model.OngoingMeasureBoardStatus
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
 import com.vismo.nextgenmeter.util.ShellStateUtil
 import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
@@ -52,6 +54,7 @@ import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
+import com.vismo.nxgnfirebasemodule.util.LogConstant
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.IScope
 import io.sentry.Sentry
@@ -715,6 +718,17 @@ class MainViewModel @Inject constructor(
                 switchToLowPowerMode()
                 DeviceDataStore.setIsDeviceAsleep(isAsleep = true)
                 dashManagerConfig.setIsDeviceAsleep(isAsleep = true)
+                val logMap = mapOf(
+                    LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                    LogConstant.ACTION to LogConstant.ACC_STATUS_CHANGE,
+                    "status" to "sleep",
+                    "backlight_off_delay_seconds" to backlightOffDelay,
+                    "switch_to_low_power_mode_delay_seconds" to switchPowerModeDelay,
+                    "power_off_delay" to TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY,
+                    LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                    LogConstant.DEVICE_TIME to Timestamp.now(),
+                )
+                remoteMeterControlRepository.writeToLoggingCollection(logMap)
                 Log.d(TAG, "sleepDevice: Device is in sleep mode")
             }
         }
@@ -728,6 +742,14 @@ class MainViewModel @Inject constructor(
         _isScreenOff.value = false
         DeviceDataStore.setIsDeviceAsleep(isAsleep = false)
         dashManagerConfig.setIsDeviceAsleep(isAsleep = false)
+        val logMap = mapOf(
+            LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+            LogConstant.ACTION to LogConstant.ACC_STATUS_CHANGE,
+            "status" to "awake",
+            LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+            LogConstant.DEVICE_TIME to Timestamp.now(),
+        )
+        remoteMeterControlRepository.writeToLoggingCollection(logMap)
         Log.d(TAG, "wakeUpDevice: Device is in wake up mode")
     }
 

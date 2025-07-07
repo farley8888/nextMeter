@@ -40,4 +40,6 @@ interface RemoteMeterControlRepository {
 
     fun write4GModuleRestarting(timestamp: Long, reason: String)
 
+    fun writeToLoggingCollection(log: Map<String, Any?>)
+
 }
