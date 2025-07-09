@@ -177,6 +177,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         meterPreferenceRepository.saveRecentlyCompletedUpdateId(id = id)
     }
 
+    override fun writeToLoggingCollection(log: Map<String, Any?>) {
+        dashManager.writeToLoggingCollection(log)
+    }
+
 
     companion object {
         private const val DEFAULT_HEARTBEAT_INTERVAL = 5

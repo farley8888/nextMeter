@@ -37,4 +37,6 @@ interface RemoteMeterControlRepository {
 
     suspend fun saveRecentlyCompletedUpdateId(id: String)
 
+    fun writeToLoggingCollection(log: Map<String, Any?>)
+
 }
