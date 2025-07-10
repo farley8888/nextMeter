@@ -609,21 +609,19 @@ class MainViewModel @Inject constructor(
                 remoteMeterControlRepository.writeToLoggingCollection(logMap1)
                 toggleBackLight(false)
                 
-                // Use SystemControlRepository to put device to sleep
-                delay(TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY - BACKLIGHT_OFF_DELAY)
                 val logMap2 = mapOf(
                     LogConstant.CREATED_BY to LogConstant.CABLE_METER,
                     LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
                     LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
                     LogConstant.DEVICE_TIME to Timestamp.now(),
-                    "acc_status" to "starting_sleep_mode"
+                    "acc_status" to "starting_sleep_mode_in ${ TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY / 1000} seconds"
                 )
                 remoteMeterControlRepository.writeToLoggingCollection(logMap2)
-                systemControlRepository.sleepDevice()
+                switchToLowPowerMode()
                 DeviceDataStore.setIsDeviceAsleep(isAsleep = true)
                 dashManagerConfig.setIsDeviceAsleep(isAsleep = true)
                 Log.d(TAG, "sleepDevice: Device is in sleep mode")
-                
+
                 // Start shutdown timer - device will shutdown after 15 minutes in low power mode
                 shutdownJob?.cancel()
                 shutdownJob = viewModelScope.launch(ioDispatcher) {
@@ -673,6 +671,13 @@ class MainViewModel @Inject constructor(
                 ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio70/value")
             }
         }
+    }
+
+    private fun switchToLowPowerMode() {
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$TAG::LowPowerModeWakelock")
+        wakeLock.acquire(TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY)
+        wakeLock.release()
     }
 
     private fun onUsbConnected() {
