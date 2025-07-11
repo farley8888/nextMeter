@@ -28,7 +28,6 @@ import com.vismo.nxgnfirebasemodule.model.Settings
 import com.vismo.nxgnfirebasemodule.model.TripSession
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
-import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.isCompleted
 import com.vismo.nxgnfirebasemodule.model.shouldPrompt
 import com.vismo.nxgnfirebasemodule.util.Constant.AUDIT_COLLECTION
@@ -480,6 +479,8 @@ class DashManager @Inject constructor(
         val auditTrailEntry = updatedTripMap.toMutableMap().apply {
             put("audit_time", Timestamp.now())
             put("updated_by", "Meter")
+            put("gps_type", dashManagerConfig.meterLocation.value.gpsType.toString())
+            put("location", dashManagerConfig.meterLocation.value.geoPoint)
         }.toFirestoreFormat()
 
         // Add an audit trail document
