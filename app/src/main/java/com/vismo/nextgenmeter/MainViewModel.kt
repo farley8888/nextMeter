@@ -635,6 +635,11 @@ class MainViewModel @Inject constructor(
                         "acc_status" to "shutting_down"
                     )
                     remoteMeterControlRepository.writeToLoggingCollection(logMap3)
+                    
+                    // Notify measure board before shutting down
+                    measureBoardRepository.notifyShutdown()
+                    delay(500) // Give measure board time to receive the command
+                    
                     systemControlRepository.shutdownDevice()
                 }
             }

@@ -46,5 +46,7 @@ interface MeasureBoardRepository {
 
     suspend fun requestPatchFirmware(fileName: String)
 
+    fun notifyShutdown()
+
     fun close()
 }
