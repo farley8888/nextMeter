@@ -625,7 +625,7 @@ class MainViewModel @Inject constructor(
                 // Start shutdown timer - device will shutdown after 15 minutes in low power mode
                 shutdownJob?.cancel()
                 shutdownJob = viewModelScope.launch(ioDispatcher) {
-                    delay(SHUTDOWN_DELAY_AFTER_LOW_POWER_MODE - TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY - BACKLIGHT_OFF_DELAY)
+                    delay(SHUTDOWN_DELAY_AFTER_LOW_POWER_MODE)
                     Log.d(TAG, "sleepDevice: Starting shutdown after 15 minutes in low power mode")
                     val logMap3 = mapOf(
                         LogConstant.CREATED_BY to LogConstant.CABLE_METER,
