@@ -8,12 +8,32 @@ on:
 
 
 jobs:
+  get-commits:
+    name: Get Last Commits
+    runs-on: ubuntu-latest
+    outputs:
+      commits: ${{ steps.last-commits.outputs.commits }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Last Commits
+        id: last-commits
+        run: |
+          git fetch --prune
+          commits=$(git log --no-merges -n 7 --pretty=format:"- %s (%h - %an)" | awk '{print $0 "\\n"}' | tr -d '\n')
+          # Escape special characters that might break JSON
+          commits=$(echo "$commits" | sed 's/"/\\"/g' | sed "s/'/\\'/g")
+          echo "commits=$commits" >> $GITHUB_OUTPUT
+          echo "Generated commits: $commits"
+
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
 
     outputs:
-      commits: ${{ steps.last-commits.outputs.commits }}
       filename: ${{ steps.set-env.outputs.filename }}
 
     strategy:
@@ -96,12 +116,7 @@ jobs:
           LATEST_PREFIX: cm-${{ matrix.env }}-${{ env.build_type }}
           EXTENSION: .apk
 
-      - name: Get Last Commits
-        id: last-commits
-        run: |
-          git fetch --prune
-          commits=$(git log --no-merges -n 7 --pretty=format:"- %s (%h - %an)" | sed 's/$/\\n/' | tr -d '\n')
-          echo "commits=$commits" >> $GITHUB_OUTPUT
+
 
       - name: Collect Build Links
         run: |
@@ -125,7 +140,7 @@ jobs:
   notify-teams:
     name: Notify Teams
     runs-on: ubuntu-latest
-    needs: build-android
+    needs: [get-commits, build-android]
     steps:
       - name: Download All Links
         uses: actions/download-artifact@v4
@@ -144,7 +159,7 @@ jobs:
 
       - name: Debug Variables
         run: |
-          echo "COMMITS=${{ needs.build-android.outputs.commits }}"
+          echo "COMMITS=${{ needs.get-commits.outputs.commits }}"
           echo "BUILD_FILENAME=${{ needs.build-android.outputs.filename }}"
 
       - name: Send Teams Notification
@@ -182,7 +197,7 @@ jobs:
                     },
                     {
                       "type": "TextBlock",
-                      "text": "**Latest Changes:**\n\n${{ needs.build-android.outputs.commits }}",
+                      "text": "**Latest Changes:**\n\n${{ needs.get-commits.outputs.commits }}",
                       "wrap": true
                     } 
                   ],
