@@ -100,7 +100,7 @@ jobs:
         id: last-commits
         run: |
           git fetch --prune
-          commits=$(git log --no-merges -n 7 --oneline --pretty=format:"- %s\t(%h - %an)" | sed ':a;N;$!ba;s/\n/\\\\n/g')
+          commits=$(git log --no-merges -n 7 --pretty=format:"- %s (%h - %an)" | sed 's/$/\\n/' | tr -d '\n')
           echo "commits=$commits" >> $GITHUB_OUTPUT
 
       - name: Collect Build Links
