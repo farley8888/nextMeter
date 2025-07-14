@@ -655,6 +655,14 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun notifyShutdown() {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getShutdownNotificationCmd())
+            delay(200)
+            Log.d(TAG, "notifyShutdown: Shutdown notification sent to measure board")
+        }
+    }
+
     private fun setReceiveEvalDataLs() {
         mBusModel?.setListener { data: String ->
             sendMessage(MCUMessage(IAtCmd.W_MSG_DISPLAY, data))

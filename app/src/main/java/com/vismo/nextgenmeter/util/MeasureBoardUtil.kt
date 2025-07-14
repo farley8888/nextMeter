@@ -279,6 +279,14 @@ object MeasureBoardUtils {
         return cmdStringBuilder.toString().replace(" ", "")
     }
 
+    fun getShutdownNotificationCmd(): String {
+        val CMD_SHUTDOWN = "00 05 00 00 10 B1 90"
+        val checkSum = xorHexStrings(CMD_SHUTDOWN.trim().split(" "))
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_SHUTDOWN).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
     /**
      * update MCU params
      */

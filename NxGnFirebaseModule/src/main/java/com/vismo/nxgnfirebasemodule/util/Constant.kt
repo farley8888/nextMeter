@@ -27,6 +27,7 @@ object LogConstant {
     const val ACTION = "action"
     const val ACTION_PULSE_COUNTER = "pulse_counter"
     const val ACTION_METER_LOCKED = "meter_locked"
+    const val ACTION_ACC_STATUS_CHANGE = "acc_status_change"
     const val MODULE_4G_RESTARTING = "4G_MODULE_RESTARTING"
     const val TRIP_ID = "trip_id"
     const val ABNORMAL_PULSE_COUNTER = "abnormal_pulse_counter"

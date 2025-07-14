@@ -180,6 +180,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         dashManager.write4GModuleRestarting(timestamp, reason)
     }
 
+    override fun writeToLoggingCollection(map: Map<String, Any>) {
+        dashManager.writeToLoggingCollection(map)
+    }
+
 
     companion object {
         private const val DEFAULT_HEARTBEAT_INTERVAL = 5

@@ -24,6 +24,7 @@ import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepositoryImpl
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepositoryImpl
+import com.vismo.nextgenmeter.repository.SystemControlRepository
 import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.repository.TripRepositoryImpl
@@ -278,6 +279,16 @@ object AppModule {
         return AndroidROMOTAUpdateManager(
             context = context,
             internetConnectivityObserver = internetConnectivityObserver
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesSystemControlRepository(
+        @ApplicationContext context: Context
+    ): SystemControlRepository {
+        return SystemControlRepository(
+            context = context
         )
     }
 }

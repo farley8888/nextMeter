@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.firestore.FieldValue
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
@@ -29,6 +30,7 @@ import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.NetworkTimeRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
+import com.vismo.nextgenmeter.repository.SystemControlRepository
 import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
@@ -52,6 +54,7 @@ import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
+import com.vismo.nxgnfirebasemodule.util.LogConstant
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.IScope
 import io.sentry.Sentry
@@ -100,7 +103,8 @@ class MainViewModel @Inject constructor(
     tripFileManager: TripFileManager,
     private val moduleRestartManager: ModuleRestartManager,
     private val androidROMOTAUpdateManager: AndroidROMOTAUpdateManager,
-) : ViewModel(){
+    private val systemControlRepository: SystemControlRepository,
+    ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
 
@@ -116,6 +120,8 @@ class MainViewModel @Inject constructor(
 
     private var accEnquiryJob: Job? = null
     private var sleepJob: Job? = null
+    private var shutdownJob: Job? = null
+
     private var memoryMonitoringJob: Job? = null
     private val _isScreenOff = MutableStateFlow(false)
 
@@ -711,23 +717,71 @@ class MainViewModel @Inject constructor(
             delay((backlightOffDelay ?: BACKLIGHT_OFF_DELAY).toLong() * 1000)
             if (!isTripInProgress) {
                 _isScreenOff.value = true
+                val logMap1 = mapOf(
+                    LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                    LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                    LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                    LogConstant.DEVICE_TIME to Timestamp.now(),
+                    "acc_status" to "turning_off_backlight"
+                )
+                remoteMeterControlRepository.writeToLoggingCollection(logMap1)
                 toggleBackLight(false)
+
+                val logMap2 = mapOf(
+                    LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                    LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                    LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                    LogConstant.DEVICE_TIME to Timestamp.now(),
+                    "acc_status" to "starting_sleep_mode_in ${ TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY / 1000} seconds"
+                )
+                remoteMeterControlRepository.writeToLoggingCollection(logMap2)
                 switchToLowPowerMode()
                 DeviceDataStore.setIsDeviceAsleep(isAsleep = true)
                 dashManagerConfig.setIsDeviceAsleep(isAsleep = true)
                 Log.d(TAG, "sleepDevice: Device is in sleep mode")
+
+                // Start shutdown timer - device will shutdown after 15 minutes in low power mode
+                shutdownJob?.cancel()
+                shutdownJob = viewModelScope.launch(ioDispatcher) {
+                    delay(SHUTDOWN_DELAY_AFTER_LOW_POWER_MODE)
+                    Log.d(TAG, "sleepDevice: Starting shutdown after 15 minutes in low power mode")
+                    val logMap3 = mapOf(
+                        LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                        LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                        LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                        LogConstant.DEVICE_TIME to Timestamp.now(),
+                        "acc_status" to "shutting_down"
+                    )
+                    remoteMeterControlRepository.writeToLoggingCollection(logMap3)
+
+                    // Notify measure board before shutting down
+                    measureBoardRepository.notifyShutdown()
+                    delay(500) // Give measure board time to receive the command
+
+                    systemControlRepository.shutdownDevice()
+                }
             }
         }
     }
 
     private fun wakeUpDevice() {
         sleepJob?.cancel()
+        shutdownJob?.cancel()
+
         if (!_isScreenOff.value) return
 
         toggleBackLight(true)
         _isScreenOff.value = false
         DeviceDataStore.setIsDeviceAsleep(isAsleep = false)
         dashManagerConfig.setIsDeviceAsleep(isAsleep = false)
+        val logMap = mapOf(
+            LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+            LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+            LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+            LogConstant.DEVICE_TIME to Timestamp.now(),
+            "acc_status" to "wakeup"
+        )
+        remoteMeterControlRepository.writeToLoggingCollection(logMap)
         Log.d(TAG, "wakeUpDevice: Device is in wake up mode")
     }
 
@@ -837,6 +891,7 @@ class MainViewModel @Inject constructor(
         private const val INQUIRE_ACC_STATUS_INTERVAL = 5000L // 5 seconds
         private const val BACKLIGHT_OFF_DELAY = 10 // 10 seconds
         private const val TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY = 60 // 1 minute - standby mode
+        private const val SHUTDOWN_DELAY_AFTER_LOW_POWER_MODE = 900_000L // 15 minutes
         private const val TOOLBAR_UI_DATE_FORMAT = "M月d日 HH:mm"
         private const val MCU_DATE_FORMAT = "yyyyMMddHHmm"
         const val TAG_RESTARTING_MCU_COMMUNICATION = "Restarting MCU communication"
