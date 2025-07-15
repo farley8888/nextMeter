@@ -732,7 +732,7 @@ class MainViewModel @Inject constructor(
                     LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
                     LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
                     LogConstant.DEVICE_TIME to Timestamp.now(),
-                    "acc_status" to "starting_sleep_mode_in ${ TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY / 1000} seconds"
+                    "acc_status" to "starting_sleep_mode_in ${ (switchPowerModeDelay ?: TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY).toLong() / 1000} seconds"
                 )
                 remoteMeterControlRepository.writeToLoggingCollection(logMap2)
                 switchToLowPowerMode()
