@@ -41,6 +41,12 @@ interface MeasureBoardRepository {
 
     fun enquireParameters()
 
+    /**
+     * Sends the 0x10B0 command to get metering board information
+     * This should be called after app startup to obtain key information from the metering board
+     */
+    fun getMeteringBoardInfo()
+
     fun unlockMeter()
 
     fun updateMeasureBoardTime(formattedDateStr: String)

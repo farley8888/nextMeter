@@ -740,19 +740,29 @@ class MainViewModel @Inject constructor(
                 dashManagerConfig.setIsDeviceAsleep(isAsleep = true)
                 Log.d(TAG, "sleepDevice: Device is in sleep mode")
 
-                // Start shutdown timer - device will shutdown after 15 minutes in low power mode
+                // Start shutdown timer - device will shutdown after x minutes in low power mode
                 shutdownJob?.cancel()
                 shutdownJob = viewModelScope.launch(ioDispatcher) {
-                    delay(SHUTDOWN_DELAY_AFTER_LOW_POWER_MODE)
-                    Log.d(TAG, "sleepDevice: Starting shutdown after 15 minutes in low power mode")
+                    val powerOffTimeInMCU = DeviceDataStore.meteringBoardInfo.firstOrNull()?.getFormattedPowerOffTime()?.toLongOrNull()
                     val logMap3 = mapOf(
+                        LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                        LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                        LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                        LogConstant.DEVICE_TIME to Timestamp.now(),
+                        "acc_status" to "turning off device in ${ (powerOffTimeInMCU ?: SHUTDOWN_DELAY_MINS_AFTER_LOW_POWER_MODE).toLong()} minutes"
+                    )
+                    remoteMeterControlRepository.writeToLoggingCollection(logMap3)
+
+                    delay((powerOffTimeInMCU ?: SHUTDOWN_DELAY_MINS_AFTER_LOW_POWER_MODE) * 60 * 1000) // Convert minutes to milliseconds
+                    Log.d(TAG, "sleepDevice: Starting shutdown after 15 minutes in low power mode")
+                    val logMap4 = mapOf(
                         LogConstant.CREATED_BY to LogConstant.CABLE_METER,
                         LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
                         LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
                         LogConstant.DEVICE_TIME to Timestamp.now(),
                         "acc_status" to "shutting_down"
                     )
-                    remoteMeterControlRepository.writeToLoggingCollection(logMap3)
+                    remoteMeterControlRepository.writeToLoggingCollection(logMap4)
 
                     // Notify measure board before shutting down
                     measureBoardRepository.notifyShutdown()
@@ -891,7 +901,7 @@ class MainViewModel @Inject constructor(
         private const val INQUIRE_ACC_STATUS_INTERVAL = 5000L // 5 seconds
         private const val BACKLIGHT_OFF_DELAY = 10 // 10 seconds
         private const val TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY = 60 // 1 minute - standby mode
-        private const val SHUTDOWN_DELAY_AFTER_LOW_POWER_MODE = 900_000L // 15 minutes
+        private const val SHUTDOWN_DELAY_MINS_AFTER_LOW_POWER_MODE = 15L // 15 minutes
         private const val TOOLBAR_UI_DATE_FORMAT = "M月d日 HH:mm"
         private const val MCU_DATE_FORMAT = "yyyyMMddHHmm"
         const val TAG_RESTARTING_MCU_COMMUNICATION = "Restarting MCU communication"

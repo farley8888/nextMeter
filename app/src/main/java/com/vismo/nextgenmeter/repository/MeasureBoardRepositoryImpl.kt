@@ -23,6 +23,7 @@ import com.vismo.nextgenmeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.ABNORMAL_PULSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
+import com.vismo.nextgenmeter.util.MeasureBoardUtils.METERING_BOARD_INFO_RESPONSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.ONGOING_HEARTBEAT
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.PARAMETERS_ENQUIRY
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.REQUEST_UPGRADE_FIRMWARE
@@ -51,6 +52,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import java.util.logging.Logger
 import javax.inject.Inject
+import com.vismo.nextgenmeter.model.MeteringBoardInfo
 
 @Suppress("detekt.TooManyFunctions")
 class MeasureBoardRepositoryImpl @Inject constructor(
@@ -413,6 +415,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             ONGOING_HEARTBEAT -> handleOngoingHeartbearResult(result = result)
             TRIP_END_SUMMARY -> handleTripEndSummaryResult(result = result)
             PARAMETERS_ENQUIRY -> handleParametersEnquiryResult(result = result)
+            METERING_BOARD_INFO_RESPONSE -> handleMeteringBoardInfoResponse(result = result)
             ABNORMAL_PULSE -> handleAbnormalPulse(result = result)
             REQUEST_UPGRADE_FIRMWARE -> handleUpgradeFirmwareRequestResult(result)
             UPGRADING_FIRMWARE -> handleFirmwareUpdate(result)
@@ -508,9 +511,40 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         Log.d(TAG, "handleParametersEnquiryResult: ${mcuData.kValue} ${mcuData.startingPrice} ${mcuData.stepPrice} ${mcuData.changedStepPrice}")
     }
 
+    private suspend fun handleMeteringBoardInfoResponse(result: String) {
+        if (result.length < 170 || !result.startsWith(HEARTBEAT_IDENTIFIER)) {
+            Log.d(TAG, "handleMeteringBoardInfoResponse: Invalid result length: ${result.length}")
+            Sentry.captureMessage("handleMeteringBoardInfoResponse: Invalid result length: ${result.length}")
+            return
+        }
+        val meteringBoardInfo = MeteringBoardInfo.parseFromHexResponse(result)
+        if (meteringBoardInfo == null) {
+            Log.e(TAG, "handleMeteringBoardInfoResponse: Failed to parse response")
+            Sentry.captureMessage("handleMeteringBoardInfoResponse: Failed to parse response")
+            return
+        }
+        
+        // Store the metering board info in DataStore
+        DeviceDataStore.setMeteringBoardInfo(meteringBoardInfo)
+        
+        Log.d(TAG, "handleMeteringBoardInfoResponse: Successfully parsed metering board info")
+        Log.d(TAG, "  Status: ${meteringBoardInfo.getMeteringPlateStatusString()}")
+        Log.d(TAG, "  MCU Time: ${meteringBoardInfo.getFormattedMcuTime()}")
+        Log.d(TAG, "  K Value: ${meteringBoardInfo.getFormattedKValue()}")
+        Log.d(TAG, "  Trip ID: ${meteringBoardInfo.tripId}")
+        Log.d(TAG, "  Power Off Time: ${meteringBoardInfo.getFormattedPowerOffTime()} minutes")
+    }
+
     override fun enquireParameters() {
         addTask {
             mBusModel?.write(Command.CMD_PARAMETERS_ENQUIRY)
+            delay(200)
+        }
+    }
+
+    override fun getMeteringBoardInfo() {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getMeteringBoardInfoCmd())
             delay(200)
         }
     }

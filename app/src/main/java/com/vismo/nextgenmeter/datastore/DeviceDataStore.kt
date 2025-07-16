@@ -3,6 +3,7 @@ package com.vismo.nextgenmeter.datastore
 import android.util.Log
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
+import com.vismo.nextgenmeter.model.MeteringBoardInfo
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -23,6 +24,9 @@ object DeviceDataStore {
 
     private val _mcuTime = MutableStateFlow<String?>(null)
     val mcuTime: StateFlow<String?> = _mcuTime
+
+    private val _meteringBoardInfo = MutableStateFlow<MeteringBoardInfo?>(null)
+    val meteringBoardInfo: StateFlow<MeteringBoardInfo?> = _meteringBoardInfo
 
     private val _storageReceiverStatus = MutableStateFlow<StorageReceiverStatus>(StorageReceiverStatus.Unknown)
     val storageReceiverStatus: StateFlow<StorageReceiverStatus> = _storageReceiverStatus
@@ -69,6 +73,13 @@ object DeviceDataStore {
     suspend fun setMCUTime(mcuTime: String) {
         mutex.withLock {
             this._mcuTime.value = mcuTime
+        }
+    }
+
+    suspend fun setMeteringBoardInfo(meteringBoardInfo: MeteringBoardInfo) {
+        mutex.withLock {
+            this._meteringBoardInfo.value = meteringBoardInfo
+            Log.d("DeviceDataStore", "Metering Board Info updated: $meteringBoardInfo")
         }
     }
 

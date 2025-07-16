@@ -23,6 +23,7 @@ object MeasureBoardUtils {
     const val ONGOING_HEARTBEAT = "E3"
     const val REQUEST_UPGRADE_FIRMWARE = "A8"
     const val UPGRADING_FIRMWARE = "E1"
+    const val METERING_BOARD_INFO_RESPONSE = "B0"
 
     fun formatStartingPrice(input: String): String {
         return if (input.length == 4) {
@@ -284,6 +285,14 @@ object MeasureBoardUtils {
         val checkSum = xorHexStrings(CMD_SHUTDOWN.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
         cmdStringBuilder.append("55 AA ").append(CMD_SHUTDOWN).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
+    fun getMeteringBoardInfoCmd(): String {
+        val CMD_METERING_BOARD_INFO = "00 05 00 00 10 B0 90"
+        val checkSum = xorHexStrings(CMD_METERING_BOARD_INFO.trim().split(" "))
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_METERING_BOARD_INFO).append(checkSum).append(" 55 AA")
         return cmdStringBuilder.toString().replace(" ", "")
     }
 
