@@ -200,6 +200,7 @@ class MainViewModel @Inject constructor(
             launch { observeMCUHeartbeatSignal() }
             launch { observeBusModelSignal() }
             launch { observe4GModuleRestart() }
+            launch { observeIsSimCardAvailable() }
         }
     }
 
@@ -439,6 +440,15 @@ class MainViewModel @Inject constructor(
                         Toast.makeText(context, TAG_RESTARTING_MCU_COMMUNICATION, Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        }
+    }
+
+    private suspend fun observeIsSimCardAvailable() {
+        DeviceDataStore.isSimCardAvailable.collectLatest { isSimCardAvailable ->
+            Log.d(TAG, "Is SIM card available: $isSimCardAvailable")
+            if (!isSimCardAvailable) {
+                updateSignalStrength(0)
             }
         }
     }

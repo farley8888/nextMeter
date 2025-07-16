@@ -55,6 +55,9 @@ object DeviceDataStore {
     private val _isDeviceAsleep = MutableStateFlow(false)
     val isDeviceAsleep: StateFlow<Boolean> = _isDeviceAsleep
 
+    private val _isSimCardAvailable = MutableStateFlow(false)
+    val isSimCardAvailable: StateFlow<Boolean> = _isSimCardAvailable
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
@@ -124,6 +127,10 @@ object DeviceDataStore {
 
     fun setIsDeviceAsleep(isAsleep: Boolean) {
         this._isDeviceAsleep.value = isAsleep
+    }
+
+    fun setIsSimCardAvailable(isAvailable: Boolean) {
+        this._isSimCardAvailable.value = isAvailable
     }
 }
 

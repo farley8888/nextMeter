@@ -179,7 +179,7 @@ fun AppBar(
                             .padding(end = 4.dp)
                     )
                 }
-                if (uiState.showLoginToggle && uiState.showConnectionIconsToggle && !uiState.show4GModuleRestarting) {
+                if (uiState.showLoginToggle && uiState.showConnectionIconsToggle) {
                     when (uiState.signalStrength) {
                         1 -> {
                             Icon(

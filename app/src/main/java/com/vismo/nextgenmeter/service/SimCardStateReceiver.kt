@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -62,9 +63,11 @@ class SimCardStateReceiver : BroadcastReceiver() {
             
             if (hasSimProblem) {
                 Log.w(TAG, "❌ SIM problem detected: $simState - checking if 4G restart needed")
+                DeviceDataStore.setIsSimCardAvailable(false)
                 triggerModuleCheck(context)
             } else {
                 Log.d(TAG, "✅ SIM is working fine: $simState - resetting no-network zone detection")
+                DeviceDataStore.setIsSimCardAvailable(true)
                 resetNoNetworkZoneDetection(context)
             }
             
