@@ -353,8 +353,8 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private suspend fun tryInternetTasks() {
-        Log.d(TAG, "Trying internet tasks")
+    private suspend fun tryInternetTasks(onInit: Boolean = false) {
+        Log.d(TAG, "Trying internet tasks - onInit: $onInit")
         val headers = firebaseAuthRepository.getHeaders()
         if (!headers.containsKey(AUTHORIZATION_HEADER)) {
             firebaseAuthRepository.initToken(viewModelScope)
@@ -632,6 +632,7 @@ class MainViewModel @Inject constructor(
         setCrashlyticsKeys()
         viewModelScope.launch(ioDispatcher) {
             tripFileManager.initializeTrips()
+            tryInternetTasks(onInit = true)
         }
         Log.d(TAG, "MainViewModel initialized")
 //         TODO: Temp for testing - put in the correct place later
