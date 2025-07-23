@@ -15,6 +15,7 @@ data class Update(
     @SerializedName("version") val version: String,
     @SerializedName("is_admin") val isAdmin: Boolean?,
     @SerializedName("status") val status: UpdateStatus?,
+    @SerializedName("last_updated_by_meter_on") val lastUpdatedOn: Timestamp? = null,
 )
 
 enum class UpdateStatus {

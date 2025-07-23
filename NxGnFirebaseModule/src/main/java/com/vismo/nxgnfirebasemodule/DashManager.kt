@@ -559,21 +559,25 @@ class DashManager @Inject constructor(
 
     fun writeUpdateResult(update: Update) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
-            val json = gson.toJson(update)
-            val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
+            update.copy(
+                lastUpdatedOn = Timestamp.now(),
+            ).run {
+                val json = gson.toJson(this)
+                val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
-            val updatesCollection = getMeterDocument()
-                .collection(UPDATES_COLLECTION)
+                val updatesCollection = getMeterDocument()
+                    .collection(UPDATES_COLLECTION)
 
-            updatesCollection
-                .document(update.id)
-                .set(map, SetOptions.merge())
-                .addOnSuccessListener {
-                    Log.d(TAG, "updateMostRelevantUpdate successfully")
-                }
-                .addOnFailureListener {
-                    Log.e(TAG, "updateMostRelevantUpdate error", it)
-                }
+                updatesCollection
+                    .document(this.id)
+                    .set(map, SetOptions.merge())
+                    .addOnSuccessListener {
+                        Log.d(TAG, "updateMostRelevantUpdate successfully")
+                    }
+                    .addOnFailureListener {
+                        Log.e(TAG, "updateMostRelevantUpdate error", it)
+                    }
+            }
         }
     }
 
