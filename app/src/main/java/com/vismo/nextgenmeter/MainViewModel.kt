@@ -738,6 +738,9 @@ class MainViewModel @Inject constructor(
                 remoteMeterControlRepository.writeToLoggingCollection(logMap1)
                 toggleBackLight(false)
 
+                val isMeterOnline = internetConnectivityObserver.internetStatus.firstOrNull() == InternetConnectivityObserver.Status.InternetAvailable
+                meterPreferenceRepository.saveWasMeterOnlineAtLastAccOff(isMeterOnline)
+
                 val logMap2 = mapOf(
                     LogConstant.CREATED_BY to LogConstant.CABLE_METER,
                     LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,

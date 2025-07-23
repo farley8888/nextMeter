@@ -181,6 +181,21 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveWasMeterOnlineAtLastAccOff(wasOnline: Boolean) {
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_WAS_METER_ONLINE_AT_LAST_ACC_OFF] = wasOnline.toString()
+            }
+        }
+    }
+
+    fun getWasMeterOnlineAtLastAccOff(): Flow<Boolean> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_WAS_METER_ONLINE_AT_LAST_ACC_OFF]?.toBoolean() ?: false
+            }
+    }
+
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
         private val KEY_TOTP_SECRET = stringPreferencesKey("totp_secret")
@@ -194,6 +209,7 @@ class MeterPreferenceRepository(
         private val KEY_ONGOING_TRIP_START_TIME = longPreferencesKey("ongoing_trip_start_time_${BuildConfig.FLAVOR}")
         private val KEY_FIRMWARE_FILENAME_FOR_OTA = stringPreferencesKey("latest_firmware_filename_for_ota")
         private val KEY_MOST_RECENTLY_COMPLETED_OTA_UPDATE_ID = stringPreferencesKey("completed_update_id_${BuildConfig.FLAVOR}")
+        private val KEY_WAS_METER_ONLINE_AT_LAST_ACC_OFF = stringPreferencesKey("was_meter_online_at_last_acc_off_${BuildConfig.FLAVOR}")
     }
 
 }
