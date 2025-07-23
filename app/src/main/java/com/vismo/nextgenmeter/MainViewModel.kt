@@ -141,13 +141,13 @@ class MainViewModel @Inject constructor(
             when (it?.type) {
             OTA_METERAPP_TYPE -> {
                 val isValid = isBuildVersionHigherThanCurrentVersion(it.version)
-                val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.VERSION_ERROR
+                val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
                 remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus))
                 isValid
             }
             OTA_FIRMWARE_TYPE -> {
                 val isValid = it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion
-                val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.COMPLETE
+                val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.COMPLETE
                 remoteMeterControlRepository.writeUpdateResultToFireStore(
                     it.copy(
                         status = newStatus,

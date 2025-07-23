@@ -20,7 +20,7 @@ data class Update(
 
 enum class UpdateStatus {
     REQUESTED,
-    WAITING_FOR_DOWNLOAD,
+    PROCESSING,
     VERSION_ERROR,
     DOWNLOADING,
     DOWNLOAD_ERROR,
