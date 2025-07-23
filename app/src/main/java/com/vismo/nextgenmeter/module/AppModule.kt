@@ -1,6 +1,7 @@
 package com.vismo.nextgenmeter.module
 
 import android.content.Context
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
@@ -39,11 +40,35 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Singleton
+    @Provides
+    fun providesMeterPreferenceRepository(
+        @ApplicationContext context: Context,
+    ): MeterPreferenceRepository {
+        return MeterPreferenceRepository(
+            context = context,
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesInternetConnectivityObserver(
+        @ApplicationContext context: Context,
+    ): InternetConnectivityObserver {
+        return InternetConnectivityObserver(
+            context = context,
+        )
+    }
 
     @Provides
     @Singleton
@@ -51,7 +76,21 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesFirebaseFirestore(): FirebaseFirestore {
+    fun providesFirebaseFirestore(
+        internetConnectivityObserver: InternetConnectivityObserver,
+        meterPreferenceRepository: MeterPreferenceRepository
+    ): FirebaseFirestore {
+        val shouldClearPersistenceCache = runBlocking {
+            meterPreferenceRepository.getWasMeterOnlineAtLastAccOff().firstOrNull() == true
+        }
+        val isMeterOnline = runBlocking {
+            internetConnectivityObserver.internetStatus.firstOrNull() == InternetConnectivityObserver.Status.InternetAvailable
+        }
+
+        val isTripOngoing = runBlocking {
+            !meterPreferenceRepository.getOngoingTripId().firstOrNull().isNullOrBlank()
+        }
+
         val settings = FirebaseFirestoreSettings.Builder()
             .setLocalCacheSettings(
                 PersistentCacheSettings.newBuilder()
@@ -59,8 +98,15 @@ object AppModule {
                     .build()
             )
             .build()
+
         return FirebaseFirestore.getInstance().apply {
             firestoreSettings = settings
+            Log.d("AppModule", "shouldClearPersistenceCache: $shouldClearPersistenceCache, isMeterOnline: $isMeterOnline, isTripOngoing: $isTripOngoing")
+            if (shouldClearPersistenceCache && isMeterOnline && !isTripOngoing) {
+                clearPersistence().addOnCompleteListener {
+                    Log.d("AppModule", "Is Firestore persistence cache cleared - ${it.isSuccessful}")
+                }
+            }
         }
     }
 
@@ -145,16 +191,6 @@ object AppModule {
             defaultDispatcher = defaultDispatcher,
             ioDispatcher = ioDispatcher,
             tripsDao = tripsDao,
-        )
-    }
-
-    @Singleton
-    @Provides
-    fun providesMeterPreferenceRepository(
-        @ApplicationContext context: Context,
-    ): MeterPreferenceRepository {
-        return MeterPreferenceRepository(
-            context = context,
         )
     }
 
@@ -257,16 +293,6 @@ object AppModule {
             storageReference = storageReference,
             ioDispatcher = ioDispatcher,
             meterPreferenceRepository = meterPreferenceRepository
-        )
-    }
-
-    @Singleton
-    @Provides
-    fun providesInternetConnectivityObserver(
-        @ApplicationContext context: Context,
-    ): InternetConnectivityObserver {
-        return InternetConnectivityObserver(
-            context = context,
         )
     }
 
