@@ -226,6 +226,21 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveAndroidGpsLastUpdateTime(time: Long) {
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_ANDROID_GPS_LAST_UPDATE_TIME] = time
+            }
+        }
+    }
+
+    fun getAndroidGpsLastUpdateTime(): Flow<Long?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_ANDROID_GPS_LAST_UPDATE_TIME]
+            }
+    }
+
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
         private val KEY_TOTP_SECRET = stringPreferencesKey("totp_secret")
@@ -240,6 +255,7 @@ class MeterPreferenceRepository(
         private val KEY_FIRMWARE_FILENAME_FOR_OTA = stringPreferencesKey("latest_firmware_filename_for_ota")
         private val KEY_MOST_RECENTLY_COMPLETED_OTA_UPDATE_ID = stringPreferencesKey("completed_update_id_${BuildConfig.FLAVOR}")
         private val KEY_WAS_METER_ONLINE_AT_LAST_ACC_OFF = stringPreferencesKey("was_meter_online_at_last_acc_off_${BuildConfig.FLAVOR}")
+        private val KEY_ANDROID_GPS_LAST_UPDATE_TIME = longPreferencesKey("android_gps_last_update_time")
     }
 
 }
