@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.usb.UsbManager
+import android.location.Location
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Process
@@ -42,6 +43,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
+import com.ilin.service.GPSService
 import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
@@ -62,6 +64,7 @@ import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import com.vismo.nxgnfirebasemodule.model.AGPS
+import com.vismo.nxgnfirebasemodule.model.AndroidGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.canBeSnoozed
@@ -139,12 +142,36 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
         Runtime.getRuntime().exec(whiteList).waitFor()
     }
 
+    private fun startGPSService() {
+        setGpsLS()
+        val it = Intent(applicationContext, GPSService::class.java)
+        it.setAction("act.init.gps")
+        startService(it)
+    }
+
+    private fun setGpsLS() {
+        GPSService.setLs { location: Location ->
+            mainViewModel.setLocation(
+                MeterLocation(
+                    geoPoint = GeoPoint(location.latitude, location.longitude),
+                    gpsType = AndroidGPS(
+                        speed = location.speed.toDouble(),
+                        bearing = location.bearing.toDouble()
+                    )
+                )
+            )
+            Log.d(TAG, "setGpsLS: Location set from Android GPSService: ${location.latitude}, ${location.longitude}")
+        }
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate: ")
         enableLogcatPrint()
         initObservers()
         startAMapLocation()
+        startGPSService()
         listenToSignalStrength()
         setWifiStatus()
         registerWifiReceiver()

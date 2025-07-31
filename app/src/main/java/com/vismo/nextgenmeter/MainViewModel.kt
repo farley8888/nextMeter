@@ -11,6 +11,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FieldValue
+import com.ilin.util.AmapLocationUtils
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
@@ -44,7 +45,10 @@ import com.vismo.nextgenmeter.util.Constant
 import com.vismo.nextgenmeter.util.GlobalUtils.maskLast
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
+import com.vismo.nxgnfirebasemodule.model.AndroidGPS
+import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
+import com.vismo.nxgnfirebasemodule.model.NOT_SET
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
@@ -121,6 +125,8 @@ class MainViewModel @Inject constructor(
     private val _clearApplicationCache = MutableStateFlow(false)
     val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
 
+    private val _isAMapStopped = MutableStateFlow(false)
+
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
         .filter {
@@ -185,6 +191,45 @@ class MainViewModel @Inject constructor(
             launch { observeReInitMCURepository() }
             launch { observeMCUHeartbeatSignal() }
             launch { observeBusModelSignal() }
+            launch { observeMeterLocation() }
+            launch { observeAndroidGpsLastUpdateTime() }
+        }
+    }
+
+    private suspend fun observeAndroidGpsLastUpdateTime() {
+        meterPreferenceRepository.getAndroidGpsLastUpdateTime().collectLatest { lastUpdateTime ->
+            if (lastUpdateTime == 0L && _isAMapStopped.value) {
+                AmapLocationUtils.getInstance().startLocation()
+                _isAMapStopped.value = false
+                Log.d(TAG, "observeAndroidGpsLastUpdateTime: Starting AmapLocationUtils")
+            } else if (lastUpdateTime != null && lastUpdateTime > 0L && !_isAMapStopped.value) {
+                AmapLocationUtils.getInstance().stopLocation()
+                _isAMapStopped.value = true
+                Log.d(TAG, "observeAndroidGpsLastUpdateTime: Stopping AmapLocationUtils due to last update time: $lastUpdateTime")
+            }
+        }
+    }
+
+    private suspend fun observeMeterLocation() {
+        dashManagerConfig.meterLocation.collectLatest {
+            updateLocationIconVisibility(isVisible = it.gpsType != NOT_SET)
+            when (it.gpsType) {
+                is AndroidGPS -> {
+                    AmapLocationUtils.getInstance().stopLocation()
+                    meterPreferenceRepository.saveAndroidGpsLastUpdateTime(
+                        System.currentTimeMillis()
+                    )
+                    Log.d(TAG, "observeMeterLocation: Stopping AmapLocationUtils and saving Android GPS last update time")
+                }
+                else -> {
+                    // reset android gps last update time if the time is higher than 2 mins
+                    val lastUpdateTime = meterPreferenceRepository.getAndroidGpsLastUpdateTime().firstOrNull() ?: 0L
+                    if (System.currentTimeMillis() - lastUpdateTime > 2 * 60 * 1000) {
+                        meterPreferenceRepository.saveAndroidGpsLastUpdateTime(0L)
+                        Log.d(TAG, "observeMeterLocation: Resetting Android GPS last update time to 0")
+                    }
+                }
+            }
         }
     }
 
@@ -532,7 +577,6 @@ class MainViewModel @Inject constructor(
 
     fun setLocation(meterLocation: MeterLocation) {
         dashManagerConfig.setLocation(meterLocation)
-        updateLocationIconVisibility()
     }
 
     fun startCommunicate() {
