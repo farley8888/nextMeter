@@ -53,6 +53,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import java.util.logging.Logger
 import javax.inject.Inject
 import com.vismo.nextgenmeter.model.MeteringBoardInfo
+import java.util.Calendar
 
 @Suppress("detekt.TooManyFunctions")
 class MeasureBoardRepositoryImpl @Inject constructor(
@@ -279,7 +280,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 paidDistanceInMeters = heartbeatData.paidDistance,
                 unpaidDistanceInMeters = heartbeatData.unpaidDistance,
                 waitDurationInSeconds = getTimeInSeconds(heartbeatData.duration),
-                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = null),
+                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = null, startTime = savedOngoingStartTime),
                 endTime = null,
                 requiresUpdateOnDatabase = true,
                 licensePlate = savedLicensePlate,
@@ -294,7 +295,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             ongoingTrip.copy(
                 tripId = savedOngoingTripId,
                 tripStatus = heartbeatData.tripStatus,
-                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = ongoingTrip.pauseTime),
+                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = ongoingTrip.pauseTime, startTime = ongoingTrip.startTime),
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
                 totalFare = heartbeatData.totalFare,
@@ -318,10 +319,24 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     }
 
-    private fun getPauseTime(tripStatus: TripStatus, currentPauseTime: Timestamp?): Timestamp? {
+    private fun getPauseTime(tripStatus: TripStatus, currentPauseTime: Timestamp?, startTime: Timestamp?): Timestamp? {
         return if (tripStatus == TripStatus.STOP) {
             if(currentPauseTime == null) {
-                Timestamp.now()
+                // check if start time hours and mins are the same as hours and mins now -
+                // to handle case where start time seconds if 59 and by the time is reaches here, it becomes the next min
+                val now = Timestamp.now()
+                val calendarNow = Calendar.getInstance().apply {
+                    timeInMillis = now.toDate().time
+                }
+                val calendarStart = Calendar.getInstance().apply {
+                    timeInMillis = startTime?.toDate()?.time ?: now.toDate().time
+                }
+                if (calendarStart.get(Calendar.HOUR_OF_DAY) == calendarNow.get(Calendar.HOUR_OF_DAY) &&
+                    calendarStart.get(Calendar.MINUTE) == calendarNow.get(Calendar.MINUTE)) {
+                    startTime
+                } else {
+                    Timestamp.now()
+                }
             } else {
                 currentPauseTime
             }
