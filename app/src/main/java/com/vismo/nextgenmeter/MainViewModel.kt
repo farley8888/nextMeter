@@ -192,6 +192,7 @@ class MainViewModel @Inject constructor(
             launch { observeHeartBeatInterval() }
             launch { observeMeterAndTripInfo() }
             launch { observeTripData() }
+            launch { observeFirstHeartbeat() }
             launch { observeFirebaseAuthSuccess() }
             launch { observeShowLoginToggle() }
             launch { observeShowConnectionIconsToggle() }
@@ -299,7 +300,7 @@ class MainViewModel @Inject constructor(
     fun setClearApplicationCache(boolean: Boolean) {
         _clearApplicationCache.value = boolean
     }
-    
+
     /**
      * Trigger manual 4G module restart (bypasses rate limiting)
      */
@@ -404,6 +405,14 @@ class MainViewModel @Inject constructor(
     private suspend fun observeTripData() {
         TripDataStore.ongoingTripData.collectLatest {
             TripDataStore.setIsTripInProgress(it != null)
+        }
+    }
+
+    private suspend fun observeFirstHeartbeat() {
+        TripDataStore.hasReceivedAtLeastOneHeartBeat.collectLatest {
+            if(it) {
+                startACCStatusInquiries()
+            }
         }
     }
 
@@ -684,11 +693,11 @@ class MainViewModel @Inject constructor(
                     val usedMemory = runtime.totalMemory() - runtime.freeMemory()
                     val maxMemory = runtime.maxMemory()
                     val memoryPercent = (usedMemory * 100 / maxMemory).toInt()
-                    
+
                     if (memoryPercent > 80) {
                         Log.w(TAG, "High memory usage: $memoryPercent% (${usedMemory / 1024 / 1024}MB / ${maxMemory / 1024 / 1024}MB)")
                         Sentry.captureMessage("High memory usage: $memoryPercent%")
-                        
+
                         // Suggest garbage collection when memory is high
                         if (memoryPercent > 90) {
                             System.gc()
@@ -698,7 +707,7 @@ class MainViewModel @Inject constructor(
                         // Log moderate memory usage less frequently
                         Log.d(TAG, "Memory usage: $memoryPercent%")
                     }
-                    
+
                     delay(MEMORY_CHECK_INTERVAL)
                 } catch (e: CancellationException) {
                     Log.d(TAG, "Memory monitoring cancelled")
