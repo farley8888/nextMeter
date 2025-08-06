@@ -177,6 +177,7 @@ class MainViewModel @Inject constructor(
             launch { observeHeartBeatInterval() }
             launch { observeMeterAndTripInfo() }
             launch { observeTripData() }
+            launch { observeFirstHeartbeat() }
             launch { observeFirebaseAuthSuccess() }
             launch { observeShowLoginToggle() }
             launch { observeShowConnectionIconsToggle() }
@@ -360,6 +361,14 @@ class MainViewModel @Inject constructor(
     private suspend fun observeTripData() {
         TripDataStore.ongoingTripData.collectLatest {
             TripDataStore.setIsTripInProgress(it != null)
+        }
+    }
+
+    private suspend fun observeFirstHeartbeat() {
+        TripDataStore.hasReceivedAtLeastOneHeartBeat.collectLatest {
+            if(it) {
+                startACCStatusInquiries()
+            }
         }
     }
 
@@ -549,7 +558,6 @@ class MainViewModel @Inject constructor(
         remoteMeterControlRepository.observeFlows(viewModelScope)
         tripRepository.initObservers(viewModelScope)
         observeFlows()
-        startACCStatusInquiries()
         observeInternetStatus()
         observeDriverInfo()
         disableADBByDefaultForProd()

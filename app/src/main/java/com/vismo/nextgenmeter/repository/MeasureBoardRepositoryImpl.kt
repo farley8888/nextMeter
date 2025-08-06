@@ -185,6 +185,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             scope.setTag("license_plate", licensePlate)
         }
         Log.d(TAG, "IDLE_HEARTBEAT: $result")
+        TripDataStore.setHasReceivedAtLeastOneHeartBeat(true)
     }
 
     private suspend  fun handleOngoingHeartbearResult(result: String) {
@@ -284,7 +285,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
 
         TripDataStore.updateTripDataValue(newTrip)
-
+        TripDataStore.setHasReceivedAtLeastOneHeartBeat(true)
     }
 
     private fun getPauseTime(tripStatus: TripStatus, currentPauseTime: Timestamp?, startTime: Timestamp?): Timestamp? {
