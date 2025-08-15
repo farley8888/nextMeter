@@ -165,10 +165,10 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
                     MeasureBoardRepositoryImpl.TAG_UNKNOWN_RESULT
                 )
 
-                if (formatted != null && tags.any { formatted.contains(it) } && Math.random() > 0.1) {
-                    null  // Drop event (90% chance)
+                if (formatted != null && tags.any { formatted.contains(it) } && Math.random() > 0.001) {
+                    null  // Drop event (99.9% chance)
                 } else {
-                    event // Keep event
+                    event // Keep event (0.1% chance)
                 }
             }
         }
