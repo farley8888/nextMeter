@@ -83,6 +83,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.tasks.await
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -142,7 +143,7 @@ class MainViewModel @Inject constructor(
             OTA_METERAPP_TYPE -> {
                 val isValid = isBuildVersionHigherThanCurrentVersion(it.version)
                 val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
-                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus))
+                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus)).await()
                 isValid
             }
             OTA_FIRMWARE_TYPE -> {
@@ -153,7 +154,7 @@ class MainViewModel @Inject constructor(
                         status = newStatus,
                         completedOn = if (newStatus == UpdateStatus.COMPLETE) Timestamp.now() else null
                     )
-                )
+                ).await()
                 isValid
             }
             else -> false
@@ -317,7 +318,7 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch(ioDispatcher) {
             update?.let {
                 val snoozedUpdate = it.snoozeForADay()
-                remoteMeterControlRepository.writeUpdateResultToFireStore(snoozedUpdate)
+                remoteMeterControlRepository.writeUpdateResultToFireStore(snoozedUpdate).await()
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.vismo.nxgnfirebasemodule
 
 import android.util.Log
+import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
@@ -557,28 +558,25 @@ class DashManager @Inject constructor(
         }
     }
 
-    fun writeUpdateResult(update: Update) {
-        externalScope?.launch(ioDispatcher + exceptionHandler) {
-            update.copy(
-                lastUpdatedOn = Timestamp.now(),
-            ).run {
-                val json = gson.toJson(this)
-                val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
+    fun writeUpdateResult(update: Update): Task<Void> {
+        val updatedData = update.copy(
+            lastUpdatedOn = Timestamp.now(),
+        )
+        val json = gson.toJson(updatedData)
+        val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
-                val updatesCollection = getMeterDocument()
-                    .collection(UPDATES_COLLECTION)
+        val updatesCollection = getMeterDocument()
+            .collection(UPDATES_COLLECTION)
 
-                updatesCollection
-                    .document(this.id)
-                    .set(map, SetOptions.merge())
-                    .addOnSuccessListener {
-                        Log.d(TAG, "updateMostRelevantUpdate successfully")
-                    }
-                    .addOnFailureListener {
-                        Log.e(TAG, "updateMostRelevantUpdate error", it)
-                    }
+        return updatesCollection
+            .document(updatedData.id)
+            .set(map, SetOptions.merge())
+            .addOnSuccessListener {
+                Log.d(TAG, "Firestore update successful for update ID: ${updatedData.id}")
             }
-        }
+            .addOnFailureListener {
+                Log.e(TAG, "Firestore update failed for update ID: ${updatedData.id}", it)
+            }
     }
 
     fun sendHeartbeat() {

@@ -1,6 +1,7 @@
 package com.vismo.nextgenmeter.repository
 
 import android.util.Log
+import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.BuildConfig
@@ -145,8 +146,8 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun writeUpdateResultToFireStore(update: Update) {
-        dashManager.writeUpdateResult(update)
+    override fun writeUpdateResultToFireStore(update: Update) : Task<Void> {
+        return dashManager.writeUpdateResult(update)
     }
 
 

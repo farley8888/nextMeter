@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.repository
 
+import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nxgnfirebasemodule.model.MeterDeviceProperties
@@ -30,7 +31,7 @@ interface RemoteMeterControlRepository {
 
     fun updateLicensePlateAndKValue(licensePlate: String, kValue: String)
 
-    fun writeUpdateResultToFireStore(update: Update)
+    fun writeUpdateResultToFireStore(update: Update): Task<Void>
 
     fun remoteUpdateKValue()
 

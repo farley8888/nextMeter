@@ -4,6 +4,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
@@ -14,6 +18,7 @@ import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.google.firebase.storage.FirebaseStorage
 import com.vismo.nextgenmeter.BuildConfig
@@ -24,11 +29,13 @@ import com.vismo.nextgenmeter.service.OnUpdateCompletedReceiver
 import com.vismo.nextgenmeter.util.Constant.ENV_PRD
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
+import com.vismo.nxgnfirebasemodule.model.WifiCredential
 import com.vismo.nxgnfirebasemodule.util.Constant
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,8 +44,13 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okio.IOException
 import java.io.File
-import java.net.URL
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @HiltViewModel
@@ -85,17 +97,75 @@ class UpdateViewModel @Inject constructor(
             val update = remoteMeterControlRepository.remoteUpdateRequest.firstOrNull()
             val wifiCredential = remoteMeterControlRepository.meterSdkConfiguration.firstOrNull()?.wifiCredential
             if (update != null && (update.type == Constant.OTA_FIRMWARE_TYPE || update.type == Constant.OTA_METERAPP_TYPE)) {
-                FirebaseStorage.getInstance().getReferenceFromUrl(update.url).downloadUrl
-                    .addOnSuccessListener {
-                        connectToWifiLegacy(context, ssid = wifiCredential?.ssid, password = wifiCredential?.password)
-                        downloadFile(it, update)
-                    }
-                    .addOnFailureListener {
-                        _updateState.value = UpdateState.Error(it.message ?: "Could not download error")
-                    }
+                try {
+                    val downloadUri = FirebaseStorage.getInstance()
+                        .getReferenceFromUrl(update.url).downloadUrl.await()
+
+                    attemptWifiConnectionAndDownload(wifiCredential, downloadUri, update)
+
+                } catch (e: Exception) {
+                    _updateState.value =
+                        UpdateState.Error(e.message ?: "Could not get download URL")
+                }
 
             } else {
                 _updateState.value = UpdateState.NoUpdateFound
+            }
+        }
+    }
+
+    private fun attemptWifiConnectionAndDownload(
+        wifiCredential: WifiCredential?,
+        downloadUri: Uri,
+        update: Update
+    ) {
+        val ssid = wifiCredential?.ssid
+        val password = wifiCredential?.password
+
+        if (ssid.isNullOrBlank() || password.isNullOrBlank()) {
+            Log.d(TAG, "No Wi-Fi credentials provided. Downloading on default network.")
+            downloadFile(downloadUri, update, null) // Proceed with default network
+            return
+        }
+
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        var networkCallback: ConnectivityManager.NetworkCallback? = null
+        var downloadJob: Job? = null
+        val isCallbackUnregistered = AtomicBoolean(false)
+
+        viewModelScope.launch(ioDispatcher) {
+            withTimeoutOrNull(15_000) { // 15-second timeout to connect
+                val networkRequest = NetworkRequest.Builder()
+                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                    .build()
+
+                networkCallback = object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: Network) {
+                        super.onAvailable(network)
+                        // Only proceed if the callback hasn't been handled/unregistered yet
+                        if (isCallbackUnregistered.compareAndSet(false, true)) {
+                            Log.d(TAG, "Preferred Wi-Fi network is available. Starting download.")
+                            connectivityManager.bindProcessToNetwork(network)
+                            if (downloadJob?.isActive != true) {
+                                downloadJob = launch { downloadFile(downloadUri, update, network) }
+                            }
+                            connectivityManager.unregisterNetworkCallback(this)
+                        }
+                    }
+                }
+                connectivityManager.requestNetwork(networkRequest, networkCallback!!)
+                connectToWifiLegacy(context, ssid, password)
+            }
+
+            // If timeout is reached, check if the callback has already been unregistered.
+            if (isCallbackUnregistered.compareAndSet(false, true)) {
+                Log.w(TAG, "Wi-Fi connection timed out or failed. Downloading on default network.")
+                networkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
+                connectivityManager.bindProcessToNetwork(null)
+                if (downloadJob?.isActive != true) {
+                    downloadJob = launch { downloadFile(downloadUri, update, null) }
+                }
             }
         }
     }
@@ -105,88 +175,74 @@ class UpdateViewModel @Inject constructor(
         checkForUpdates()
     }
 
-    private fun downloadFile(uri: Uri, update: Update) {
-        // Download the APK
+    private fun downloadFile(uri: Uri, update: Update, network: Network?) {
         viewModelScope.launch(ioDispatcher) {
             _updateState.value = UpdateState.Downloading(0)
-            writeUpdateResultToFireStore(
-                update.copy(
-                    status = UpdateStatus.DOWNLOADING
-                )
-            )
+            writeUpdateResultToFireStore(update.copy(status = UpdateStatus.DOWNLOADING))
+
+            val client = if (network != null) {
+                OkHttpClient.Builder().socketFactory(network.socketFactory).build()
+            } else {
+                OkHttpClient()
+            }
+
             try {
                 val fileName = update.url.substringAfterLast("/").ifEmpty { "update.apk" }
-                val externalFilesDir = context.getExternalFilesDir(null)
-                if (externalFilesDir == null) {
-                    _updateState.value = UpdateState.Error("External files directory not available.")
-                    return@launch
-                }
-                val targetFile = File(externalFilesDir, fileName)
+                val targetFile = File(context.getExternalFilesDir(null), fileName)
                 Log.d(TAG, "Target file path: ${targetFile.absolutePath}")
 
-                // Delete existing APK if present
-                if (targetFile.exists()) {
-                    Log.d(TAG, "Deleting existing APK: ${targetFile.absolutePath}")
-                    val deleted = targetFile.delete()
-                    if (!deleted) {
-                        Log.e(TAG, "Failed to delete existing APK.")
-                        _updateState.value = UpdateState.Error("Failed to delete existing APK.")
-                        return@launch
-                    }
+                if (targetFile.exists() && !targetFile.delete()) {
+                    Log.e(TAG, "Failed to delete existing APK.")
+                    _updateState.value = UpdateState.Error("Failed to delete existing APK.")
+                    return@launch
                 }
 
-                val url = URL(uri.toString())
-                val connection = url.openConnection()
-                connection.connect()
-                val inputStream = connection.getInputStream()
-                val totalSize = connection.contentLengthLong
+                val request = Request.Builder().url(uri.toString()).build()
+                val response = client.newCall(request).execute()
 
-                targetFile.outputStream().use { output ->
-                    val buffer = ByteArray(1024)
-                    var downloadedSize = 0L
-                    var bytesRead: Int
-                    var progress = 0
+                if (!response.isSuccessful) throw IOException("Download failed: ${response.code}")
 
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        output.write(buffer, 0, bytesRead)
-                        downloadedSize += bytesRead
+                val body = response.body ?: throw IOException("Response body is null")
+                val totalSize = body.contentLength()
 
-                        // Calculate progress only if totalSize is known and greater than zero
-                        if (totalSize > 0) {
-                            val newProgress = ((downloadedSize * 100) / totalSize).toInt()
-                            // Update progress only if it has changed to reduce unnecessary UI updates
-                            if (newProgress != progress) {
-                                progress = newProgress
-                                _updateState.value = UpdateState.Downloading(progress)
+                body.source().use { source ->
+                    targetFile.outputStream().use { output ->
+                        val buffer = ByteArray(8192)
+                        var downloadedSize = 0L
+                        var bytesRead: Int
+                        var progress = 0
+
+                        while (source.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            downloadedSize += bytesRead
+
+                            if (totalSize > 0) {
+                                val newProgress = ((downloadedSize * 100) / totalSize).toInt()
+                                if (newProgress != progress) {
+                                    progress = newProgress
+                                    _updateState.value = UpdateState.Downloading(progress)
+                                }
                             }
-                        } else {
-                            // Handle unknown total size, e.g., show previous progress
-                            _updateState.value = UpdateState.Downloading(progress)
                         }
                     }
                 }
-                inputStream.close()
 
-                // Validate the downloaded APK
                 _updateState.value = UpdateState.Installing
-                writeUpdateResultToFireStore(
-                    update.copy(
-                        status = UpdateStatus.INSTALLING
-                    )
-                )
+                writeUpdateResultToFireStore(update.copy(status = UpdateStatus.INSTALLING))
+
                 if (update.type == Constant.OTA_METERAPP_TYPE) {
-                    remoteMeterControlRepository.saveRecentlyCompletedUpdateId(updateDetails.firstOrNull()?.id ?: "")
+                    remoteMeterControlRepository.saveRecentlyCompletedUpdateId(
+                        updateDetails.firstOrNull()?.id ?: ""
+                    )
                     installApk(targetFile)
                 } else if (update.type == Constant.OTA_FIRMWARE_TYPE) {
                     remoteMeterControlRepository.requestPatchFirmwareToMCU(targetFile.absolutePath)
                 }
             } catch (e: Exception) {
-                _updateState.value = UpdateState.Error(e.message ?: "Unknown error", allowRetry = true)
-                writeUpdateResultToFireStore(
-                    update.copy(
-                        status = UpdateStatus.DOWNLOAD_ERROR
-                    )
-                )
+                Log.e(TAG, "Download error: ", e)
+                _updateState.value =
+                    UpdateState.Error(e.message ?: "Unknown error", allowRetry = true)
+                writeUpdateResultToFireStore(update.copy(status = UpdateStatus.DOWNLOAD_ERROR))
             } finally {
                 if(BuildConfig.FLAVOR == ENV_PRD) {
                     disconnectAndDisableWifi(context)
@@ -239,7 +295,7 @@ class UpdateViewModel @Inject constructor(
                 updateDetails.firstOrNull()?.let {
                     writeUpdateResultToFireStore(it.copy(
                         completedOn = Timestamp.now(),
-                        status = UpdateStatus.WAITING_FOR_RESTART
+                        status = UpdateStatus.COMPLETE
                     ))
                 }
             } catch (e: Exception) {
@@ -308,8 +364,8 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
-    private fun writeUpdateResultToFireStore(update: Update) {
-        remoteMeterControlRepository.writeUpdateResultToFireStore(update)
+    private suspend fun writeUpdateResultToFireStore(update: Update) {
+        remoteMeterControlRepository.writeUpdateResultToFireStore(update).await()
     }
 
     companion object {
