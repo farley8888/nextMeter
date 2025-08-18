@@ -2,6 +2,7 @@ package com.vismo.nextgenmeter.repository
 
 import android.content.Context
 import android.util.Base64
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -18,6 +19,9 @@ class MeterPreferenceRepository(
     @ApplicationContext private val context: Context,
 ) {
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = SETTING_PREFS_NAME)
+    
+    private val licensePlateConsecutiveValues = mutableListOf<String>()
+    private val deviceIdConsecutiveValues = mutableListOf<String>()
 
     suspend fun saveTotpSecret(secret: ByteArray) {
         withTransactionSync {
@@ -63,10 +67,23 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveLicensePlate(licensePlate: String) {
-        withTransactionSync {
-            context.dataStore.edit { settings ->
-                settings[KEY_LICENSE_PLATE] = licensePlate
+        // Add new value to consecutive tracking
+        licensePlateConsecutiveValues.add(licensePlate)
+        
+        // Keep only last 3 values
+        if (licensePlateConsecutiveValues.size > 3) {
+            licensePlateConsecutiveValues.removeAt(0)
+        }
+        
+        // Check if all 3 values are the same
+        if (licensePlateConsecutiveValues.size == 3 && licensePlateConsecutiveValues.all { it == licensePlate }) {
+            // Update the actual license plate value in DataStore
+            withTransactionSync {
+                context.dataStore.edit { settings ->
+                    settings[KEY_LICENSE_PLATE] = licensePlate
+                }
             }
+            Log.d("MeterPreferenceRepository", "License plate updated after 3 consecutive values: $licensePlate")
         }
     }
 
@@ -78,10 +95,23 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveDeviceId(deviceId: String) {
-        withTransactionSync {
-            context.dataStore.edit { settings ->
-                settings[KEY_DEVICE_ID] = deviceId
+        // Add new value to consecutive tracking
+        deviceIdConsecutiveValues.add(deviceId)
+        
+        // Keep only last 3 values
+        if (deviceIdConsecutiveValues.size > 3) {
+            deviceIdConsecutiveValues.removeAt(0)
+        }
+        
+        // Check if all 3 values are the same
+        if (deviceIdConsecutiveValues.size == 3 && deviceIdConsecutiveValues.all { it == deviceId }) {
+            // Update the actual device ID value in DataStore
+            withTransactionSync {
+                context.dataStore.edit { settings ->
+                    settings[KEY_DEVICE_ID] = deviceId
+                }
             }
+            Log.d("MeterPreferenceRepository", "Device ID updated after 3 consecutive values: $deviceId")
         }
     }
 
