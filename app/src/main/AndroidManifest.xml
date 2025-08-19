@@ -64,7 +64,7 @@
         <service android:name="com.amap.api.location.APSService" />
         <meta-data
             android:name="com.amap.api.v2.apikey"
-            android:value="77cd402da5c125f8c060ffcb196163ab" />
+            android:value="8129389f836db269a3d813773d9af8d3" />
         <service
             android:name="com.ilin.service.GPSService"
             android:exported="true">
