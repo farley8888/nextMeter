@@ -5,7 +5,7 @@ import com.vismo.nextgenmeter.model.TripSummary
 
 interface PeripheralControlRepository {
     fun isFlagDown(): Boolean
-    fun toggleForHireFlag(goDown: Boolean)
+    fun toggleForHireFlag(goDown: Boolean, isFromTrip: Boolean = false)
     suspend fun printTripReceiptCommand(tripData: TripData)
     suspend fun printSummaryReceiptCommand(tripSummary: TripSummary)
     fun close()

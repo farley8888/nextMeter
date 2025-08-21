@@ -73,20 +73,27 @@ class PeripheralControlRepositoryImpl(
         toggleForHireFlag(goDown = false)
     }
 
-    override fun toggleForHireFlag(goDown: Boolean) {
+    override fun toggleForHireFlag(goDown: Boolean, isFromTrip: Boolean) {
         scope.launch {
-            val isCurrentlyDown = isFlagDown()
             try {
-                if (goDown  && !isCurrentlyDown) {
+                if (goDown) {
                     ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio117/value"))
                     delay(300)
                     ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio116/value"))
                     dashManagerConfig.setFlagDown(true)
-                } else if (!goDown && isCurrentlyDown) {
+
+                    if (!isFromTrip) {
+                        delay(5_000L) // Wait for 5 seconds before turning off motor
+                        ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio117/value"))
+                    }
+                } else if (!goDown) {
                     ShellUtils.echo(arrayOf("echo 1 > /sys/class/gpio/gpio117/value"))
                     delay(300)
                     ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio116/value"))
                     dashManagerConfig.setFlagDown(false)
+
+                    delay(5_000L) // Wait for 5 seconds before turning off motor
+                    ShellUtils.echo(arrayOf("echo 0 > /sys/class/gpio/gpio117/value"))
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
