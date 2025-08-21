@@ -680,7 +680,6 @@ class MainViewModel @Inject constructor(
         remoteMeterControlRepository.observeFlows(viewModelScope)
         tripRepository.initObservers(viewModelScope)
         observeFlows()
-        startACCStatusInquiries()
         startMemoryMonitoring()
         observeInternetStatus()
         observeDriverInfo()
@@ -712,6 +711,10 @@ class MainViewModel @Inject constructor(
     }
 
     private fun startACCStatusInquiries() {
+        if (accEnquiryJob?.isActive == true) {
+            Log.d(TAG, "ACC status inquiries already running")
+            return
+        }
         accEnquiryJob = viewModelScope.launch(ioDispatcher) {
             while (true) {
                 try {
