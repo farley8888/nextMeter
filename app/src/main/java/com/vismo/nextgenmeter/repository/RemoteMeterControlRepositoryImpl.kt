@@ -193,6 +193,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         dashManager.writeToLoggingCollection(map)
     }
 
+    override fun checkForMostRelevantOTAUpdate() {
+        dashManager.checkForMostRelevantOTAUpdate()
+    }
+
 
     companion object {
         private const val DEFAULT_HEARTBEAT_INTERVAL = 5

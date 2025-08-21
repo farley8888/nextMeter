@@ -364,6 +364,8 @@ class MainViewModel @Inject constructor(
         } else if (!DashManager.Companion.isInitialized) {
             remoteMeterControlRepository.initDashManager(viewModelScope)
             Log.d(TAG, "FirebaseAuth headers already present - calling dashManager.init()")
+        } else {
+            remoteMeterControlRepository.checkForMostRelevantOTAUpdate()
         }
         networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
             if (!isMCUTimeSet) {

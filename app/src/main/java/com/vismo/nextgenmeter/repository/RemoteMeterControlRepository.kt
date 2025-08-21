@@ -42,4 +42,6 @@ interface RemoteMeterControlRepository {
     fun write4GModuleRestarting(timestamp: Long, reason: String)
 
     fun writeToLoggingCollection(map: Map<String, Any>)
+
+    fun checkForMostRelevantOTAUpdate()
 }

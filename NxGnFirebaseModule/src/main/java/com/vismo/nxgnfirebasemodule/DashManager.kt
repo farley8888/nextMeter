@@ -106,7 +106,6 @@ class DashManager @Inject constructor(
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
         }
-        checkForMostRelevantOTAUpdate()
         isMCUParamsUpdateRequired(isAtInitialization = true)
         isInitialized = true
         Log.d(TAG, "DashManager initialized")
@@ -511,9 +510,13 @@ class DashManager @Inject constructor(
         }
     }
 
-    private fun checkForMostRelevantOTAUpdate() {
+     fun checkForMostRelevantOTAUpdate() {
         // apk or firmware updates
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            if (_mostRelevantUpdate.value != null) {
+                Log.d(TAG, "checkForUpdates - already has a most relevant update")
+                return@launch
+            }
             delay(10_000L) // wait for the initial heartbeats to slow down
             _mostRelevantUpdate.value = null
             val updatesCollection = getMeterDocument()
