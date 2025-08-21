@@ -513,8 +513,8 @@ class DashManager @Inject constructor(
      fun checkForMostRelevantOTAUpdate() {
         // apk or firmware updates
         externalScope?.launch(ioDispatcher + exceptionHandler) {
-            if (_mostRelevantUpdate.value != null) {
-                Log.d(TAG, "checkForUpdates - already has a most relevant update")
+            if (_mostRelevantUpdate.value != null || _tripInFirestore.value != null) {
+                Log.d(TAG, "checkForUpdates - already has a most relevant update or there is an ongoing trip, skipping check")
                 return@launch
             }
             delay(10_000L) // wait for the initial heartbeats to slow down

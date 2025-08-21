@@ -124,6 +124,9 @@ class UpdateViewModel @Inject constructor(
 
         if (ssid.isNullOrBlank() || password.isNullOrBlank()) {
             Log.d(TAG, "No Wi-Fi credentials provided. Downloading on default network.")
+            // Ensure we're not bound to any specific network
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            connectivityManager.bindProcessToNetwork(null)
             downloadFile(downloadUri, update, null) // Proceed with default network
             return
         }
@@ -132,51 +135,260 @@ class UpdateViewModel @Inject constructor(
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         var networkCallback: ConnectivityManager.NetworkCallback? = null
         var downloadJob: Job? = null
-        val isCallbackUnregistered = AtomicBoolean(false)
+        val isDownloadStarted = AtomicBoolean(false)
+        var timeoutJob: Job? = null
 
         viewModelScope.launch(ioDispatcher) {
-            withTimeoutOrNull(15_000) { // 15-second timeout to connect
-                val networkRequest = NetworkRequest.Builder()
-                    .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                    .build()
+            // First, check if we're already connected to the target Wi-Fi
+            val currentNetwork = getCurrentWifiNetwork(ssid)
+            if (currentNetwork != null) {
+                Log.d(TAG, "Already connected to target Wi-Fi: $ssid")
+                val capabilities = connectivityManager.getNetworkCapabilities(currentNetwork)
+                if (capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true) {
+                    Log.d(TAG, "Current Wi-Fi has validated internet. Starting download immediately.")
+                    if (isDownloadStarted.compareAndSet(false, true)) {
+                        connectivityManager.bindProcessToNetwork(currentNetwork)
+                        downloadJob = launch { 
+                            downloadFile(downloadUri, update, currentNetwork) 
+                        }
+                        return@launch
+                    }
+                }
+            }
+            
+            // Attempt to connect using legacy method
+            Log.d(TAG, "Attempting to connect to Wi-Fi: $ssid")
+            connectToWifiLegacy(context, ssid, password)
+            
+            // Give some time for the Wi-Fi connection to establish
+            delay(3000)
 
-                networkCallback = object : ConnectivityManager.NetworkCallback() {
-                    override fun onAvailable(network: Network) {
-                        super.onAvailable(network)
-                        // Only proceed if the callback hasn't been handled/unregistered yet
-                        if (isCallbackUnregistered.compareAndSet(false, true)) {
-                            Log.d(TAG, "Preferred Wi-Fi network is available. Starting download.")
-                            connectivityManager.bindProcessToNetwork(network)
-                            if (downloadJob?.isActive != true) {
-                                downloadJob = launch { downloadFile(downloadUri, update, network) }
+            val networkRequest = NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            downloadJob?.cancel()
+            networkCallback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    super.onAvailable(network)
+                    Log.d(TAG, "Network available: $network")
+                    // Just log that network is available, don't start download yet
+                    // Wait for onCapabilitiesChanged to confirm internet access
+                }
+
+                override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                    super.onCapabilitiesChanged(network, networkCapabilities)
+                    Log.d(TAG, "Network capabilities changed: $network")
+                    Log.d(TAG, "Capabilities - Wi-Fi: ${networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)}")
+                    Log.d(TAG, "Capabilities - Internet: ${networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)}")
+                    Log.d(TAG, "Capabilities - Validated: ${networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)}")
+                    Log.d(TAG, "Download already started: ${isDownloadStarted.get()}")
+                    
+                    // Only start download when we have a Wi-Fi network with validated internet access
+                    if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) {
+                        
+                        if (isDownloadStarted.compareAndSet(false, true)) {
+                            Log.d(TAG, "Wi-Fi network validated with internet access. Starting download.")
+                            
+                            // Cancel timeout since we're starting download
+                            timeoutJob?.cancel()
+                            
+                            try {
+                                connectivityManager.bindProcessToNetwork(network)
+                                downloadJob = launch { 
+                                    downloadFile(downloadUri, update, network) 
+                                }
+                                
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error binding to network: ${e.message}")
+                                // Fallback to default network
+                                isDownloadStarted.set(false)
+                                if (isDownloadStarted.compareAndSet(false, true)) {
+                                    // Ensure we unbind from any specific network
+                                    connectivityManager.bindProcessToNetwork(null)
+                                    Log.d(TAG, "Network binding error fallback: using default network routing")
+                                    
+                                    downloadJob = launch { 
+                                        downloadFile(downloadUri, update, null) 
+                                    }
+                                }
                             }
-                            connectivityManager.unregisterNetworkCallback(this)
                         }
                     }
                 }
-                connectivityManager.requestNetwork(networkRequest, networkCallback!!)
-                connectToWifiLegacy(context, ssid, password)
+
+                override fun onLost(network: Network) {
+                    super.onLost(network)
+                    Log.d(TAG, "Network lost: $network")
+                }
+
+                override fun onUnavailable() {
+                    super.onUnavailable()
+                    Log.w(TAG, "Network unavailable")
+                }
             }
 
-            // If timeout is reached, check if the callback has already been unregistered.
-            if (isCallbackUnregistered.compareAndSet(false, true)) {
-                Log.w(TAG, "Wi-Fi connection timed out or failed. Downloading on default network.")
-                networkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
-                connectivityManager.bindProcessToNetwork(null)
-                if (downloadJob?.isActive != true) {
-                    downloadJob = launch { downloadFile(downloadUri, update, null) }
+            try {
+                connectivityManager.requestNetwork(networkRequest, networkCallback!!)
+                
+                // Check immediately after registering if we already have a suitable network
+                launch {
+                    delay(1000) // Give the callback a moment to register
+                    if (!isDownloadStarted.get()) {
+                        val currentWifiNetwork = getCurrentWifiNetwork(ssid)
+                        if (currentWifiNetwork != null) {
+                            val capabilities = connectivityManager.getNetworkCapabilities(currentWifiNetwork)
+                            if (capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true) {
+                                Log.d(TAG, "Found validated Wi-Fi network immediately after callback registration")
+                                if (isDownloadStarted.compareAndSet(false, true)) {
+                                    timeoutJob?.cancel()
+                                    connectivityManager.bindProcessToNetwork(currentWifiNetwork)
+                                    downloadJob = launch { 
+                                        downloadFile(downloadUri, update, currentWifiNetwork) 
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Start timeout job
+                timeoutJob = launch {
+                    delay(10_000) // 10-second timeout
+                    
+                    // If timeout is reached and download hasn't started, fallback to default network
+                    if (isDownloadStarted.compareAndSet(false, true)) {
+                        Log.w(TAG, "Wi-Fi connection timed out. Downloading on default network.")
+                        
+                        // Clean up network callback
+                        try {
+                            networkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error unregistering network callback during timeout: ${e.message}")
+                        }
+                        
+                        // Ensure we unbind from any specific network to use default routing
+                        connectivityManager.bindProcessToNetwork(null)
+                        Log.d(TAG, "Unbound from specific network, using default network routing")
+                        
+                        downloadJob = launch { 
+                            downloadFile(downloadUri, update, null) 
+                        }
+                    }
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Error requesting network: ${e.message}")
+                timeoutJob?.cancel()
+                
+                if (isDownloadStarted.compareAndSet(false, true)) {
+                    // Ensure we're not bound to any specific network
+                    connectivityManager.bindProcessToNetwork(null)
+                    Log.d(TAG, "Error fallback: using default network routing")
+                    
+                    downloadJob = launch { 
+                        downloadFile(downloadUri, update, null) 
+                    }
                 }
             }
         }
     }
 
     fun retryDownload() {
+        val networkStatus = getCurrentNetworkStatus()
+        Log.d(TAG, "Retrying download... Current network status: $networkStatus")
+        
+        // Reset state
         _updateState.value = UpdateState.Idle
+        
+        // Clean up any existing network callbacks and jobs
+        cleanupNetworkResources()
+        
         checkForUpdates()
+    }
+    
+    private fun cleanupNetworkResources() {
+        try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            
+            // Reset network binding to allow default routing
+            connectivityManager.bindProcessToNetwork(null)
+            
+            Log.d(TAG, "Network resources cleaned up - unbound from specific network, using default routing")
+            
+            // Log current network status after cleanup
+            val networkStatus = getCurrentNetworkStatus()
+            Log.d(TAG, "Network status after cleanup: $networkStatus")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cleaning up network resources: ${e.message}")
+        }
+    }
+
+    private fun getCurrentWifiNetwork(targetSsid: String): Network? {
+        return try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            
+            // Check if currently connected to target SSID
+            val currentWifiInfo = wifiManager.connectionInfo
+            Log.d(TAG, "Current Wi-Fi SSID: ${currentWifiInfo?.ssid}, Target: \"$targetSsid\"")
+            
+            if (currentWifiInfo?.ssid == "\"$targetSsid\"") {
+                // Get the current active network
+                val activeNetwork = connectivityManager.activeNetwork
+                val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+                
+                Log.d(TAG, "Active network: $activeNetwork")
+                Log.d(TAG, "Is Wi-Fi: ${capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)}")
+                Log.d(TAG, "Has Internet: ${capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)}")
+                Log.d(TAG, "Is Validated: ${capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)}")
+                
+                if (capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true) {
+                    return activeNetwork
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking current Wi-Fi network: ${e.message}")
+            null
+        }
+    }
+
+    private fun getCurrentNetworkStatus(): String {
+        return try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val activeNetwork = connectivityManager.activeNetwork
+            val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+            
+            when {
+                capabilities == null -> "No active network"
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
+                    val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    val isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                    "Wi-Fi (Internet: $hasInternet, Validated: $isValidated)"
+                }
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> {
+                    val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    val isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                    "Cellular/Mobile Data (Internet: $hasInternet, Validated: $isValidated)"
+                }
+                else -> "Other network"
+            }
+        } catch (e: Exception) {
+            "Error checking network: ${e.message}"
+        }
     }
 
     private fun downloadFile(uri: Uri, update: Update, network: Network?) {
         viewModelScope.launch(ioDispatcher) {
+            Log.d(TAG, "Starting download with network: $network")
+            val currentNetworkStatus = getCurrentNetworkStatus()
+            Log.d(TAG, "Current network status at download start: $currentNetworkStatus")
+            
+            delay(3_000L) // Delay to ensure Wi-Fi is connected
             _updateState.value = UpdateState.Downloading(0)
             writeUpdateResultToFireStore(update.copy(status = UpdateStatus.DOWNLOADING))
 
@@ -244,6 +456,7 @@ class UpdateViewModel @Inject constructor(
                     UpdateState.Error(e.message ?: "Unknown error", allowRetry = true)
                 writeUpdateResultToFireStore(update.copy(status = UpdateStatus.DOWNLOAD_ERROR))
             } finally {
+                cleanupNetworkResources()
                 if(BuildConfig.FLAVOR == ENV_PRD) {
                     disconnectAndDisableWifi(context)
                 }
@@ -320,10 +533,9 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
-    private fun connectToWifiLegacy(context: Context, ssid: String?, password: String?) {
+    private suspend fun connectToWifiLegacy(context: Context, ssid: String?, password: String?) {
         try {
             if (ssid == null || password == null) {
-                Toast.makeText(context, "SSID is null", Toast.LENGTH_SHORT).show()
                 Log.e("WiFiConnection", "SSID or password is null")
                 return
             }
@@ -332,35 +544,87 @@ class UpdateViewModel @Inject constructor(
 
             // Check if WiFi is enabled
             if (!wifiManager.isWifiEnabled) {
-                wifiManager.isWifiEnabled = true // Enable WiFi if it's disabled
+                Log.d("WiFiConnection", "Enabling WiFi...")
+                wifiManager.isWifiEnabled = true
+                
+                // Wait for WiFi to be enabled
+                var retries = 0
+                while (!wifiManager.isWifiEnabled && retries < 10) {
+                    delay(1000)
+                    retries++
+                }
+                
+                if (!wifiManager.isWifiEnabled) {
+                    Log.e("WiFiConnection", "Failed to enable WiFi after 10 seconds")
+                    return
+                }
+            }
+
+            // Check if we're already connected to the target network
+            val currentNetwork = wifiManager.connectionInfo
+            if (currentNetwork != null && currentNetwork.ssid == "\"$ssid\"") {
+                Log.d("WiFiConnection", "Already connected to $ssid")
+                return
+            }
+
+            // Remove any existing configurations for this SSID
+            val configuredNetworks = wifiManager.configuredNetworks ?: emptyList()
+            configuredNetworks.forEach { config ->
+                if (config.SSID == "\"$ssid\"") {
+                    wifiManager.removeNetwork(config.networkId)
+                    Log.d("WiFiConnection", "Removed existing configuration for $ssid")
+                }
             }
 
             // Create a WiFi configuration
             val wifiConfig = WifiConfiguration().apply {
                 SSID = "\"$ssid\""
                 preSharedKey = "\"$password\""
-                allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK) // WPA2
+                allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK)
+                allowedProtocols.set(WifiConfiguration.Protocol.RSN)
+                allowedProtocols.set(WifiConfiguration.Protocol.WPA)
+                allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP)
+                allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP)
+                allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40)
+                allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP104)
+                allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP)
+                allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP)
             }
 
             // Add the WiFi configuration to the system
             val networkId = wifiManager.addNetwork(wifiConfig)
 
             if (networkId != -1) {
+                Log.d("WiFiConnection", "WiFi configuration added for $ssid")
+                
                 // Disconnect from the current network
                 wifiManager.disconnect()
+                delay(1000)
 
                 // Enable and connect to the new network
                 wifiManager.enableNetwork(networkId, true)
                 wifiManager.reconnect()
 
-                Log.d("WiFiConnection", "Connected to $ssid")
+                Log.d("WiFiConnection", "Attempting to connect to $ssid")
+                
+                // Wait for connection
+                var connectionRetries = 0
+                while (connectionRetries < 15) { // 15 seconds timeout
+                    delay(1000)
+                    val info = wifiManager.connectionInfo
+                    if (info != null && info.ssid == "\"$ssid\"" && info.networkId != -1) {
+                        Log.d("WiFiConnection", "Successfully connected to $ssid")
+                        return
+                    }
+                    connectionRetries++
+                }
+                
+                Log.w("WiFiConnection", "Connection to $ssid timed out")
             } else {
-                Log.e("WiFiConnection", "Failed to connect to $ssid")
-                Toast.makeText(context, "Failed to connect to $ssid", Toast.LENGTH_SHORT).show()
+                Log.e("WiFiConnection", "Failed to add network configuration for $ssid")
             }
         } catch (e: Exception) {
-            Log.e("WiFiConnection", "Error connecting to WiFi: ${e.message}")
-            Toast.makeText(context, "Error connecting to WiFi: ${e.message}", Toast.LENGTH_SHORT).show()
+            Log.e("WiFiConnection", "Error connecting to WiFi: ${e.message}", e)
         }
     }
 
@@ -379,5 +643,5 @@ sealed class UpdateState {
     data class Downloading(val progress: Int) : UpdateState()
     data object Installing : UpdateState()
     data object Success : UpdateState()
-    data class Error(val message: String, val allowRetry: Boolean = false) : UpdateState()
+    data class Error(val message: String, val allowRetry: Boolean = true) : UpdateState()
 }
