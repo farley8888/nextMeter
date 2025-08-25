@@ -56,4 +56,6 @@ interface MeasureBoardRepository {
     fun close()
 
     fun notifyShutdown()
+
+    fun notifyAndroidFirmwareVersion(androidFirmwareVersion: String)
 }

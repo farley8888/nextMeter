@@ -24,6 +24,7 @@ object MeasureBoardUtils {
     const val REQUEST_UPGRADE_FIRMWARE = "A8"
     const val UPGRADING_FIRMWARE = "E1"
     const val METERING_BOARD_INFO_RESPONSE = "B0"
+    const val ANDROID_FIRMWARE_VERSION_RESPONSE = "B2"
 
     fun formatStartingPrice(input: String): String {
         return if (input.length == 4) {
@@ -293,6 +294,35 @@ object MeasureBoardUtils {
         val checkSum = xorHexStrings(CMD_METERING_BOARD_INFO.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
         cmdStringBuilder.append("55 AA ").append(CMD_METERING_BOARD_INFO).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
+    fun sendAndroidFirmwareVersionCmd(androidFirmwareVersion: String): String {
+        // Convert version string like "1.5.3" to 3 bytes
+        val versionParts = androidFirmwareVersion.split(".")
+        // Validate the version format
+        if (versionParts.size != 3) {
+            throw IllegalArgumentException("Android firmware version must be in the format 'X.X.X' where each X is a number between 0-99")
+        }
+        
+        // Validate each part is a valid number between 0-99
+        versionParts.forEach { part ->
+            val num = part.toIntOrNull()
+            if (num == null || num < 0 || num > 99) {
+                throw IllegalArgumentException("Android firmware version must be in the format 'X.X.X' where each X is a number between 0-99")
+            }
+        }
+        
+        val versionBytes = versionParts
+            .joinToString("") { it.padStart(2, '0') } // Pad each part to 2 digits
+            .chunked(2) // Split into pairs of hex digits
+            .joinToString(" ") // Join with spaces
+        
+        Log.d("getAndroidFirmwareVersionNotificationCmd", "versionBytes: $versionBytes")
+        val CMD_ANDROID_FIRMWARE = "00 08 00 00 10 B2 90 $versionBytes"
+        val checkSum = xorHexStrings(CMD_ANDROID_FIRMWARE.trim().split(" "))
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_ANDROID_FIRMWARE).append(checkSum).append(" 55 AA")
         return cmdStringBuilder.toString().replace(" ", "")
     }
 

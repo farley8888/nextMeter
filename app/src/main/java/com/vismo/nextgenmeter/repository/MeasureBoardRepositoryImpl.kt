@@ -29,6 +29,7 @@ import com.vismo.nextgenmeter.util.MeasureBoardUtils.PARAMETERS_ENQUIRY
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.REQUEST_UPGRADE_FIRMWARE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.TRIP_END_SUMMARY
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.UPGRADING_FIRMWARE
+import com.vismo.nextgenmeter.util.MeasureBoardUtils.ANDROID_FIRMWARE_VERSION_RESPONSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.getResultType
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.getTimeInSeconds
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.toHexString
@@ -53,6 +54,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import java.util.logging.Logger
 import javax.inject.Inject
 import com.vismo.nextgenmeter.model.MeteringBoardInfo
+import com.vismo.nextgenmeter.util.ShellStateUtil
 import java.util.Calendar
 
 @Suppress("detekt.TooManyFunctions")
@@ -186,6 +188,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 Sentry.captureMessage("init: mBusModel is null")
             }
             delay(200)
+            notifyAndroidFirmwareVersion(ShellStateUtil.getROMVersion())
         }
         Log.d(TAG, "MeasureBoardRepositoryImpl: init")
     }
@@ -435,6 +438,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             ABNORMAL_PULSE -> handleAbnormalPulse(result = result)
             REQUEST_UPGRADE_FIRMWARE -> handleUpgradeFirmwareRequestResult(result)
             UPGRADING_FIRMWARE -> handleFirmwareUpdate(result)
+            ANDROID_FIRMWARE_VERSION_RESPONSE -> handleAndroidFirmwareVersionResponse(result)
             else -> {
                 Log.d(TAG, "$TAG_UNKNOWN_RESULT type: ${getResultType(result)}")
                 Sentry.captureMessage("$TAG_UNKNOWN_RESULT: $result")
@@ -549,6 +553,39 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         Log.d(TAG, "  K Value: ${meteringBoardInfo.getFormattedKValue()}")
         Log.d(TAG, "  Trip ID: ${meteringBoardInfo.tripId}")
         Log.d(TAG, "  Power Off Time: ${meteringBoardInfo.getFormattedPowerOffTime()} minutes")
+    }
+
+    private suspend fun handleAndroidFirmwareVersionResponse(result: String) {
+        if (result.length < 22 || !result.startsWith("55AA")) {
+            Log.d(TAG, "handleAndroidFirmwareVersionResponse: Invalid result length or format: ${result.length}")
+            Sentry.captureMessage("handleAndroidFirmwareVersionResponse: Invalid result format: $result")
+            return
+        }
+        
+        try {
+            val operationResult = result.substring(16, 18)
+            val versionBytes = result.substring(18, 24)
+            
+            val operationMessage = when (operationResult.uppercase()) {
+                "90" -> "MCU Saved Successfully"
+                "55" -> "The query was successful"
+                else -> "Unknown operation result: $operationResult"
+            }
+            
+            // Convert version bytes to readable format
+            val major = versionBytes.substring(0, 2)
+            val minor = versionBytes.substring(2, 4)
+            val patch = versionBytes.substring(4, 6)
+            val versionString = "${major.toInt(16)}.${minor.toInt(16)}.${patch.toInt(16)}"
+            
+            Log.d(TAG, "handleAndroidFirmwareVersionResponse: $operationMessage")
+            Log.d(TAG, "  Android firmware version saved in MCU: $versionString")
+            Log.d(TAG, "  Raw version bytes: $versionBytes")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "handleAndroidFirmwareVersionResponse: Error parsing response", e)
+            Sentry.captureMessage("handleAndroidFirmwareVersionResponse: Error parsing response: $result")
+        }
     }
 
     override fun enquireParameters() {
@@ -710,6 +747,14 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             mBusModel?.write(MeasureBoardUtils.getShutdownNotificationCmd())
             delay(200)
             Log.d(TAG, "notifyShutdown: Shutdown notification sent to measure board")
+        }
+    }
+
+    override fun notifyAndroidFirmwareVersion(androidFirmwareVersion: String) {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.sendAndroidFirmwareVersionCmd(androidFirmwareVersion))
+            delay(200)
+            Log.d(TAG, "notifyAndroidFirmwareVersion: Android firmware version notification sent to measure board: $androidFirmwareVersion")
         }
     }
 
