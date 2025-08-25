@@ -771,7 +771,10 @@ class MainViewModel @Inject constructor(
 
     private suspend fun inquireApplicationStatus() {
         if (ShellStateUtil.isACCSleeping()) {
-            sleepDevice()
+            delay(500) // DASH-2699: wait 500ms and check again to avoid false positives
+            if (ShellStateUtil.isACCSleeping()) {
+                sleepDevice()
+            }
         } else {
             wakeUpDevice()
         }
