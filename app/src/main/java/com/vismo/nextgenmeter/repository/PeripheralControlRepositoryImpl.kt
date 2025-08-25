@@ -49,7 +49,7 @@ class PeripheralControlRepositoryImpl(
             TripDataStore.ongoingTripData.collect { trip ->
                 trip?.let {
                     if (trip.tripStatus == TripStatus.HIRED || trip.tripStatus == TripStatus.STOP) {
-                        toggleForHireFlag(goDown = true)
+                        toggleForHireFlag(goDown = true, isFromTrip = true)
                     } else {
                         toggleForHireFlag(goDown = false)
                     }
