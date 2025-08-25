@@ -1,6 +1,8 @@
 package com.vismo.nextgenmeter.module
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
@@ -77,34 +79,36 @@ object AppModule {
     @Provides
     @Singleton
     fun providesFirebaseFirestore(
-        internetConnectivityObserver: InternetConnectivityObserver,
+        @ApplicationContext context: Context,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
         meterPreferenceRepository: MeterPreferenceRepository
     ): FirebaseFirestore {
-        val shouldClearPersistenceCache = runBlocking {
-            meterPreferenceRepository.getWasMeterOnlineAtLastAccOff().firstOrNull() == true
-        }
-        val isMeterOnline = runBlocking {
-            internetConnectivityObserver.internetStatus.firstOrNull() == InternetConnectivityObserver.Status.InternetAvailable
-        }
-
-        val isTripOngoing = runBlocking {
-            !meterPreferenceRepository.getOngoingTripId().firstOrNull().isNullOrBlank()
-        }
-
         val settings = FirebaseFirestoreSettings.Builder()
             .setLocalCacheSettings(
                 PersistentCacheSettings.newBuilder()
-                    .setSizeBytes(100 * 1024 * 1024) // 100 MB
+                    .setSizeBytes(100 * 1024 * 1024)
                     .build()
             )
             .build()
 
         return FirebaseFirestore.getInstance().apply {
             firestoreSettings = settings
-            Log.d("AppModule", "shouldClearPersistenceCache: $shouldClearPersistenceCache, isMeterOnline: $isMeterOnline, isTripOngoing: $isTripOngoing")
-            if (shouldClearPersistenceCache && isMeterOnline && !isTripOngoing) {
-                clearPersistence().addOnCompleteListener {
-                    Log.d("AppModule", "Is Firestore persistence cache cleared - ${it.isSuccessful}")
+
+            // Do conditional cache clearing off the main thread
+            CoroutineScope(ioDispatcher).launch {
+                val shouldClear = meterPreferenceRepository.getWasMeterOnlineAtLastAccOff().firstOrNull() == true
+                val isTripOngoing = !meterPreferenceRepository.getOngoingTripId().firstOrNull().isNullOrBlank()
+
+                val cm = context.getSystemService(ConnectivityManager::class.java)
+                val isOnline = cm.activeNetwork?.let { net ->
+                    cm.getNetworkCapabilities(net)
+                        ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+                } ?: false
+
+                if (shouldClear && isOnline && !isTripOngoing) {
+                    clearPersistence().addOnCompleteListener {
+                        Log.d("AppModule", "Is Firestore persistence cache cleared - ${it.isSuccessful}")
+                    }
                 }
             }
         }
