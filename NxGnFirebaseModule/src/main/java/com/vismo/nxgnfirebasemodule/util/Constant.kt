@@ -19,6 +19,7 @@ object Constant {
     const val COMPLETED_ON = "completed_on"
     const val OTA_METERAPP_TYPE = "METERAPP"
     const val OTA_FIRMWARE_TYPE = "FIRMWARE"
+    const val OTA_ANDROID_ROM_TYPE = "ANDROIDROM"
 }
 
 object LogConstant {

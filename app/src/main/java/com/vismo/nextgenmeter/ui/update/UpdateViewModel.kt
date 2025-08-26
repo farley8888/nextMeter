@@ -26,7 +26,9 @@ import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.OnUpdateCompletedReceiver
+import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
 import com.vismo.nextgenmeter.util.Constant.ENV_PRD
+import com.vismo.nextgenmeter.util.RomOtaState
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.WifiCredential
@@ -58,6 +60,7 @@ class UpdateViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val remoteMeterControlRepository: RemoteMeterControlRepository,
+    private val androidROMOTAUpdateManager: AndroidROMOTAUpdateManager
 ): ViewModel() {
     private val _updateState: MutableStateFlow<UpdateState> = MutableStateFlow(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState
@@ -89,6 +92,68 @@ class UpdateViewModel @Inject constructor(
                     }
                 }
             }
+            // Observe ROM OTA progress broadcasted by AndroidROMOTAUpdateManager
+            launch {
+                androidROMOTAUpdateManager.romOtaEvents.collectLatest { event ->
+                    handleRomOtaEvent(event)
+                }
+            }
+        }
+    }
+
+    private suspend fun handleRomOtaEvent(event: RomOtaState) {
+        Log.d(TAG, "ROM OTA event: state=${event.state}, value=${event.value}, msg=${event.message}")
+        when (event.state) {
+            1 -> { // download progress 1~100
+                _updateState.value = UpdateState.Downloading(event.value.coerceIn(0, 100), isCancellable = true)
+            }
+            2 -> { // download complete
+                _updateState.value = UpdateState.Installing
+                updateDetails.firstOrNull()?.let { update ->
+                    remoteMeterControlRepository.saveRecentlyCompletedUpdateId(update.id)
+                    writeUpdateResultToFireStore(update.copy(
+                        completedOn = Timestamp.now(),
+                        status = UpdateStatus.COMPLETE
+                    ))
+                }
+            }
+            3 -> { // start install
+                _updateState.value = UpdateState.Installing
+            }
+            4 -> { // user paused install
+                _updateState.value = UpdateState.Error(event.message ?: "Install paused", allowRetry = true)
+            }
+            5 -> { // is newest
+                _updateState.value = UpdateState.NoUpdateFound
+                updateDetails.firstOrNull()?.let { update ->
+                    remoteMeterControlRepository.saveRecentlyCompletedUpdateId(update.id)
+                    writeUpdateResultToFireStore(update.copy(
+                        completedOn = Timestamp.now(),
+                        status = UpdateStatus.VERSION_ERROR
+                    ))
+                }
+            }
+            6 -> { // specified device not include self
+                _updateState.value = UpdateState.NoUpdateFound
+                updateDetails.firstOrNull()?.let { update ->
+                    remoteMeterControlRepository.saveRecentlyCompletedUpdateId(update.id)
+                    writeUpdateResultToFireStore(update.copy(
+                        completedOn = Timestamp.now(),
+                        status = UpdateStatus.NOT_IN_WHITELIST
+                    ))
+                }
+            }
+            else -> {
+                // unknown state, keep last but log
+                updateDetails.firstOrNull()?.let { update ->
+                    remoteMeterControlRepository.saveRecentlyCompletedUpdateId(update.id)
+                    writeUpdateResultToFireStore(update.copy(
+                        completedOn = Timestamp.now(),
+                        status = UpdateStatus.UNKNOWN_ERROR
+                    ))
+                }
+                Log.w(TAG, "Unknown ROM OTA state: ${event.state}")
+            }
         }
     }
 
@@ -98,16 +163,21 @@ class UpdateViewModel @Inject constructor(
             val wifiCredential = remoteMeterControlRepository.meterSdkConfiguration.firstOrNull()?.wifiCredential
             if (update != null && (update.type == Constant.OTA_FIRMWARE_TYPE || update.type == Constant.OTA_METERAPP_TYPE)) {
                 try {
-                    val downloadUri = FirebaseStorage.getInstance()
-                        .getReferenceFromUrl(update.url).downloadUrl.await()
+                    val downloadUri = update.url?.let {
+                        FirebaseStorage.getInstance()
+                            .getReferenceFromUrl(it).downloadUrl.await()
+                    }
 
-                    attemptWifiConnectionAndDownload(wifiCredential, downloadUri, update)
+                    attemptWifiConnectionAndDownload(wifiCredential, downloadUri!!, update)
 
                 } catch (e: Exception) {
                     _updateState.value =
                         UpdateState.Error(e.message ?: "Could not get download URL")
                 }
 
+            }  else if (update != null && update.type == Constant.OTA_ANDROID_ROM_TYPE) {
+                androidROMOTAUpdateManager.attemptROMUpdate()
+                _updateState.value = UpdateState.Downloading(0, isCancellable = true)
             } else {
                 _updateState.value = UpdateState.NoUpdateFound
             }
@@ -399,8 +469,8 @@ class UpdateViewModel @Inject constructor(
             }
 
             try {
-                val fileName = update.url.substringAfterLast("/").ifEmpty { "update.apk" }
-                val targetFile = File(context.getExternalFilesDir(null), fileName)
+                val fileName = update.url?.substringAfterLast("/")?.ifEmpty { "update.apk" }
+                val targetFile = File(context.getExternalFilesDir(null), fileName!!)
                 Log.d(TAG, "Target file path: ${targetFile.absolutePath}")
 
                 if (targetFile.exists() && !targetFile.delete()) {
@@ -628,6 +698,10 @@ class UpdateViewModel @Inject constructor(
         }
     }
 
+    fun skipAndroidROMOta() {
+        androidROMOTAUpdateManager.terminateOngoingROMUpdate()
+    }
+
     private suspend fun writeUpdateResultToFireStore(update: Update) {
         remoteMeterControlRepository.writeUpdateResultToFireStore(update).await()
     }
@@ -640,7 +714,7 @@ class UpdateViewModel @Inject constructor(
 sealed class UpdateState {
     data object Idle : UpdateState()
     data object NoUpdateFound : UpdateState()
-    data class Downloading(val progress: Int) : UpdateState()
+    data class Downloading(val progress: Int, val isCancellable: Boolean = false) : UpdateState()
     data object Installing : UpdateState()
     data object Success : UpdateState()
     data class Error(val message: String, val allowRetry: Boolean = true) : UpdateState()

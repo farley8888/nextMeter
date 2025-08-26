@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -66,8 +67,20 @@ fun UpdateScreen(
                 }
                 is UpdateState.Downloading -> {
                     // Downloading UI
-                    val progress = (updateState as UpdateState.Downloading).progress
-                    Text("下载: $progress%", style = Typography.headlineMedium, textAlign = TextAlign.Center)
+                    val download = (updateState as UpdateState.Downloading)
+                    Text("下载: ${download.progress}%", style = Typography.headlineMedium, textAlign = TextAlign.Center)
+                    if (download.isCancellable) {
+                        Text("這可能需要 10 分鐘以上。您可以選擇現在跳過，並在下次啟動應用程式時執行", style = Typography.bodyMedium, textAlign = TextAlign.Center)
+                        Button(
+                            onClick = {
+                                viewModel.skipAndroidROMOta()
+                                navigateToMeterOps()
+                            },
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("跳過並稍後繼續")
+                        }
+                    }
 
                 }
                 is UpdateState.Installing -> {
@@ -84,7 +97,15 @@ fun UpdateScreen(
 
                 is UpdateState.NoUpdateFound -> {
                     Text("未找到更新", style = Typography.headlineMedium)
-                    // remove this screen from the backstack
+                    Button(
+                        onClick = {
+                            viewModel.skipAndroidROMOta()
+                            navigateToMeterOps()
+                        },
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text("跳過並稍後繼續")
+                    }
                 }
             }
         }

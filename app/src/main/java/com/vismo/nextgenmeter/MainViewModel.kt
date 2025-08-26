@@ -56,6 +56,7 @@ import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
+import com.vismo.nxgnfirebasemodule.util.Constant.OTA_ANDROID_ROM_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
 import com.vismo.nxgnfirebasemodule.util.LogConstant
@@ -107,7 +108,6 @@ class MainViewModel @Inject constructor(
     private val crashlytics: FirebaseCrashlytics,
     tripFileManager: TripFileManager,
     private val moduleRestartManager: ModuleRestartManager,
-    private val androidROMOTAUpdateManager: AndroidROMOTAUpdateManager,
     private val systemControlRepository: SystemControlRepository,
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
@@ -161,6 +161,14 @@ class MainViewModel @Inject constructor(
                     )
                 ).await()
                 isValid
+            }
+            OTA_ANDROID_ROM_TYPE -> {
+                remoteMeterControlRepository.writeUpdateResultToFireStore(
+                    it.copy(
+                        status = UpdateStatus.DOWNLOADING,
+                    )
+                )
+                true
             }
             else -> false
         }
