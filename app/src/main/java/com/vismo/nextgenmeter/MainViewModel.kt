@@ -858,7 +858,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun wakeUpDevice() {
+    private suspend fun wakeUpDevice() {
         sleepJob?.cancel()
         shutdownJob?.cancel()
 
@@ -868,6 +868,7 @@ class MainViewModel @Inject constructor(
         _isScreenOff.value = false
         DeviceDataStore.setIsDeviceAsleep(isAsleep = false)
         dashManagerConfig.setIsDeviceAsleep(isAsleep = false)
+        peripheralControlRepository.initHardware()
         val logMap = mapOf(
             LogConstant.CREATED_BY to LogConstant.CABLE_METER,
             LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,

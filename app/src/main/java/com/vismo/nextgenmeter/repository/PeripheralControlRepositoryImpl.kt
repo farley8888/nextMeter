@@ -58,7 +58,7 @@ class PeripheralControlRepositoryImpl(
         }
     }
 
-    private suspend fun initHardware() {
+    override suspend fun initHardware() {
         // Set the GPIOs to the correct status for the printer
         ShellUtils.execEcho("echo 0 > /sys/class/gpio/gpio64/value")
         delay(200)
