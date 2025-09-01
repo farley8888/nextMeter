@@ -107,6 +107,7 @@ class DashManager @Inject constructor(
             launch { observeMeterDeviceId() }
         }
         isMCUParamsUpdateRequired(isAtInitialization = true)
+        checkForMostRelevantOTAUpdate()
         isInitialized = true
         Log.d(TAG, "DashManager initialized")
     }

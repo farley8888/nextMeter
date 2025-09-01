@@ -197,6 +197,10 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         dashManager.checkForMostRelevantOTAUpdate()
     }
 
+    override fun updateBoardShutdownMinsDelayAfterAcc(accOffAndroidBoardShutdownDelayMins: Int) {
+        measureBoardRepository.updateKValue(kValue = null, boardShutdownMinsDelayAfterAcc = accOffAndroidBoardShutdownDelayMins)
+    }
+
 
     companion object {
         private const val DEFAULT_HEARTBEAT_INTERVAL = 5

@@ -44,4 +44,6 @@ interface RemoteMeterControlRepository {
     fun writeToLoggingCollection(map: Map<String, Any>)
 
     fun checkForMostRelevantOTAUpdate()
+
+    fun updateBoardShutdownMinsDelayAfterAcc(accOffAndroidBoardShutdownDelayMins: Int)
 }

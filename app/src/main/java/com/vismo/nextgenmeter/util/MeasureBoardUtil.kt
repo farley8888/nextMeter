@@ -225,7 +225,7 @@ object MeasureBoardUtils {
         val parsedDate = LocalDateTime.parse("2024-01-01T16:17:18", DateTimeFormatter.ISO_DATE_TIME) // a random date to be placed here, it won't be used to update the time in measureboard
         val formattedDateTime = parsedDate.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")).chunked(2).joinToString(" ")
         val formattedKValue = (kValue ?: 650).toString().padStart(4, '0').chunked(2).joinToString(" ")
-        val formattedPowerOffTime = (powerOffTimeInMins ?: 15).toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val formattedPowerOffTime = (powerOffTimeInMins ?: DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS).toString().padStart(4, '0').chunked(2).joinToString(" ")
         val CMD_UPDATE_PARAMETERS = "00 10 00 00 10 A5 $type $formattedDateTime $formattedKValue $formattedPowerOffTime"
         val checkSum = xorHexStrings(CMD_UPDATE_PARAMETERS.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
@@ -588,4 +588,6 @@ object MeasureBoardUtils {
             false
         }
     }
+
+    const val DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS = 15
 }

@@ -45,6 +45,7 @@ import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.theme.primary700
 import com.vismo.nextgenmeter.util.Constant
 import com.vismo.nextgenmeter.util.GlobalUtils.maskLast
+import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.AndroidGPS
@@ -144,7 +145,7 @@ class MainViewModel @Inject constructor(
         .filter {
             when (it?.type) {
             OTA_METERAPP_TYPE -> {
-                val currentVersionCode = "${BuildConfig.VERSION_NAME}.${BuildConfig.VERSION_CODE}" // Assuming current version is in the form 6.5.3.1034
+                val currentVersionCode = "${BuildConfig.VERSION_NAME}.${BuildConfig.VERSION_CODE}"
                 val isValid = isBuildVersionHigherThanCurrentVersion(newVersion = it.version, currentVersion = currentVersionCode)
                 val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
                 remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus)).await()
@@ -164,11 +165,11 @@ class MainViewModel @Inject constructor(
             OTA_ANDROID_ROM_TYPE -> {
                 val currentROM = ShellStateUtil.getROMVersion()
                 val isValid = isBuildVersionHigherThanCurrentVersion(newVersion = it.version, currentVersion = currentROM)
-                remoteMeterControlRepository.writeUpdateResultToFireStore(
-                    it.copy(
-                        status = UpdateStatus.PROCESSING,
-                    )
-                )
+                val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
+                if (newStatus == UpdateStatus.VERSION_ERROR) {
+                    remoteMeterControlRepository.updateBoardShutdownMinsDelayAfterAcc(MeasureBoardUtils.DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS) // set back to default shutdown delay
+                }
+                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus)).await()
                 isValid
             }
             else -> false
@@ -414,6 +415,7 @@ class MainViewModel @Inject constructor(
             Log.d(TAG, "FirebaseAuth headers already present - calling dashManager.init()")
         } else {
             remoteMeterControlRepository.checkForMostRelevantOTAUpdate()
+            Log.d(TAG, "DashManager already initialized - checking for OTA updates")
         }
         networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
             if (!isMCUTimeSet) {
@@ -694,11 +696,6 @@ class MainViewModel @Inject constructor(
             tryInternetTasks(onInit = true)
         }
         Log.d(TAG, "MainViewModel initialized")
-//         TODO: Temp for testing - put in the correct place later
-//        viewModelScope.launch(ioDispatcher) {
-//            delay(20000) // Delay to ensure all initializations are complete
-//            androidROMOTAUpdateManager.attemptROMUpdate()
-//        }
     }
 
     private fun setCrashlyticsKeys() {
@@ -786,13 +783,17 @@ class MainViewModel @Inject constructor(
 
     private suspend fun sleepDevice() {
         val isTripInProgress = TripDataStore.isTripInProgress.firstOrNull() ?: false
-        if (isTripInProgress || _isScreenOff.value) return
+        val isROMUpdateInProgress = aValidUpdate.firstOrNull()?.type == OTA_ANDROID_ROM_TYPE
+        if (isTripInProgress || _isScreenOff.value || isROMUpdateInProgress) {
+            Log.d(TAG, "sleepDevice: Skipping sleep - isTripInProgress: $isTripInProgress, isScreenOff: ${_isScreenOff.value}, isROMUpdateInProgress: $isROMUpdateInProgress")
+            return
+        }
 
 
         sleepJob = viewModelScope.launch(ioDispatcher) {
             Log.d(TAG, "sleepDevice: Device is going to sleep - backlightOffDelay: $backlightOffDelay, switchPowerModeDelay: $switchPowerModeDelay")
             delay((backlightOffDelay ?: BACKLIGHT_OFF_DELAY).toLong() * 1000)
-            if (!isTripInProgress) {
+            if (!isTripInProgress && !isROMUpdateInProgress) {
                 _isScreenOff.value = true
                 val logMap1 = mapOf(
                     LogConstant.CREATED_BY to LogConstant.CABLE_METER,

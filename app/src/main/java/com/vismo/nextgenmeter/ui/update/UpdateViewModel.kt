@@ -28,6 +28,7 @@ import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.OnUpdateCompletedReceiver
 import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
 import com.vismo.nextgenmeter.util.Constant.ENV_PRD
+import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nextgenmeter.util.RomOtaState
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
@@ -60,7 +61,8 @@ class UpdateViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val remoteMeterControlRepository: RemoteMeterControlRepository,
-    private val androidROMOTAUpdateManager: AndroidROMOTAUpdateManager
+    private val androidROMOTAUpdateManager: AndroidROMOTAUpdateManager,
+
 ): ViewModel() {
     private val _updateState: MutableStateFlow<UpdateState> = MutableStateFlow(UpdateState.Idle)
     val updateState: StateFlow<UpdateState> = _updateState
@@ -116,6 +118,7 @@ class UpdateViewModel @Inject constructor(
                         status = UpdateStatus.COMPLETE
                     ))
                 }
+                remoteMeterControlRepository.updateBoardShutdownMinsDelayAfterAcc(MeasureBoardUtils.DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS) // set back to 15 mins delay
             }
             3 -> { // start install
                 _updateState.value = UpdateState.Installing
@@ -181,6 +184,7 @@ class UpdateViewModel @Inject constructor(
                     status = UpdateStatus.DOWNLOADING
                 ))
                 _updateState.value = UpdateState.Downloading(0, isCancellable = true)
+                remoteMeterControlRepository.updateBoardShutdownMinsDelayAfterAcc(60) // 60 mins delay if ROM update has started
             } else {
                 _updateState.value = UpdateState.NoUpdateFound
             }
@@ -703,6 +707,7 @@ class UpdateViewModel @Inject constructor(
 
     fun skipAndroidROMOta() {
         androidROMOTAUpdateManager.terminateOngoingROMUpdate()
+        remoteMeterControlRepository.updateBoardShutdownMinsDelayAfterAcc(MeasureBoardUtils.DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS) // default - 15 mins
     }
 
     private suspend fun writeUpdateResultToFireStore(update: Update) {
