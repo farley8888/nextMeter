@@ -177,6 +177,9 @@ class UpdateViewModel @Inject constructor(
 
             }  else if (update != null && update.type == Constant.OTA_ANDROID_ROM_TYPE) {
                 androidROMOTAUpdateManager.attemptROMUpdate()
+                writeUpdateResultToFireStore(update.copy(
+                    status = UpdateStatus.DOWNLOADING
+                ))
                 _updateState.value = UpdateState.Downloading(0, isCancellable = true)
             } else {
                 _updateState.value = UpdateState.NoUpdateFound

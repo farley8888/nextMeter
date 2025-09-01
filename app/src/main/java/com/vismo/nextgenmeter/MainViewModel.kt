@@ -18,7 +18,6 @@ import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
 import com.vismo.nextgenmeter.util.ShellStateUtil
-import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.module.MainDispatcher
@@ -49,7 +48,6 @@ import com.vismo.nextgenmeter.util.GlobalUtils.maskLast
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.AndroidGPS
-import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.NOT_SET
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
@@ -146,7 +144,8 @@ class MainViewModel @Inject constructor(
         .filter {
             when (it?.type) {
             OTA_METERAPP_TYPE -> {
-                val isValid = isBuildVersionHigherThanCurrentVersion(it.version)
+                val currentVersionCode = "${BuildConfig.VERSION_NAME}.${BuildConfig.VERSION_CODE}" // Assuming current version is in the form 6.5.3.1034
+                val isValid = isBuildVersionHigherThanCurrentVersion(newVersion = it.version, currentVersion = currentVersionCode)
                 val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
                 remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus)).await()
                 isValid
@@ -163,12 +162,14 @@ class MainViewModel @Inject constructor(
                 isValid
             }
             OTA_ANDROID_ROM_TYPE -> {
+                val currentROM = ShellStateUtil.getROMVersion()
+                val isValid = isBuildVersionHigherThanCurrentVersion(newVersion = it.version, currentVersion = currentROM)
                 remoteMeterControlRepository.writeUpdateResultToFireStore(
                     it.copy(
-                        status = UpdateStatus.DOWNLOADING,
+                        status = UpdateStatus.PROCESSING,
                     )
                 )
-                true
+                isValid
             }
             else -> false
         }
@@ -179,23 +180,18 @@ class MainViewModel @Inject constructor(
     private var heartbeatJob: Job? = null
     private var busModelJob: Job? = null
 
-    private fun isBuildVersionHigherThanCurrentVersion(version: String): Boolean {
-        val currentVersionCode = "${BuildConfig.VERSION_NAME}.${BuildConfig.VERSION_CODE}" // Assuming current version is in the form 6.5.3.1034
+    private fun isBuildVersionHigherThanCurrentVersion(newVersion: String, currentVersion: String): Boolean {
+        val currentVersionParts = currentVersion.split(".").map { it.toInt() }
+        val newVersionParts = newVersion.split(".").map { it.toInt() }
 
-        // Convert both version codes to integer arrays for comparison
-        val currentVersionParts = currentVersionCode.split(".").map { it.toInt() }
-        val newVersionParts = version.split(".").map { it.toInt() }
-
-        // Compare version parts
         for (i in 0 until minOf(currentVersionParts.size, newVersionParts.size)) {
             if (newVersionParts[i] > currentVersionParts[i]) {
-                return true // New version is higher
+                return true
             } else if (newVersionParts[i] < currentVersionParts[i]) {
-                return false // Current version is higher
+                return false
             }
         }
 
-        // If the parts are equal, compare by length (i.e., higher version may have more sub-version numbers)
         return newVersionParts.size > currentVersionParts.size
     }
 
