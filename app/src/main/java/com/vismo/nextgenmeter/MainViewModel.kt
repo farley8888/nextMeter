@@ -215,6 +215,16 @@ class MainViewModel @Inject constructor(
             launch { observeIsSimCardAvailable() }
             launch { observeMeterLocation() }
             launch { observeAndroidGpsLastUpdateTime() }
+            launch { observeMeterPrefStartAccInquiry()  }
+        }
+    }
+
+    private suspend fun observeMeterPrefStartAccInquiry() {
+        meterPreferenceRepository.getStartAccInquiryFromDriverTrigger().collectLatest {
+            if (it) {
+                startACCStatusInquiries()
+                meterPreferenceRepository.saveStartAccInquiryFromDriverTrigger(false)
+            }
         }
     }
 

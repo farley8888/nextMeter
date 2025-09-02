@@ -5,6 +5,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -241,6 +242,21 @@ class MeterPreferenceRepository(
             }
     }
 
+    fun getStartAccInquiryFromDriverTrigger(): Flow<Boolean> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_START_ACC_INQUIRY_FROM_DRIVER_TRIGGER] ?: false
+            }
+    }
+
+    suspend fun saveStartAccInquiryFromDriverTrigger(start: Boolean) {
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_START_ACC_INQUIRY_FROM_DRIVER_TRIGGER] = start
+            }
+        }
+    }
+
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
         private val KEY_TOTP_SECRET = stringPreferencesKey("totp_secret")
@@ -256,6 +272,7 @@ class MeterPreferenceRepository(
         private val KEY_MOST_RECENTLY_COMPLETED_OTA_UPDATE_ID = stringPreferencesKey("completed_update_id_${BuildConfig.FLAVOR}")
         private val KEY_WAS_METER_ONLINE_AT_LAST_ACC_OFF = stringPreferencesKey("was_meter_online_at_last_acc_off_${BuildConfig.FLAVOR}")
         private val KEY_ANDROID_GPS_LAST_UPDATE_TIME = longPreferencesKey("android_gps_last_update_time")
+        private val KEY_START_ACC_INQUIRY_FROM_DRIVER_TRIGGER = booleanPreferencesKey("start_acc_inquiry_from_driver_trigger_${BuildConfig.FLAVOR}")
     }
 
 }
