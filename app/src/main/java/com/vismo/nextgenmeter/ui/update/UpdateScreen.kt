@@ -68,9 +68,13 @@ fun UpdateScreen(
                 is UpdateState.Downloading -> {
                     // Downloading UI
                     val download = (updateState as UpdateState.Downloading)
-                    Text("下载: ${download.progress}%", style = Typography.headlineMedium, textAlign = TextAlign.Center)
+                    Text(text = if (download.progress > 0) {
+                        "下载: ${download.progress}%"
+                    } else {
+                        "下载..."
+                    }, style = Typography.headlineMedium, textAlign = TextAlign.Center)
                     if (download.isCancellable) {
-                        Text("這可能需要 10 分鐘以上。您可以選擇現在跳過，並在下次啟動應用程式時執行", style = Typography.bodyMedium, textAlign = TextAlign.Center)
+                        Text("整個更新需時約 15 分鐘。如暫時不方便，您可選擇暫時跳過更新，在下次著車時再處理", style = Typography.bodyMedium, textAlign = TextAlign.Center)
                         Button(
                             onClick = {
                                 viewModel.skipAndroidROMOta()
@@ -78,20 +82,20 @@ fun UpdateScreen(
                             },
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
-                            Text("跳過並稍後繼續")
+                            Text("暫且跳過")
                         }
                     }
 
                 }
                 is UpdateState.Installing -> {
-                    Text(text = "安装", style = Typography.headlineMedium)
+                    Text(text = "安装中，請稍候", style = Typography.headlineMedium)
                 }
                 is UpdateState.Success -> {
-                    Text(text = "更新成功。正在重新啟動應用程式。請稍候...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
+                    Text(text = "更新成功。正在重新啟動。請稍候...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
                 }
                 is UpdateState.Error -> {
                     val error = (updateState as UpdateState.Error)
-                    Text("誤差: ${error.message}", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
+                    Text("出錯: ${error.message}", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
                     showRetryDialog.value = error.allowRetry
                 }
 
@@ -104,7 +108,7 @@ fun UpdateScreen(
                         },
                         modifier = Modifier.padding(top = 16.dp)
                     ) {
-                        Text("跳過並稍後繼續")
+                        Text("跳過並繼續")
                     }
                 }
             }
@@ -118,7 +122,7 @@ fun UpdateScreen(
         content = {
             GenericDialogContent(
                 title = "更新失敗",
-                message = "軟件下載失敗，請重新嘗試。",
+                message = "下載失敗，請重試。",
                 confirmButtonText = "稍後再試",
                 cancelButtonText = "重試",
                 onConfirm = {
