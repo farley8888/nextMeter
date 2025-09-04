@@ -111,6 +111,9 @@ class UpdateViewModel @Inject constructor(
             }
             2 -> { // download complete
                 _updateState.value = UpdateState.Installing
+            }
+            3 -> { // start install
+                _updateState.value = UpdateState.Installing
                 updateDetails.firstOrNull()?.let { update ->
                     remoteMeterControlRepository.saveRecentlyCompletedUpdateId(update.id)
                     writeUpdateResultToFireStore(update.copy(
@@ -119,9 +122,7 @@ class UpdateViewModel @Inject constructor(
                     ))
                 }
                 remoteMeterControlRepository.updateBoardShutdownMinsDelayAfterAcc(MeasureBoardUtils.DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS) // set back to 15 mins delay
-            }
-            3 -> { // start install
-                _updateState.value = UpdateState.Installing
+
             }
             4 -> { // user paused install
                 _updateState.value = UpdateState.Error(event.message ?: "Install paused", allowRetry = true)
