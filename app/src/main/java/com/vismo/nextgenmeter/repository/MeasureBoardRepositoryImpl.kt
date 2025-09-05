@@ -272,11 +272,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 if (this != 0L) {
                     Timestamp(this, 0)
                 } else null
-            }
+            } ?: Timestamp.now()
             // start Trip
             TripData(
                 tripId = savedOngoingTripId,
-                startTime = savedOngoingStartTime ?: Timestamp.now(),
+                startTime = savedOngoingStartTime,
                 tripStatus = heartbeatData.tripStatus,
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
@@ -284,7 +284,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 paidDistanceInMeters = heartbeatData.paidDistance,
                 unpaidDistanceInMeters = heartbeatData.unpaidDistance,
                 waitDurationInSeconds = getTimeInSeconds(heartbeatData.duration),
-                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = null, startTime = savedOngoingStartTime),
+                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = null, startTime = savedOngoingStartTime, isFromTripStart = true),
                 endTime = null,
                 requiresUpdateOnDatabase = true,
                 licensePlate = savedLicensePlate,
@@ -299,7 +299,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             ongoingTrip.copy(
                 tripId = savedOngoingTripId,
                 tripStatus = heartbeatData.tripStatus,
-                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = ongoingTrip.pauseTime, startTime = ongoingTrip.startTime),
+                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = ongoingTrip.pauseTime),
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
                 totalFare = heartbeatData.totalFare,
@@ -323,26 +323,16 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         TripDataStore.setHasReceivedAtLeastOneHeartBeat(true)
     }
 
-    private fun getPauseTime(tripStatus: TripStatus, currentPauseTime: Timestamp?, startTime: Timestamp?): Timestamp? {
+    private fun getPauseTime(tripStatus: TripStatus, currentPauseTime: Timestamp?, startTime: Timestamp? = null, isFromTripStart: Boolean = false): Timestamp? {
         return if (tripStatus == TripStatus.STOP) {
-            if(currentPauseTime == null) {
-                // check if start time hours and mins are the same as hours and mins now -
-                // to handle case where start time seconds if 59 and by the time is reaches here, it becomes the next min
-                val now = Timestamp.now()
-                val calendarNow = Calendar.getInstance().apply {
-                    timeInMillis = now.toDate().time
-                }
-                val calendarStart = Calendar.getInstance().apply {
-                    timeInMillis = startTime?.toDate()?.time ?: now.toDate().time
-                }
-                if (calendarStart.get(Calendar.HOUR_OF_DAY) == calendarNow.get(Calendar.HOUR_OF_DAY) &&
-                    calendarStart.get(Calendar.MINUTE) == calendarNow.get(Calendar.MINUTE)) {
-                    startTime
-                } else {
-                    Timestamp.now()
-                }
+            if (currentPauseTime != null) {
+                return currentPauseTime // keep the existing pauseTime if already set
+            }
+
+            if (isFromTripStart && startTime != null) {
+                startTime // if trip is STOP from the start, set pauseTime to startTime
             } else {
-                currentPauseTime
+                Timestamp.now()
             }
         } else {
             null
