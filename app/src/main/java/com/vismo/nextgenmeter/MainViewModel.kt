@@ -148,7 +148,8 @@ class MainViewModel @Inject constructor(
                 val currentVersionCode = "${BuildConfig.VERSION_NAME}.${BuildConfig.VERSION_CODE}"
                 val isValid = isBuildVersionHigherThanCurrentVersion(newVersion = it.version, currentVersion = currentVersionCode)
                 val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
-                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus)).await()
+                val completedOn = if (newStatus == UpdateStatus.VERSION_ERROR) Timestamp.now() else null
+                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus, completedOn = completedOn)).await()
                 isValid
             }
             OTA_FIRMWARE_TYPE -> {
@@ -166,10 +167,11 @@ class MainViewModel @Inject constructor(
                 val currentROM = ShellStateUtil.getROMVersion()
                 val isValid = isBuildVersionHigherThanCurrentVersion(newVersion = it.version, currentVersion = currentROM)
                 val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
+                val completedOn = if (newStatus == UpdateStatus.VERSION_ERROR) Timestamp.now() else null
                 if (newStatus == UpdateStatus.VERSION_ERROR) {
                     remoteMeterControlRepository.updateBoardShutdownMinsDelayAfterAcc(MeasureBoardUtils.DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS) // set back to default shutdown delay
                 }
-                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus)).await()
+                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus, completedOn = completedOn)).await()
                 isValid
             }
             else -> false
