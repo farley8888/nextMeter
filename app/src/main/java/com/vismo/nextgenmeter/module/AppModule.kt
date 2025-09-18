@@ -98,16 +98,18 @@ object AppModule {
             CoroutineScope(ioDispatcher).launch {
                 val shouldClear = meterPreferenceRepository.getWasMeterOnlineAtLastAccOff().firstOrNull() == true
                 val isTripOngoing = !meterPreferenceRepository.getOngoingTripId().firstOrNull().isNullOrBlank()
+                Log.d("firestoreSettings", "Should clear Firestore persistence cache (was meter online at last acc off) - $shouldClear, isTripOngoing - $isTripOngoing")
 
                 val cm = context.getSystemService(ConnectivityManager::class.java)
                 val isOnline = cm.activeNetwork?.let { net ->
                     cm.getNetworkCapabilities(net)
                         ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
                 } ?: false
+                Log.d("firestoreSettings", "Is device online - $isOnline")
 
                 if (shouldClear && isOnline && !isTripOngoing) {
                     clearPersistence().addOnCompleteListener {
-                        Log.d("AppModule", "Is Firestore persistence cache cleared - ${it.isSuccessful}")
+                        Log.d("firestoreSettings", "Is Firestore persistence cache cleared - ${it.isSuccessful}")
                     }
                 }
             }
