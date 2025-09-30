@@ -2,8 +2,10 @@ package com.vismo.nextgenmeter.repository
 
 import android.content.Context
 import android.util.Base64
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -18,6 +20,9 @@ class MeterPreferenceRepository(
     @ApplicationContext private val context: Context,
 ) {
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = SETTING_PREFS_NAME)
+    
+    private val licensePlateConsecutiveValues = mutableListOf<String>()
+    private val deviceIdConsecutiveValues = mutableListOf<String>()
 
     suspend fun saveTotpSecret(secret: ByteArray) {
         withTransactionSync {
@@ -63,10 +68,23 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveLicensePlate(licensePlate: String) {
-        withTransactionSync {
-            context.dataStore.edit { settings ->
-                settings[KEY_LICENSE_PLATE] = licensePlate
+        // Add new value to consecutive tracking
+        licensePlateConsecutiveValues.add(licensePlate)
+        
+        // Keep only last 3 values
+        if (licensePlateConsecutiveValues.size > 3) {
+            licensePlateConsecutiveValues.removeAt(0)
+        }
+        
+        // Check if all 3 values are the same
+        if (licensePlateConsecutiveValues.size == 3 && licensePlateConsecutiveValues.all { it == licensePlate }) {
+            // Update the actual license plate value in DataStore
+            withTransactionSync {
+                context.dataStore.edit { settings ->
+                    settings[KEY_LICENSE_PLATE] = licensePlate
+                }
             }
+            Log.d("MeterPreferenceRepository", "License plate updated after 3 consecutive values: $licensePlate")
         }
     }
 
@@ -78,10 +96,23 @@ class MeterPreferenceRepository(
     }
 
     suspend fun saveDeviceId(deviceId: String) {
-        withTransactionSync {
-            context.dataStore.edit { settings ->
-                settings[KEY_DEVICE_ID] = deviceId
+        // Add new value to consecutive tracking
+        deviceIdConsecutiveValues.add(deviceId)
+        
+        // Keep only last 3 values
+        if (deviceIdConsecutiveValues.size > 3) {
+            deviceIdConsecutiveValues.removeAt(0)
+        }
+        
+        // Check if all 3 values are the same
+        if (deviceIdConsecutiveValues.size == 3 && deviceIdConsecutiveValues.all { it == deviceId }) {
+            // Update the actual device ID value in DataStore
+            withTransactionSync {
+                context.dataStore.edit { settings ->
+                    settings[KEY_DEVICE_ID] = deviceId
+                }
             }
+            Log.d("MeterPreferenceRepository", "Device ID updated after 3 consecutive values: $deviceId")
         }
     }
 
@@ -181,6 +212,51 @@ class MeterPreferenceRepository(
             }
     }
 
+    suspend fun saveWasMeterOnlineAtLastAccOff(wasOnline: Boolean) {
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_WAS_METER_ONLINE_AT_LAST_ACC_OFF] = wasOnline.toString()
+            }
+        }
+    }
+
+    fun getWasMeterOnlineAtLastAccOff(): Flow<Boolean> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_WAS_METER_ONLINE_AT_LAST_ACC_OFF]?.toBoolean() ?: false
+            }
+    }
+
+    suspend fun saveAndroidGpsLastUpdateTime(time: Long) {
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_ANDROID_GPS_LAST_UPDATE_TIME] = time
+            }
+        }
+    }
+
+    fun getAndroidGpsLastUpdateTime(): Flow<Long?> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_ANDROID_GPS_LAST_UPDATE_TIME]
+            }
+    }
+
+    fun getStartAccInquiryFromDriverTrigger(): Flow<Boolean> {
+        return context.dataStore.data
+            .map { settings ->
+                settings[KEY_START_ACC_INQUIRY_FROM_DRIVER_TRIGGER] ?: false
+            }
+    }
+
+    suspend fun saveStartAccInquiryFromDriverTrigger(start: Boolean) {
+        withTransactionSync {
+            context.dataStore.edit { settings ->
+                settings[KEY_START_ACC_INQUIRY_FROM_DRIVER_TRIGGER] = start
+            }
+        }
+    }
+
     companion object {
         private const val SETTING_PREFS_NAME = "settings"
         private val KEY_TOTP_SECRET = stringPreferencesKey("totp_secret")
@@ -194,6 +270,9 @@ class MeterPreferenceRepository(
         private val KEY_ONGOING_TRIP_START_TIME = longPreferencesKey("ongoing_trip_start_time_${BuildConfig.FLAVOR}")
         private val KEY_FIRMWARE_FILENAME_FOR_OTA = stringPreferencesKey("latest_firmware_filename_for_ota")
         private val KEY_MOST_RECENTLY_COMPLETED_OTA_UPDATE_ID = stringPreferencesKey("completed_update_id_${BuildConfig.FLAVOR}")
+        private val KEY_WAS_METER_ONLINE_AT_LAST_ACC_OFF = stringPreferencesKey("was_meter_online_at_last_acc_off_${BuildConfig.FLAVOR}")
+        private val KEY_ANDROID_GPS_LAST_UPDATE_TIME = longPreferencesKey("android_gps_last_update_time")
+        private val KEY_START_ACC_INQUIRY_FROM_DRIVER_TRIGGER = booleanPreferencesKey("start_acc_inquiry_from_driver_trigger_${BuildConfig.FLAVOR}")
     }
 
 }

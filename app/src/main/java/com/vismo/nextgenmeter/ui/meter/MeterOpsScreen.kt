@@ -145,6 +145,7 @@ fun ExtrasAndFareHeader(uiState: MeterOpsUiData) {
             text = extrasOrDetails,
             color = Color.White,
             fontSize = 12.sp,
+            lineHeight = 16.sp,
             modifier = Modifier
                 .weight(0.32f)
                 .padding(start = 8.dp)
@@ -153,6 +154,7 @@ fun ExtrasAndFareHeader(uiState: MeterOpsUiData) {
             text = fareOrTotal,
             color = Color.White,
             fontSize = 12.sp,
+            lineHeight = 16.sp,
             modifier = Modifier.weight(0.7f)
         )
     }
@@ -219,11 +221,13 @@ fun RowScope.DetailsBox(uiState: MeterOpsUiData) {
             Text(text = "H.K.$",
                 color = Color.White,
                 fontSize = 12.sp,
+                lineHeight = 16.sp,
                 modifier = Modifier.weight(6.8f).padding(start = 8.dp)
             )
             Text(text = "¢",
                 color = Color.White,
                 fontSize = 12.sp,
+                lineHeight = 16.sp,
                 modifier = Modifier.weight(3.2f)
             )
         }
@@ -324,11 +328,13 @@ fun RowScope.TotalBox(
             Text(text = "H.K.$",
                 color = Color.White,
                 fontSize = 12.sp,
+                lineHeight = 16.sp,
                 modifier = Modifier.weight(7.5f)
             )
             Text(text = "¢",
                 color = Color.White,
                 fontSize = 12.sp,
+                lineHeight = 16.sp,
                 modifier = Modifier.weight(3.2f)
             )
         }
@@ -396,6 +402,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     color = Color.Gray,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
+                    lineHeight = 16.sp,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .clickable {
@@ -431,6 +438,7 @@ fun RowScope.DistanceTimeAndStatusBox(uiState: MeterOpsUiData, meterLockState: M
                     text = "TIME",
                     color = Color.Gray,
                     fontSize = 12.sp,
+                    lineHeight = 16.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )

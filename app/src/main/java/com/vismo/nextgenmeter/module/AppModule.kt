@@ -1,6 +1,9 @@
 package com.vismo.nextgenmeter.module
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,10 +27,12 @@ import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepositoryImpl
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepositoryImpl
+import com.vismo.nextgenmeter.repository.SystemControlRepository
 import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.repository.TripRepositoryImpl
 import com.vismo.nextgenmeter.util.LocaleHelper
+import com.vismo.nextgenmeter.util.AndroidROMOTAUpdateManager
 import com.vismo.nextgenmeter.util.TtsUtil
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
@@ -37,11 +42,35 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Singleton
+    @Provides
+    fun providesMeterPreferenceRepository(
+        @ApplicationContext context: Context,
+    ): MeterPreferenceRepository {
+        return MeterPreferenceRepository(
+            context = context,
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesInternetConnectivityObserver(
+        @ApplicationContext context: Context,
+    ): InternetConnectivityObserver {
+        return InternetConnectivityObserver(
+            context = context,
+        )
+    }
 
     @Provides
     @Singleton
@@ -49,16 +78,41 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesFirebaseFirestore(): FirebaseFirestore {
+    fun providesFirebaseFirestore(
+        @ApplicationContext context: Context,
+        @IoDispatcher ioDispatcher: CoroutineDispatcher,
+        meterPreferenceRepository: MeterPreferenceRepository
+    ): FirebaseFirestore {
         val settings = FirebaseFirestoreSettings.Builder()
             .setLocalCacheSettings(
                 PersistentCacheSettings.newBuilder()
-                    .setSizeBytes(100 * 1024 * 1024) // 100 MB
+                    .setSizeBytes(100 * 1024 * 1024)
                     .build()
             )
             .build()
+
         return FirebaseFirestore.getInstance().apply {
             firestoreSettings = settings
+
+            // Do conditional cache clearing off the main thread
+            CoroutineScope(ioDispatcher).launch {
+                val shouldClear = meterPreferenceRepository.getWasMeterOnlineAtLastAccOff().firstOrNull() == true
+                val isTripOngoing = !meterPreferenceRepository.getOngoingTripId().firstOrNull().isNullOrBlank()
+                Log.d("firestoreSettings", "Should clear Firestore persistence cache (was meter online at last acc off) - $shouldClear, isTripOngoing - $isTripOngoing")
+
+                val cm = context.getSystemService(ConnectivityManager::class.java)
+                val isOnline = cm.activeNetwork?.let { net ->
+                    cm.getNetworkCapabilities(net)
+                        ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+                } ?: false
+                Log.d("firestoreSettings", "Is device online - $isOnline")
+
+                if (shouldClear && isOnline && !isTripOngoing) {
+                    clearPersistence().addOnCompleteListener {
+                        Log.d("firestoreSettings", "Is Firestore persistence cache cleared - ${it.isSuccessful}")
+                    }
+                }
+            }
         }
     }
 
@@ -143,16 +197,6 @@ object AppModule {
             defaultDispatcher = defaultDispatcher,
             ioDispatcher = ioDispatcher,
             tripsDao = tripsDao,
-        )
-    }
-
-    @Singleton
-    @Provides
-    fun providesMeterPreferenceRepository(
-        @ApplicationContext context: Context,
-    ): MeterPreferenceRepository {
-        return MeterPreferenceRepository(
-            context = context,
         )
     }
 
@@ -260,11 +304,23 @@ object AppModule {
 
     @Singleton
     @Provides
-    fun providesInternetConnectivityObserver(
+    fun providesOTAUpdateManager(
         @ApplicationContext context: Context,
-    ): InternetConnectivityObserver {
-        return InternetConnectivityObserver(
+        internetConnectivityObserver: InternetConnectivityObserver
+    ): AndroidROMOTAUpdateManager {
+        return AndroidROMOTAUpdateManager(
             context = context,
+            internetConnectivityObserver = internetConnectivityObserver
+        )
+    }
+
+    @Singleton
+    @Provides
+    fun providesSystemControlRepository(
+        @ApplicationContext context: Context
+    ): SystemControlRepository {
+        return SystemControlRepository(
+            context = context
         )
     }
 }

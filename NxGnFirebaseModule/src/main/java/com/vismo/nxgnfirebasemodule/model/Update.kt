@@ -11,21 +11,24 @@ data class Update(
     @SerializedName("type") val type: String,
     @SerializedName("must_update_before") val mustUpdateBefore: Timestamp,
     @SerializedName("snooze_until") val snoozeUntil: Timestamp?,
-    @SerializedName("url") val url: String,
+    @SerializedName("url") val url: String?,
     @SerializedName("version") val version: String,
     @SerializedName("is_admin") val isAdmin: Boolean?,
     @SerializedName("status") val status: UpdateStatus?,
+    @SerializedName("last_updated_by_meter_on") val lastUpdatedOn: Timestamp? = null,
 )
 
 enum class UpdateStatus {
     REQUESTED,
-    WAITING_FOR_DOWNLOAD,
+    PROCESSING,
     VERSION_ERROR,
+    NOT_IN_WHITELIST,
     DOWNLOADING,
     DOWNLOAD_ERROR,
     INSTALLING,
     WAITING_FOR_RESTART,
-    COMPLETE
+    COMPLETE,
+    UNKNOWN_ERROR,
 }
 
 fun Update.canBeSnoozed(): Boolean {

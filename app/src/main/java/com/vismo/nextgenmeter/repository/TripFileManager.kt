@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
@@ -108,52 +109,82 @@ class TripFileManager @Inject constructor(
 
     // Add a trip
     suspend fun addTrip(newTrip: TripData): Boolean = withContext(ioDispatcher) {
-        mutex.withLock {
-            val trips = loadTrips().toMutableList()
-            trips.add(newTrip)
-            saveTrips(trips)
+        try {
+            withTimeout(DATABASE_OPERATION_TIMEOUT) {
+                mutex.withLock {
+                    val trips = loadTrips().toMutableList()
+                    trips.add(newTrip)
+                    saveTrips(trips)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Timeout or error adding trip: ${e.message}", e)
+            false
         }
     }
 
     // Update a trip
     suspend fun updateTrip(updatedTrip: TripData): Boolean = withContext(ioDispatcher) {
-        mutex.withLock {
-            val trips = loadTrips().toMutableList()
-            val index = trips.indexOfFirst { it.internalId == updatedTrip.internalId }
-            return@withLock if (index != -1) {
-                trips[index] = updatedTrip
-                saveTrips(trips)
-            } else {
-                Log.e(TAG, "Trip with ID ${updatedTrip.internalId} not found for update.")
-                false
+        try {
+            withTimeout(DATABASE_OPERATION_TIMEOUT) {
+                mutex.withLock {
+                    val trips = loadTrips().toMutableList()
+                    val index = trips.indexOfFirst { it.tripId == updatedTrip.tripId }
+                    return@withLock if (index != -1) {
+                        trips[index] = updatedTrip
+                        saveTrips(trips)
+                    } else {
+                        // Trip not found, add directly to the list instead of calling addTrip (to avoid deadlock)
+                        Log.w(TAG, "Trip with ID ${updatedTrip.tripId} not found for update. Creating new trip")
+                        trips.add(updatedTrip)
+                        saveTrips(trips)
+                    }
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Timeout or error updating trip: ${e.message}", e)
+            false
         }
     }
 
     // Delete a trip
     suspend fun deleteTrip(id: Long): Boolean = withContext(ioDispatcher) {
-        mutex.withLock {
-            val trips = loadTrips().toMutableList()
-            val removed = trips.removeAll { it.internalId == id }
-            return@withLock if (removed) {
-                saveTrips(trips)
-            } else {
-                Log.e(TAG, "Trip with ID $id not found for deletion.")
-                false
+        try {
+            withTimeout(DATABASE_OPERATION_TIMEOUT) {
+                mutex.withLock {
+                    val trips = loadTrips().toMutableList()
+                    val removed = trips.removeAll { it.internalId == id }
+                    return@withLock if (removed) {
+                        saveTrips(trips)
+                    } else {
+                        Log.e(TAG, "Trip with ID $id not found for deletion.")
+                        false
+                    }
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Timeout or error deleting trip: ${e.message}", e)
+            false
         }
     }
 
     suspend fun deleteAllTrips(): Boolean = withContext(ioDispatcher) {
-        mutex.withLock {
-            try {
-                // Save an empty list of trips
-                val saveSuccessful = saveTrips(emptyList())
-                saveSuccessful
-            } catch (e: Exception) {
-                Log.e(TAG, "Error deleting all trips: ${e.localizedMessage}", e)
-                false
+        try {
+            withTimeout(DATABASE_OPERATION_TIMEOUT) {
+                mutex.withLock {
+                    try {
+                        // Save an empty list of trips
+                        val saveSuccessful = saveTrips(emptyList())
+                        saveSuccessful
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error deleting all trips: ${e.localizedMessage}", e)
+                        false
+                    }
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Timeout or error deleting all trips: ${e.message}", e)
+            false
         }
     }
 
@@ -168,5 +199,6 @@ class TripFileManager @Inject constructor(
         private const val TAG = "TripFileManager"
         private const val FILE_NAME = "trips.json"
         private const val MAX_TRIPS = 100 // Maximum number of trips to retain
+        private const val DATABASE_OPERATION_TIMEOUT = 10000L // 10 seconds
     }
 }

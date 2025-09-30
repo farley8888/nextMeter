@@ -23,6 +23,8 @@ object MeasureBoardUtils {
     const val ONGOING_HEARTBEAT = "E3"
     const val REQUEST_UPGRADE_FIRMWARE = "A8"
     const val UPGRADING_FIRMWARE = "E1"
+    const val METERING_BOARD_INFO_RESPONSE = "B0"
+    const val ANDROID_FIRMWARE_VERSION_RESPONSE = "B2"
 
     fun formatStartingPrice(input: String): String {
         return if (input.length == 4) {
@@ -200,8 +202,8 @@ object MeasureBoardUtils {
             "${formattedDateStr}00".chunked(2).joinToString(" ")
         else
             "2024-01-01T16:17:18".chunked(2).joinToString(" ")
-        val formattedKValue = "10 00" //this kValue won't be applied to the measure board
-        val formattedPowerOffTime = "00 15" // 15mins
+        val formattedKValue = "10 00" //this kValue won't be applied to the measure board (01 in the cmd means it will only update time)
+        val formattedPowerOffTime = "00 15" // this kValue won't be applied to the measure board (01 in the cmd means it will only update time)
         val CMD_UPDATE_PARAMETERS = "00 10 00 00 10 A5 01 $formattedDateTime $formattedKValue $formattedPowerOffTime"
         val checkSum = xorHexStrings(CMD_UPDATE_PARAMETERS.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
@@ -209,12 +211,22 @@ object MeasureBoardUtils {
         return cmdStringBuilder.toString().replace(" ", "")
     }
 
-    fun getUpdateKValueCmd(kValue: Int): String {
+    fun getUpdateKValueCmd(kValue: Int?, powerOffTimeInMins: Int?): String {
+        val type = if (kValue != null && powerOffTimeInMins != null)  {
+            "06" // update both kValue and powerOffTime
+        } else if (kValue != null) {
+            "02" // update only kValue
+        } else if (powerOffTimeInMins != null) {
+            "04" // update only powerOffTime
+        } else {
+            throw IllegalArgumentException("Either kValue or powerOffTimeInMins must be provided")
+        }
+
         val parsedDate = LocalDateTime.parse("2024-01-01T16:17:18", DateTimeFormatter.ISO_DATE_TIME) // a random date to be placed here, it won't be used to update the time in measureboard
         val formattedDateTime = parsedDate.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")).chunked(2).joinToString(" ")
-        val formattedKValue = kValue.toString().padStart(4, '0').chunked(2).joinToString(" ")
-        val formattedPowerOffTime = "00 15" // 15mins
-        val CMD_UPDATE_PARAMETERS = "00 10 00 00 10 A5 06 $formattedDateTime $formattedKValue $formattedPowerOffTime"
+        val formattedKValue = (kValue ?: 650).toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val formattedPowerOffTime = (powerOffTimeInMins ?: DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS).toString().padStart(4, '0').chunked(2).joinToString(" ")
+        val CMD_UPDATE_PARAMETERS = "00 10 00 00 10 A5 $type $formattedDateTime $formattedKValue $formattedPowerOffTime"
         val checkSum = xorHexStrings(CMD_UPDATE_PARAMETERS.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
         cmdStringBuilder.append("55 AA ").append(CMD_UPDATE_PARAMETERS).append(checkSum).append(" 55 AA")
@@ -266,6 +278,51 @@ object MeasureBoardUtils {
         val checkSum = xorHexStrings(CMD_WRITE_DATA.trim().split(" "))
         val cmdStringBuilder = StringBuilder()
         cmdStringBuilder.append("55 AA ").append(CMD_WRITE_DATA).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
+    fun getShutdownNotificationCmd(): String {
+        val CMD_SHUTDOWN = "00 05 00 00 10 B1 90"
+        val checkSum = xorHexStrings(CMD_SHUTDOWN.trim().split(" "))
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_SHUTDOWN).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
+    fun getMeteringBoardInfoCmd(): String {
+        val CMD_METERING_BOARD_INFO = "00 05 00 00 10 B0 90"
+        val checkSum = xorHexStrings(CMD_METERING_BOARD_INFO.trim().split(" "))
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_METERING_BOARD_INFO).append(checkSum).append(" 55 AA")
+        return cmdStringBuilder.toString().replace(" ", "")
+    }
+
+    fun sendAndroidFirmwareVersionCmd(androidFirmwareVersion: String): String {
+        // Convert version string like "1.5.3" to 3 bytes
+        val versionParts = androidFirmwareVersion.split(".")
+        // Validate the version format
+        if (versionParts.size != 3) {
+            throw IllegalArgumentException("Android firmware version must be in the format 'X.X.X' where each X is a number between 0-99")
+        }
+        
+        // Validate each part is a valid number between 0-99
+        versionParts.forEach { part ->
+            val num = part.toIntOrNull()
+            if (num == null || num < 0 || num > 99) {
+                throw IllegalArgumentException("Android firmware version must be in the format 'X.X.X' where each X is a number between 0-99")
+            }
+        }
+        
+        val versionBytes = versionParts
+            .joinToString("") { it.padStart(2, '0') } // Pad each part to 2 digits
+            .chunked(2) // Split into pairs of hex digits
+            .joinToString(" ") // Join with spaces
+        
+        Log.d("getAndroidFirmwareVersionNotificationCmd", "versionBytes: $versionBytes")
+        val CMD_ANDROID_FIRMWARE = "00 08 00 00 10 B2 90 $versionBytes"
+        val checkSum = xorHexStrings(CMD_ANDROID_FIRMWARE.trim().split(" "))
+        val cmdStringBuilder = StringBuilder()
+        cmdStringBuilder.append("55 AA ").append(CMD_ANDROID_FIRMWARE).append(checkSum).append(" 55 AA")
         return cmdStringBuilder.toString().replace(" ", "")
     }
 
@@ -531,4 +588,6 @@ object MeasureBoardUtils {
             false
         }
     }
+
+    const val DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS = 15
 }

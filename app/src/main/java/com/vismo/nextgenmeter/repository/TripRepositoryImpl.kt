@@ -12,6 +12,7 @@ import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.model.MeterTripInFirestore
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
+import com.vismo.nxgnfirebasemodule.model.getPricingResult
 import com.vismo.nxgnfirebasemodule.model.paidStatus
 import com.vismo.nxgnfirebasemodule.util.LogConstant
 import io.sentry.IScope
@@ -40,10 +41,11 @@ class TripRepositoryImpl @Inject constructor(
     private val _currentAbnormalPulseCounter = MutableStateFlow<Int?>(null)
     private val _currentOverSpeedCounter = MutableStateFlow<Int?>(null)
     private var externalScope: CoroutineScope? = null
+    private var _isCurrentTripCreatedInFirestore = false
 
     private suspend fun handleFirestoreTripUpdate(trip: TripData) {
         val tripInFirestore: MeterTripInFirestore = dashManager.convertToType(trip)
-        if (trip.isNewTrip) {
+        if (!_isCurrentTripCreatedInFirestore) {
             handleTripStart(trip, tripInFirestore)
         } else {
             dashManager.updateTripOnFirestore(tripInFirestore)
@@ -51,6 +53,7 @@ class TripRepositoryImpl @Inject constructor(
     }
 
     private suspend fun handleTripStart(trip: TripData, tripInFirestore: MeterTripInFirestore) {
+        _isCurrentTripCreatedInFirestore = true
         dashManager.createTripOnFirestore(tripInFirestore)
         if (meterPreferenceRepository.getOngoingTripId().first() != trip.tripId) {
             meterPreferenceRepository.saveOngoingTripId(trip.tripId, trip.startTime.seconds)
@@ -63,6 +66,9 @@ class TripRepositoryImpl @Inject constructor(
         Log.d(TAG, "initObservers")
         externalScope = scope
         externalScope?.launch(ioDispatcher) {
+            // case when the app is restarted and the trip data is already present in the data store - we assume that its already created in firestore
+            val ongoingTripId = meterPreferenceRepository.getOngoingTripId().first()
+            _isCurrentTripCreatedInFirestore = !ongoingTripId.isNullOrBlank()
             launch {
                 TripDataStore.ongoingTripData.collect { trip ->
                     trip?.let {
@@ -72,9 +78,10 @@ class TripRepositoryImpl @Inject constructor(
                             handleFirestoreTripUpdate(trip)
                             if (trip.tripStatus == TripStatus.ENDED) {
                                 val tripData = trip.copy(isDash = _currentTripPaidStatus.value == TripPaidStatus.COMPLETELY_PAID)
-                                tripFileManager.addTrip(tripData)
+                                tripFileManager.updateTrip(tripData)
                                 meterPreferenceRepository.saveOngoingTripId("", 0L)    // Reset ongoing trip id
                                 _currentTripPaidStatus.value = TripPaidStatus.NOT_PAID // Reset trip paid status
+                                _isCurrentTripCreatedInFirestore = false // Reset the flag for next trip
                                 dashManager.endTripDocumentListener()
                             }
                         }

@@ -27,20 +27,32 @@ public class GPSService extends Service {
     public void onCreate() {
         super.onCreate();
         System.out.println("GPSService.onCreate");
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            System.out.println("GPSService.onCreate 没有权限");
+            stopSelf();
+            return;
+        }
+
         lm = (LocationManager) getSystemService(LOCATION_SERVICE);
-        listener = new MyLocationListener();
+        if (lm == null) {
+            System.out.println("GPSService.onCreate lm == null");
+            stopSelf();
+            return;
+        }
         // 注册监听位置服务
         // 给位置提供者设置条件
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        String proveder = lm.getBestProvider(criteria, true);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
+        String provider = lm.getBestProvider(criteria, true);
+        if (provider == null) {
+            if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) provider = LocationManager.GPS_PROVIDER;
+            else if (lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) provider = LocationManager.NETWORK_PROVIDER;
+            else { stopSelf(); return; }
         }
-        lm.requestLocationUpdates(proveder, 0, 0, listener);
-        //注册位置更新监听(最小时间间隔为5秒,最小距离间隔为5米)
-        //lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5, listener);
+
+        listener = new MyLocationListener();
+        lm.requestLocationUpdates(provider, 0, 0, listener);
     }
 
     @Override

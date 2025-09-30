@@ -33,6 +33,8 @@ data class Settings(
     @SerializedName("vehicle") val vehicle: Vehicle,
     @SerializedName("operating_area") val operatingArea: OperatingArea,
     @SerializedName("trigger_log_upload") val triggerLogUpload: Boolean = false,
+    @SerializedName("acc_off_turn_off_backlight_delay_seconds") val accOffTurnOffBacklightDelaySeconds: Long?,
+    @SerializedName("acc_off_switch_to_low_power_mode_delay_seconds") val accOffSwitchToLowPowerModeDelaySeconds: Long?,
 )
 
 data class McuInfo(

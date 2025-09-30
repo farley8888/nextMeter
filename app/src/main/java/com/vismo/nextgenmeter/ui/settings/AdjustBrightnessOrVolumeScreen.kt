@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vismo.nextgenmeter.ui.shared.GlobalToast
 import com.vismo.nextgenmeter.ui.theme.nobel400
 import com.vismo.nextgenmeter.ui.theme.nobel800
 
@@ -68,7 +69,12 @@ fun AdjustBrightnessOrVolumeScreen(
         ) {
             SettingSliderRow(
                 value = volume,
-                onValueChange = { viewModel.updateVolume(it) },
+                onValueChange = { sliderValue ->
+                    viewModel.updateVolume(sliderValue)
+                    if (sliderValue < 0.5f) {
+                        GlobalToast.show("最小音量為 50%")
+                    }
+                },
                 iconStart = { Icon(imageVector = Icons.AutoMirrored.Outlined.VolumeDown, contentDescription = "Volume Down Icon", modifier = Modifier.size(36.dp)) },
                 label = "音量",
                 iconEnd = { Icon(imageVector = Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = "Volume Up Icon", modifier = Modifier.size(36.dp)) }
@@ -94,7 +100,8 @@ fun SettingSliderRow(
     onValueChange: (Float) -> Unit,
     iconStart: @Composable () -> Unit,
     iconEnd: @Composable () -> Unit,
-    label: String
+    label: String,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f
 ) {
     Column(
         modifier = Modifier
@@ -124,7 +131,7 @@ fun SettingSliderRow(
                 Slider(
                     value = value,
                     onValueChange = onValueChange,
-                    valueRange = 0f..1f,
+                    valueRange = valueRange,
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 16.dp)

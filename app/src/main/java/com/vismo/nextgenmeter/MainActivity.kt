@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.usb.UsbManager
+import android.location.Location
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Process
@@ -42,11 +43,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.amap.api.location.AMapLocation
 import com.google.firebase.firestore.GeoPoint
+import com.ilin.service.GPSService
 import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl
 import com.vismo.nextgenmeter.repository.UsbEventReceiver
+import com.vismo.nextgenmeter.service.SimCardTest
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
 import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
@@ -62,6 +65,7 @@ import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.topbar.AppBar
 import com.vismo.nextgenmeter.util.GlobalUtils.performVirtualTapFeedback
 import com.vismo.nxgnfirebasemodule.model.AGPS
+import com.vismo.nxgnfirebasemodule.model.AndroidGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.canBeSnoozed
@@ -86,7 +90,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
     private var storageReceiver : StorageBroadcastReceiver? = null
     private var usbBroadcastReceiver: UsbBroadcastReceiver? = null
     private val wifiReceiver = WifiBroadcastReceiver(this)
-
+    private var simCardTest: SimCardTest? = null
 
     private fun registerStorageReceiver() {
         storageReceiver = StorageBroadcastReceiver()
@@ -139,17 +143,45 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
         Runtime.getRuntime().exec(whiteList).waitFor()
     }
 
+    private fun startGPSService() {
+        setGpsLS()
+        val it = Intent(applicationContext, GPSService::class.java)
+        it.setAction("act.init.gps")
+        startService(it)
+    }
+
+    private fun setGpsLS() {
+        GPSService.setLs { location: Location ->
+            mainViewModel.setLocation(
+                MeterLocation(
+                    geoPoint = GeoPoint(location.latitude, location.longitude),
+                    gpsType = AndroidGPS(
+                        speed = location.speed.toDouble(),
+                        bearing = location.bearing.toDouble()
+                    )
+                )
+            )
+            Log.d(TAG, "setGpsLS: Location set from Android GPSService: ${location.latitude}, ${location.longitude}")
+        }
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate: ")
         enableLogcatPrint()
         initObservers()
         startAMapLocation()
+        startGPSService()
         listenToSignalStrength()
         setWifiStatus()
         registerWifiReceiver()
         registerStorageReceiver()
         registerUsbReceiver()
+        // Initialize SIM monitoring
+        simCardTest = SimCardTest(this)
+        simCardTest?.startMonitoring()
+
         SentryAndroid.init(this) { options ->
             options.environment = BuildConfig.FLAVOR.uppercase()
             options.beforeSend = SentryOptions.BeforeSendCallback { event, _ ->
@@ -160,10 +192,10 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
                     MeasureBoardRepositoryImpl.TAG_UNKNOWN_RESULT
                 )
 
-                if (formatted != null && tags.any { formatted.contains(it) } && Math.random() > 0.1) {
-                    null  // Drop event (90% chance)
+                if (formatted != null && tags.any { formatted.contains(it) } && Math.random() > 0.001) {
+                    null  // Drop event (99.9% chance)
                 } else {
-                    event // Keep event
+                    event // Keep event (0.1% chance)
                 }
             }
         }
@@ -245,6 +277,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
                                             }
                                         }
                                     }
+                                },
+                                onManualModuleRestart = {
+                                    mainViewModel.triggerManualModuleRestart()
                                 }
                             )
                         }
@@ -510,7 +545,7 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
         }
 
         unregisterReceiver(wifiReceiver)
-
+        simCardTest?.stopMonitoring()
     }
 
     companion object {

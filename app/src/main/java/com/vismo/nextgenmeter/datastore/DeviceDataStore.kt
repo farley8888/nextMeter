@@ -1,7 +1,9 @@
 package com.vismo.nextgenmeter.datastore
 
+import android.util.Log
 import com.vismo.nextgenmeter.model.DeviceIdData
 import com.vismo.nextgenmeter.model.MCUFareParams
+import com.vismo.nextgenmeter.model.MeteringBoardInfo
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -22,6 +24,9 @@ object DeviceDataStore {
 
     private val _mcuTime = MutableStateFlow<String?>(null)
     val mcuTime: StateFlow<String?> = _mcuTime
+
+    private val _meteringBoardInfo = MutableStateFlow<MeteringBoardInfo?>(null)
+    val meteringBoardInfo: StateFlow<MeteringBoardInfo?> = _meteringBoardInfo
 
     private val _storageReceiverStatus = MutableStateFlow<StorageReceiverStatus>(StorageReceiverStatus.Unknown)
     val storageReceiverStatus: StateFlow<StorageReceiverStatus> = _storageReceiverStatus
@@ -50,11 +55,15 @@ object DeviceDataStore {
     private val _isDeviceAsleep = MutableStateFlow(false)
     val isDeviceAsleep: StateFlow<Boolean> = _isDeviceAsleep
 
+    private val _isSimCardAvailable = MutableStateFlow(false)
+    val isSimCardAvailable: StateFlow<Boolean> = _isSimCardAvailable
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun setMCUFareData(mcuData: MCUFareParams) {
         mutex.withLock {
             this._mcuFareParams.emit(mcuData)
+            Log.d("DeviceDataStore", "MCU Fare Params updated: $mcuData")
         }
     }
 
@@ -67,6 +76,13 @@ object DeviceDataStore {
     suspend fun setMCUTime(mcuTime: String) {
         mutex.withLock {
             this._mcuTime.value = mcuTime
+        }
+    }
+
+    suspend fun setMeteringBoardInfo(meteringBoardInfo: MeteringBoardInfo) {
+        mutex.withLock {
+            this._meteringBoardInfo.value = meteringBoardInfo
+            Log.d("DeviceDataStore", "Metering Board Info updated: $meteringBoardInfo")
         }
     }
 
@@ -111,6 +127,10 @@ object DeviceDataStore {
 
     fun setIsDeviceAsleep(isAsleep: Boolean) {
         this._isDeviceAsleep.value = isAsleep
+    }
+
+    fun setIsSimCardAvailable(isAvailable: Boolean) {
+        this._isSimCardAvailable.value = isAvailable
     }
 }
 

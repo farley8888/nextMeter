@@ -23,11 +23,13 @@ import com.vismo.nextgenmeter.util.GlobalUtils.multiplyBy10AndConvertToDouble
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.ABNORMAL_PULSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.IDLE_HEARTBEAT
+import com.vismo.nextgenmeter.util.MeasureBoardUtils.METERING_BOARD_INFO_RESPONSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.ONGOING_HEARTBEAT
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.PARAMETERS_ENQUIRY
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.REQUEST_UPGRADE_FIRMWARE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.TRIP_END_SUMMARY
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.UPGRADING_FIRMWARE
+import com.vismo.nextgenmeter.util.MeasureBoardUtils.ANDROID_FIRMWARE_VERSION_RESPONSE
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.getResultType
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.getTimeInSeconds
 import com.vismo.nextgenmeter.util.MeasureBoardUtils.toHexString
@@ -45,8 +47,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import java.util.logging.Logger
 import javax.inject.Inject
+import com.vismo.nextgenmeter.model.MeteringBoardInfo
+import com.vismo.nextgenmeter.util.ShellStateUtil
+import java.util.Calendar
 
 @Suppress("detekt.TooManyFunctions")
 class MeasureBoardRepositoryImpl @Inject constructor(
@@ -56,8 +65,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private val meterPreferenceRepository: MeterPreferenceRepository,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
-    private var taskChannel = Channel<suspend () -> Unit>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-    private var messageChannel = Channel<MCUMessage>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private var taskChannel = Channel<suspend () -> Unit>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private var messageChannel = Channel<MCUMessage>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
         Log.e(TAG, "Scope exception", throwable)
@@ -72,27 +81,41 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private fun startMessageProcessor() {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
-            for (msg in messageChannel) {
-                when (msg.what) {
-                    IAtCmd.W_MSG_DISPLAY -> {
-                        Log.d(TAG, "startMessageProcessor: ${msg.obj}")
-                        val receiveData = msg.obj?.toString() ?: continue
-                        // Check checksum and see if the message is valid
-                        if(!validateChecksum(receiveData)){
-                            Log.d(TAG, TAG_CHECKSUM_VALIDATION_FAILED)
-                            Sentry.captureMessage(TAG_CHECKSUM_VALIDATION_FAILED)
-                            continue
+            while (true) {
+                try {
+                    currentCoroutineContext().ensureActive() // Check for cancellation
+                    for (msg in messageChannel) {
+                        currentCoroutineContext().ensureActive() // Check for cancellation in the loop
+                        
+                        when (msg.what) {
+                            IAtCmd.W_MSG_DISPLAY -> {
+                                Log.d(TAG, "startMessageProcessor: ${msg.obj}")
+                                val receiveData = msg.obj?.toString() ?: continue
+                                // Check checksum and see if the message is valid
+                                if(!validateChecksum(receiveData)){
+                                    Log.d(TAG, TAG_CHECKSUM_VALIDATION_FAILED)
+                                    Sentry.captureMessage(TAG_CHECKSUM_VALIDATION_FAILED)
+                                    continue
+                                }
+                                checkStatues(receiveData)
+                            }
+                            WHAT_PRINT_STATUS -> {
+                                ShellUtils.execShellCmd("cat /sys/class/gpio/gpio73/value")
+                                addTask {
+                                    delay(1800)
+                                    sendMessage(MCUMessage(WHAT_PRINT_STATUS, null))
+                                    Log.d(TAG, "startMessageProcessor: WHAT_PRINT_STATUS")
+                                }
+                            }
                         }
-                        checkStatues(receiveData)
                     }
-                    WHAT_PRINT_STATUS -> {
-                        ShellUtils.execShellCmd("cat /sys/class/gpio/gpio73/value")
-                        addTask {
-                            delay(1800)
-                            sendMessage(MCUMessage(WHAT_PRINT_STATUS, null))
-                            Log.d(TAG, "startMessageProcessor: WHAT_PRINT_STATUS")
-                        }
-                    }
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "Message processor cancelled")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in message processor: ${e.message}", e)
+                    Sentry.captureException(e)
+                    delay(1000)
                 }
             }
         }
@@ -101,8 +124,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun sendMessage(msg: MCUMessage) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             if (messageChannel.isClosedForSend || messageChannel.isClosedForReceive) {
-                messageChannel = Channel<MCUMessage>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-                startMessageProcessor() // Restart the message processor
+                messageChannel = Channel<MCUMessage>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                startMessageProcessor()
                 Log.d(TAG, "sendMessage: messageChannel is closed")
             }
 
@@ -113,9 +136,23 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     private fun startTaskProcessor() {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
-            for (task in taskChannel) {
-                task()
-                Log.d(TAG, "startTaskProcessor: $task")
+            while (true) {
+                try {
+                    currentCoroutineContext().ensureActive() // Check for cancellation
+                    for (task in taskChannel) {
+                        currentCoroutineContext().ensureActive() // Check for cancellation in the loop
+                        
+                        task()
+                        Log.d(TAG, "startTaskProcessor: $task")
+                    }
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "Task processor cancelled")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in task processor: ${e.message}", e)
+                    Sentry.captureException(e)
+                    delay(1000)
+                }
             }
         }
     }
@@ -123,8 +160,8 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     private fun addTask(task: suspend () -> Unit) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             if (taskChannel.isClosedForSend || taskChannel.isClosedForReceive) {
-                taskChannel = Channel<suspend () -> Unit>(capacity = 100, onBufferOverflow = BufferOverflow.DROP_OLDEST)
-                startTaskProcessor() // Restart the task processor
+                taskChannel = Channel<suspend () -> Unit>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+                startTaskProcessor()
                 Log.d(TAG, "addTask: taskChannel is closed")
             }
             taskChannel.send(task)
@@ -151,6 +188,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 Sentry.captureMessage("init: mBusModel is null")
             }
             delay(200)
+            notifyAndroidFirmwareVersion(ShellStateUtil.getROMVersion())
         }
         Log.d(TAG, "MeasureBoardRepositoryImpl: init")
     }
@@ -184,6 +222,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             scope.setTag("license_plate", licensePlate)
         }
         Log.d(TAG, "IDLE_HEARTBEAT: $result")
+        TripDataStore.setHasReceivedAtLeastOneHeartBeat(true)
     }
 
     private suspend  fun handleOngoingHeartbearResult(result: String) {
@@ -233,11 +272,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 if (this != 0L) {
                     Timestamp(this, 0)
                 } else null
-            }
+            } ?: Timestamp.now()
             // start Trip
             TripData(
                 tripId = savedOngoingTripId,
-                startTime = savedOngoingStartTime ?: Timestamp.now(),
+                startTime = savedOngoingStartTime,
                 tripStatus = heartbeatData.tripStatus,
                 fare = heartbeatData.fare,
                 extra = heartbeatData.extras,
@@ -245,7 +284,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 paidDistanceInMeters = heartbeatData.paidDistance,
                 unpaidDistanceInMeters = heartbeatData.unpaidDistance,
                 waitDurationInSeconds = getTimeInSeconds(heartbeatData.duration),
-                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = null),
+                pauseTime = getPauseTime(tripStatus = heartbeatData.tripStatus, currentPauseTime = null, startTime = savedOngoingStartTime, isFromTripStart = true),
                 endTime = null,
                 requiresUpdateOnDatabase = true,
                 licensePlate = savedLicensePlate,
@@ -254,7 +293,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
                 mcuStatus = heartbeatData.mcuStatus,
-                isNewTrip = true
             )
         } else {
             // update Trip
@@ -273,7 +311,6 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                 overSpeedCounter = heartbeatData.overspeedCounterDecimal,
                 abnormalPulseCounter = heartbeatData.abnormalPulseCounterDecimal,
                 mcuStatus = heartbeatData.mcuStatus,
-                isNewTrip = false
             )
         }
 
@@ -283,15 +320,19 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
 
         TripDataStore.updateTripDataValue(newTrip)
-
+        TripDataStore.setHasReceivedAtLeastOneHeartBeat(true)
     }
 
-    private fun getPauseTime(tripStatus: TripStatus, currentPauseTime: Timestamp?): Timestamp? {
+    private fun getPauseTime(tripStatus: TripStatus, currentPauseTime: Timestamp?, startTime: Timestamp? = null, isFromTripStart: Boolean = false): Timestamp? {
         return if (tripStatus == TripStatus.STOP) {
-            if(currentPauseTime == null) {
-                Timestamp.now()
+            if (currentPauseTime != null) {
+                return currentPauseTime // keep the existing pauseTime if already set
+            }
+
+            if (isFromTripStart && startTime != null) {
+                startTime // if trip is STOP from the start, set pauseTime to startTime
             } else {
-                currentPauseTime
+                Timestamp.now()
             }
         } else {
             null
@@ -383,9 +424,11 @@ class MeasureBoardRepositoryImpl @Inject constructor(
             ONGOING_HEARTBEAT -> handleOngoingHeartbearResult(result = result)
             TRIP_END_SUMMARY -> handleTripEndSummaryResult(result = result)
             PARAMETERS_ENQUIRY -> handleParametersEnquiryResult(result = result)
+            METERING_BOARD_INFO_RESPONSE -> handleMeteringBoardInfoResponse(result = result)
             ABNORMAL_PULSE -> handleAbnormalPulse(result = result)
             REQUEST_UPGRADE_FIRMWARE -> handleUpgradeFirmwareRequestResult(result)
             UPGRADING_FIRMWARE -> handleFirmwareUpdate(result)
+            ANDROID_FIRMWARE_VERSION_RESPONSE -> handleAndroidFirmwareVersionResponse(result)
             else -> {
                 Log.d(TAG, "$TAG_UNKNOWN_RESULT type: ${getResultType(result)}")
                 Sentry.captureMessage("$TAG_UNKNOWN_RESULT: $result")
@@ -478,6 +521,63 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         Log.d(TAG, "handleParametersEnquiryResult: ${mcuData.kValue} ${mcuData.startingPrice} ${mcuData.stepPrice} ${mcuData.changedStepPrice}")
     }
 
+    private suspend fun handleMeteringBoardInfoResponse(result: String) {
+        if (result.length < 170 || !result.startsWith(HEARTBEAT_IDENTIFIER)) {
+            Log.d(TAG, "handleMeteringBoardInfoResponse: Invalid result length: ${result.length}")
+            Sentry.captureMessage("handleMeteringBoardInfoResponse: Invalid result length: ${result.length}")
+            return
+        }
+        val meteringBoardInfo = MeteringBoardInfo.parseFromHexResponse(result)
+        if (meteringBoardInfo == null) {
+            Log.e(TAG, "handleMeteringBoardInfoResponse: Failed to parse response")
+            Sentry.captureMessage("handleMeteringBoardInfoResponse: Failed to parse response")
+            return
+        }
+        
+        // Store the metering board info in DataStore
+        DeviceDataStore.setMeteringBoardInfo(meteringBoardInfo)
+        
+        Log.d(TAG, "handleMeteringBoardInfoResponse: Successfully parsed metering board info")
+        Log.d(TAG, "  Status: ${meteringBoardInfo.getMeteringPlateStatusString()}")
+        Log.d(TAG, "  MCU Time: ${meteringBoardInfo.getFormattedMcuTime()}")
+        Log.d(TAG, "  K Value: ${meteringBoardInfo.getFormattedKValue()}")
+        Log.d(TAG, "  Trip ID: ${meteringBoardInfo.tripId}")
+        Log.d(TAG, "  Power Off Time: ${meteringBoardInfo.getFormattedPowerOffTime()} minutes")
+    }
+
+    private suspend fun handleAndroidFirmwareVersionResponse(result: String) {
+        if (result.length < 22 || !result.startsWith("55AA")) {
+            Log.d(TAG, "handleAndroidFirmwareVersionResponse: Invalid result length or format: ${result.length}")
+            Sentry.captureMessage("handleAndroidFirmwareVersionResponse: Invalid result format: $result")
+            return
+        }
+        
+        try {
+            val operationResult = result.substring(16, 18)
+            val versionBytes = result.substring(18, 24)
+            
+            val operationMessage = when (operationResult.uppercase()) {
+                "90" -> "MCU Saved Successfully"
+                "55" -> "The query was successful"
+                else -> "Unknown operation result: $operationResult"
+            }
+            
+            // Convert version bytes to readable format
+            val major = versionBytes.substring(0, 2)
+            val minor = versionBytes.substring(2, 4)
+            val patch = versionBytes.substring(4, 6)
+            val versionString = "${major.toInt(16)}.${minor.toInt(16)}.${patch.toInt(16)}"
+            
+            Log.d(TAG, "handleAndroidFirmwareVersionResponse: $operationMessage")
+            Log.d(TAG, "  Android firmware version saved in MCU: $versionString")
+            Log.d(TAG, "  Raw version bytes: $versionBytes")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "handleAndroidFirmwareVersionResponse: Error parsing response", e)
+            Sentry.captureMessage("handleAndroidFirmwareVersionResponse: Error parsing response: $result")
+        }
+    }
+
     override fun enquireParameters() {
         addTask {
             mBusModel?.write(Command.CMD_PARAMETERS_ENQUIRY)
@@ -485,10 +585,29 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun updateKValue(kValue: Int) {
+    override fun getMeteringBoardInfo() {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getUpdateKValueCmd(kValue = kValue))
+            mBusModel?.write(MeasureBoardUtils.getMeteringBoardInfoCmd())
             delay(200)
+        }
+    }
+
+    override fun updateKValue(kValue: Int?, boardShutdownMinsDelayAfterAcc: Int?) {
+        addTask {
+            try {
+                val cmd = MeasureBoardUtils.getUpdateKValueCmd(
+                    kValue = kValue,
+                    powerOffTimeInMins = boardShutdownMinsDelayAfterAcc
+                )
+                mBusModel?.write(cmd)
+                Log.d(TAG, "updateKValue: $kValue, boardShutdownMinsDelayAfterAcc: $boardShutdownMinsDelayAfterAcc")
+                Log.d(TAG, "updateKValue cmd: $cmd")
+                delay(200)
+            }
+            catch (e: Exception) {
+                Log.e(TAG, "Error updating K value or android board shutdown time: ${e.message}", e)
+                Sentry.captureException(e)
+            }
         }
     }
 
@@ -596,9 +715,37 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     }
 
     override fun close() {
-        taskChannel.close()
-        messageChannel.close()
-        Log.d(TAG, "close")
+        try {
+            // Cancel the external scope to stop all coroutines
+            externalScope?.cancel()
+            
+            // Close channels
+            taskChannel.close()
+            messageChannel.close()
+            
+            // Stop communication
+            mBusModel?.stopCommunicate()
+            
+            Log.d(TAG, "MeasureBoardRepositoryImpl closed successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during close: ${e.message}", e)
+        }
+    }
+
+    override fun notifyShutdown() {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.getShutdownNotificationCmd())
+            delay(200)
+            Log.d(TAG, "notifyShutdown: Shutdown notification sent to measure board")
+        }
+    }
+
+    override fun notifyAndroidFirmwareVersion(androidFirmwareVersion: String) {
+        addTask {
+            mBusModel?.write(MeasureBoardUtils.sendAndroidFirmwareVersionCmd(androidFirmwareVersion))
+            delay(200)
+            Log.d(TAG, "notifyAndroidFirmwareVersion: Android firmware version notification sent to measure board: $androidFirmwareVersion")
+        }
     }
 
     private fun setReceiveEvalDataLs() {

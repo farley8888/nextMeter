@@ -18,34 +18,36 @@ import java.lang.reflect.Method;
 public class WebViewUtil {
     private static String TAG = "WebViewUtil";
 
-
     /**
      * 设置webview属性
+     * 
      * @param webView
      */
-    public static void setWebView(Context context, WebView webView){
-        if(null==webView){return;}
+    public static void setWebView(Context context, WebView webView) {
+        if (null == webView) {
+            return;
+        }
 
-        //允许弹出网页对话框
+        // 允许弹出网页对话框
         webView.setWebChromeClient(new WebChromeClient());
-        //设置初始缩放比例
+        // 设置初始缩放比例
         // webView.setInitialScale(100);
 
         // 设置WebView的一些缩放功能点:
         WebSettings settings = webView.getSettings();
 
-        //扩大比例的缩放
+        // 扩大比例的缩放
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
-        settings.setDisplayZoomControls(false);//隐藏webview缩放按钮
+        settings.setDisplayZoomControls(false);// 隐藏webview缩放按钮
         settings.setBuiltInZoomControls(true); // 设置显示缩放按钮
         settings.setSupportZoom(true);
         settings.setJavaScriptEnabled(true);
-        settings.setBlockNetworkImage(false);//解决图片不显示
+        settings.setBlockNetworkImage(false);// 解决图片不显示
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
-        //设置 缓存模式
+        // 设置 缓存模式
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         // 在同种分辨率的情况下,屏幕密度不一样的情况下,自动适配页面:
@@ -55,13 +57,13 @@ public class WebViewUtil {
             webView.getSettings().setDefaultZoom(WebSettings.ZoomDensity.FAR);
         } else if (scale == 160) {
             webView.getSettings().setDefaultZoom(WebSettings.ZoomDensity.MEDIUM);
-        }  else if(scale == 120) {
+        } else if (scale == 120) {
             settings.setDefaultZoom(WebSettings.ZoomDensity.CLOSE);
-        }else if(scale == DisplayMetrics.DENSITY_XHIGH){
+        } else if (scale == DisplayMetrics.DENSITY_XHIGH) {
             settings.setDefaultZoom(WebSettings.ZoomDensity.FAR);
-        }else if (scale == DisplayMetrics.DENSITY_TV){
+        } else if (scale == DisplayMetrics.DENSITY_TV) {
             settings.setDefaultZoom(WebSettings.ZoomDensity.FAR);
-        }else{
+        } else {
             settings.setDefaultZoom(WebSettings.ZoomDensity.MEDIUM);
         }
 
@@ -88,11 +90,12 @@ public class WebViewUtil {
 
     /**
      * 内链接无法打开时设置
+     * 
      * @param webView
      */
-    public static void setInnerLinkEnable(WebView webView){
+    public static void setInnerLinkEnable(WebView webView) {
         WebSettings webSettings = webView.getSettings();
-        webSettings.setAppCacheEnabled(true);
+        // webSettings.setAppCacheEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.supportMultipleWindows();
         webSettings.setAllowContentAccess(true);
@@ -105,12 +108,11 @@ public class WebViewUtil {
         webSettings.setLoadsImagesAutomatically(true);
     }
 
-
     /**
      * 处理8.0异常
      * For security reasons, WebView is not allowed in privileged processes
      */
-    public static void hookWebView(){
+    public static void hookWebView() {
         int sdkInt = Build.VERSION.SDK_INT;
         try {
             Class<?> factoryClass = Class.forName("android.webkit.WebViewFactory");
@@ -118,7 +120,7 @@ public class WebViewUtil {
             field.setAccessible(true);
             Object sProviderInstance = field.get(null);
             if (sProviderInstance != null) {
-                Log.i(TAG,"sProviderInstance isn't null");
+                Log.i(TAG, "sProviderInstance isn't null");
                 return;
             }
 
@@ -128,7 +130,7 @@ public class WebViewUtil {
             } else if (sdkInt == 22) {
                 getProviderClassMethod = factoryClass.getDeclaredMethod("getFactoryClass");
             } else {
-                Log.i(TAG,"Don't need to Hook WebView");
+                Log.i(TAG, "Don't need to Hook WebView");
                 return;
             }
             getProviderClassMethod.setAccessible(true);
@@ -136,7 +138,7 @@ public class WebViewUtil {
             Class<?> delegateClass = Class.forName("android.webkit.WebViewDelegate");
             Constructor<?> delegateConstructor = delegateClass.getDeclaredConstructor();
             delegateConstructor.setAccessible(true);
-            if(sdkInt < 26){//低于Android O版本
+            if (sdkInt < 26) {// 低于Android O版本
                 Constructor<?> providerConstructor = factoryProviderClass.getConstructor(delegateClass);
                 if (providerConstructor != null) {
                     providerConstructor.setAccessible(true);
@@ -145,26 +147,25 @@ public class WebViewUtil {
             } else {
                 Field chromiumMethodName = factoryClass.getDeclaredField("CHROMIUM_WEBVIEW_FACTORY_METHOD");
                 chromiumMethodName.setAccessible(true);
-                String chromiumMethodNameStr = (String)chromiumMethodName.get(null);
+                String chromiumMethodNameStr = (String) chromiumMethodName.get(null);
                 if (chromiumMethodNameStr == null) {
                     chromiumMethodNameStr = "create";
                 }
                 Method staticFactory = factoryProviderClass.getMethod(chromiumMethodNameStr, delegateClass);
-                if (staticFactory!=null){
+                if (staticFactory != null) {
                     sProviderInstance = staticFactory.invoke(null, delegateConstructor.newInstance());
                 }
             }
 
-            if (sProviderInstance != null){
+            if (sProviderInstance != null) {
                 field.set("sProviderInstance", sProviderInstance);
-                Log.i(TAG,"Hook success!");
+                Log.i(TAG, "Hook success!");
             } else {
-                Log.i(TAG,"Hook failed!");
+                Log.i(TAG, "Hook failed!");
             }
         } catch (Throwable e) {
-            Log.w(TAG,e);
+            Log.w(TAG, e);
         }
     }
-
 
 }

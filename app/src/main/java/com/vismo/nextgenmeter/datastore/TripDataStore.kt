@@ -19,6 +19,9 @@ object TripDataStore {
     private val _isTripInProgress = MutableStateFlow(false)
     val isTripInProgress: StateFlow<Boolean> = _isTripInProgress
 
+    private val _hasReceivedAtLeastOneHeartBeat = MutableStateFlow(false)
+    val hasReceivedAtLeastOneHeartBeat: StateFlow<Boolean> = _hasReceivedAtLeastOneHeartBeat
+
     private val mutex = Mutex() // Mutex for synchronization
 
     suspend fun clearTripData() {
@@ -54,6 +57,12 @@ object TripDataStore {
     suspend fun setIsTripInProgress(isTripInProgress: Boolean) {
         mutex.withLock {
             this._isTripInProgress.value = isTripInProgress
+        }
+    }
+
+    suspend fun setHasReceivedAtLeastOneHeartBeat(hasReceivedAtLeastOneHeartBeat: Boolean) {
+        mutex.withLock {
+            this._hasReceivedAtLeastOneHeartBeat.value = hasReceivedAtLeastOneHeartBeat
         }
     }
 }

@@ -30,7 +30,8 @@ interface MeasureBoardRepository {
         repeatCount: Int,
     )
 
-    fun updateKValue(kValue: Int)
+    fun updateKValue(kValue: Int?,
+                     boardShutdownMinsDelayAfterAcc: Int? = null)
 
     fun updateLicensePlate(licensePlate: String)
 
@@ -40,6 +41,12 @@ interface MeasureBoardRepository {
 
     fun enquireParameters()
 
+    /**
+     * Sends the 0x10B0 command to get metering board information
+     * This should be called after app startup to obtain key information from the metering board
+     */
+    fun getMeteringBoardInfo()
+
     fun unlockMeter()
 
     fun updateMeasureBoardTime(formattedDateStr: String)
@@ -47,4 +54,8 @@ interface MeasureBoardRepository {
     suspend fun requestPatchFirmware(fileName: String)
 
     fun close()
+
+    fun notifyShutdown()
+
+    fun notifyAndroidFirmwareVersion(androidFirmwareVersion: String)
 }

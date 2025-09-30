@@ -5,8 +5,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.DriverPreferenceRepository
+import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.util.GlobalUtils.encrypt
 import com.vismo.nxgnfirebasemodule.model.HealthCheckStatus
@@ -31,7 +33,8 @@ import javax.inject.Inject
 class DriverPairViewModel @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val remoteMeterControlRepository: RemoteMeterControlRepository,
-    private val driverPreferenceRepository: DriverPreferenceRepository
+    private val driverPreferenceRepository: DriverPreferenceRepository,
+    private val meterPreferenceRepository: MeterPreferenceRepository
 ) : ViewModel() {
 
     private val _driverPairScreenUiData = MutableStateFlow(DriverPairUiData())
@@ -50,6 +53,17 @@ class DriverPairViewModel @Inject constructor(
             launch(ioDispatcher) { observeDeviceIdDate() }
             launch(ioDispatcher) { observeMeterInfo() }
             launch(ioDispatcher) { observeMeterDevicesProperties() }
+            launch(ioDispatcher) { observeFirstHeartBeat() }
+        }
+    }
+
+    private suspend fun observeFirstHeartBeat() {
+        TripDataStore.hasReceivedAtLeastOneHeartBeat.collectLatest {
+            uiUpdateMutex.withLock {
+                _driverPairScreenUiData.value = _driverPairScreenUiData.value.copy(
+                    isReceivedFirstHeartBeat = it
+                )
+            }
         }
     }
 
@@ -61,6 +75,12 @@ class DriverPairViewModel @Inject constructor(
                 delay(1000) // Wait for 1 second
                 _autoNavigateCountdown.value -= 1
             }
+        }
+    }
+
+    fun startACCStatusInquiries() {
+        viewModelScope.launch(ioDispatcher) {
+            meterPreferenceRepository.saveStartAccInquiryFromDriverTrigger(true)
         }
     }
 

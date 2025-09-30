@@ -36,6 +36,7 @@ import androidx.compose.ui.zIndex
 import com.lightspark.composeqr.QrCodeView
 import com.vismo.nextgenmeter.ui.pair.DriverPairViewModel.Companion.AUTO_NAVIGATE_DURATION
 import com.vismo.nextgenmeter.ui.pair.DriverPairViewModel.Companion.DEFAULT_AUTO_NAVIGATE_COUNTDOWN_VALUE
+import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
 import com.vismo.nextgenmeter.ui.shared.SnackbarState
@@ -58,7 +59,8 @@ fun DriverPairScreen(
 ) {
     val uiState = viewModel.driverPairScreenUiData.collectAsState().value
     val view = LocalView.current
-    val showDialog = remember(uiState.licensePlate) { mutableStateOf(uiState.licensePlate.isBlank()) }
+    val showHealthCheckDialog = remember(uiState.licensePlate, uiState.isReceivedFirstHeartBeat) { mutableStateOf(uiState.licensePlate.isBlank() && uiState.isReceivedFirstHeartBeat) }
+    val showTurnOnAccDialog = remember(uiState.isReceivedFirstHeartBeat) { mutableStateOf(!uiState.isReceivedFirstHeartBeat) }
     val isDeviceInfoSetAfterHealthCheck = viewModel.isLicensePlateAndKVUpdated.collectAsState().value
 
     val healthCheckTitle = "請用車房APP掃描二維碼"
@@ -66,19 +68,35 @@ fun DriverPairScreen(
 
     GlobalDialog(
         onDismiss = {},
-        showDialog = showDialog,
+        showDialog = showHealthCheckDialog,
         isBlinking = false,
         content = {
             HealthCheckDialogContent(
                 title = healthCheckTitle,
                 message = healthCheckMessage.format(uiState.deviceSerialNumber),
                 qrLink = "suntec.app/${uiState.deviceSerialNumber}",
-                dismiss = { showDialog.value = false }
+                dismiss = { showHealthCheckDialog.value = false }
             )
         },
         usePlatformDefaultWidth = false,
         width = 350,
         height = 350
+    )
+
+    GlobalDialog(
+        onDismiss = {},
+        showDialog = showTurnOnAccDialog,
+        isBlinking = false,
+        content = {
+            GenericDialogContent(
+                title = "未檢測到匙火ACC",
+                message = "如需啟動咪表，請起動車輛（點起匙火ACC)。如不用，請按下面按鈕開始關機",
+                confirmButtonText = "開始關機",
+                onConfirm = {
+                    viewModel.startACCStatusInquiries()
+                },
+            )
+        },
     )
 
     if (isDeviceInfoSetAfterHealthCheck) {

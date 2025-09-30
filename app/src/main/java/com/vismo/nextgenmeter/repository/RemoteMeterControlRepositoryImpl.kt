@@ -1,17 +1,19 @@
 package com.vismo.nextgenmeter.repository
 
 import android.util.Log
+import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.BuildConfig
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.model.McuInfoStatus
 import com.vismo.nextgenmeter.model.MeterInfo
 import com.vismo.nextgenmeter.model.format
+import com.vismo.nextgenmeter.util.ShellStateUtil.getROMVersion
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
-import com.vismo.nxgnfirebasemodule.model.MeterSdkConfiguration
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
 import kotlinx.coroutines.CoroutineScope
@@ -48,13 +50,17 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
     override suspend fun initDashManager(scope: CoroutineScope) {
         DashManagerConfig.simIccId = getICCID() ?: ""
         DashManagerConfig.meterSoftwareVersion = BuildConfig.VERSION_NAME + "." + BuildConfig.VERSION_CODE
-        val mostRecentlyCompletedUpdateId = meterPreferenceRepository.getRecentlyCompletedUpdateId().firstOrNull()
-        dashManager.init(scope, mostRecentlyCompletedUpdateId = mostRecentlyCompletedUpdateId)
-        if (!mostRecentlyCompletedUpdateId.isNullOrBlank()) {
-            // this is to ensure that the most recently completed update is written to firestore
+        DashManagerConfig.androidRomVersion = getROMVersion()
+        dashManager.init(scope)
+
+        if(TripDataStore.isTripInProgress.firstOrNull() == false) {
+            delay(20_000L) // wait for the initial heartbeats to slow down
             measureBoardRepository.enquireParameters()
+            Log.d(TAG, "Parameters enquired after initialization")
+            delay(20_000L) // wait for the parameters to be set
+            measureBoardRepository.getMeteringBoardInfo()
+            Log.d(TAG, "Metering board info requested after initialization")
         }
-        meterPreferenceRepository.saveRecentlyCompletedUpdateId("") // clear the recently completed update id
     }
 
     private fun getICCID(): String? {
@@ -70,6 +76,7 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
                     mcuParams?.let {
                         val mcuInfo: McuInfo = dashManager.convertToType(it.format())
                         dashManager.setMCUInfoOnFirestore(mcuInfo)
+                        Log.d(TAG, "MCU Info updated: $mcuInfo")
                     }
                 }
             }
@@ -78,11 +85,12 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
                 dashManager.mcuParamsUpdateRequired.collectLatest { updateRequest ->
                     updateRequest?.let {
                         if (it.completedOn == null) {
-                            measureBoardRepository.updateKValue(it.kValue)
+                            measureBoardRepository.updateKValue(it.kValue, it.accOffAndroidBoardShutdownDelayMins)
                             val completedRequest = UpdateMCUParamsRequest(
                                 id = it.id,
                                 createdOn = it.createdOn,
                                 kValue = it.kValue,
+                                accOffAndroidBoardShutdownDelayMins = it.accOffAndroidBoardShutdownDelayMins,
                                 completedOn = Timestamp.now(),
                             )
                             dashManager.setMCUParamsUpdateComplete(completedRequest)
@@ -138,8 +146,8 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun writeUpdateResultToFireStore(update: Update) {
-        dashManager.writeUpdateResult(update)
+    override fun writeUpdateResultToFireStore(update: Update) : Task<Void> {
+        return dashManager.writeUpdateResult(update)
     }
 
 
@@ -175,6 +183,22 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
 
     override suspend fun saveRecentlyCompletedUpdateId(id: String) {
         meterPreferenceRepository.saveRecentlyCompletedUpdateId(id = id)
+    }
+
+    override fun write4GModuleRestarting(timestamp: Long, reason: String) {
+        dashManager.write4GModuleRestarting(timestamp, reason)
+    }
+
+    override fun writeToLoggingCollection(map: Map<String, Any>) {
+        dashManager.writeToLoggingCollection(map)
+    }
+
+    override fun checkForMostRelevantOTAUpdate() {
+        dashManager.checkForMostRelevantOTAUpdate()
+    }
+
+    override fun updateBoardShutdownMinsDelayAfterAcc(accOffAndroidBoardShutdownDelayMins: Int) {
+        measureBoardRepository.updateKValue(kValue = null, boardShutdownMinsDelayAfterAcc = accOffAndroidBoardShutdownDelayMins)
     }
 
 

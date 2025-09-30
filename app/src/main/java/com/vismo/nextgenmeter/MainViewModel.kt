@@ -10,11 +10,14 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.crashlytics.CustomKeysAndValues
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.firestore.FieldValue
+import com.ilin.util.AmapLocationUtils
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TOGGLE_COMMS_WITH_MCU
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.ui.topbar.TopAppBarUiState
+import com.vismo.nextgenmeter.util.ShellStateUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.module.MainDispatcher
@@ -27,9 +30,11 @@ import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.NetworkTimeRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
+import com.vismo.nextgenmeter.repository.SystemControlRepository
 import com.vismo.nextgenmeter.repository.TripFileManager
 import com.vismo.nextgenmeter.repository.TripRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
+import com.vismo.nextgenmeter.service.ModuleRestartManager
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.StorageReceiverStatus
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -40,15 +45,20 @@ import com.vismo.nextgenmeter.ui.theme.pastelGreen600
 import com.vismo.nextgenmeter.ui.theme.primary700
 import com.vismo.nextgenmeter.util.Constant
 import com.vismo.nextgenmeter.util.GlobalUtils.maskLast
+import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nxgnfirebasemodule.DashManager
 import com.vismo.nxgnfirebasemodule.DashManagerConfig
+import com.vismo.nxgnfirebasemodule.model.AndroidGPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
+import com.vismo.nxgnfirebasemodule.model.NOT_SET
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
+import com.vismo.nxgnfirebasemodule.util.Constant.OTA_ANDROID_ROM_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
+import com.vismo.nxgnfirebasemodule.util.LogConstant
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.sentry.IScope
 import io.sentry.Sentry
@@ -74,6 +84,10 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.tasks.await
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -91,7 +105,9 @@ class MainViewModel @Inject constructor(
     private val networkTimeRepository: NetworkTimeRepository,
     private val meterPreferenceRepository: MeterPreferenceRepository,
     private val crashlytics: FirebaseCrashlytics,
-    tripFileManager: TripFileManager
+    tripFileManager: TripFileManager,
+    private val moduleRestartManager: ModuleRestartManager,
+    private val systemControlRepository: SystemControlRepository,
     ) : ViewModel(){
     private val _topAppBarUiState = MutableStateFlow(TopAppBarUiState())
     val topAppBarUiState: StateFlow<TopAppBarUiState> = _topAppBarUiState
@@ -108,6 +124,9 @@ class MainViewModel @Inject constructor(
 
     private var accEnquiryJob: Job? = null
     private var sleepJob: Job? = null
+    private var shutdownJob: Job? = null
+
+    private var memoryMonitoringJob: Job? = null
     private val _isScreenOff = MutableStateFlow(false)
 
     private val _snackBarContent = MutableStateFlow<Pair<String, SnackbarState>?>(null)
@@ -116,25 +135,43 @@ class MainViewModel @Inject constructor(
     private val _clearApplicationCache = MutableStateFlow(false)
     val clearApplicationCache: StateFlow<Boolean> = _clearApplicationCache
 
+    private var backlightOffDelay: Long? = null
+    private var switchPowerModeDelay: Long? = null
+
+    private val _isAMapStopped = MutableStateFlow(false)
+
     val aValidUpdate = remoteMeterControlRepository.remoteUpdateRequest
         .onEach { Log.d(TAG, "aValidUpdateFlow Debug - $it") }
         .filter {
             when (it?.type) {
             OTA_METERAPP_TYPE -> {
-                val isValid = isBuildVersionHigherThanCurrentVersion(it.version)
-                val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.VERSION_ERROR
-                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus))
+                val currentVersionCode = "${BuildConfig.VERSION_NAME}.${BuildConfig.VERSION_CODE}"
+                val isValid = isBuildVersionHigherThanCurrentVersion(newVersion = it.version, currentVersion = currentVersionCode)
+                val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
+                val completedOn = if (newStatus == UpdateStatus.VERSION_ERROR) Timestamp.now() else null
+                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus, completedOn = completedOn)).await()
                 isValid
             }
             OTA_FIRMWARE_TYPE -> {
                 val isValid = it.version != remoteMeterControlRepository.meterInfo.firstOrNull()?.mcuInfo?.firmwareVersion
-                val newStatus = if (isValid) UpdateStatus.WAITING_FOR_DOWNLOAD else UpdateStatus.COMPLETE
+                val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.COMPLETE
                 remoteMeterControlRepository.writeUpdateResultToFireStore(
                     it.copy(
                         status = newStatus,
                         completedOn = if (newStatus == UpdateStatus.COMPLETE) Timestamp.now() else null
                     )
-                )
+                ).await()
+                isValid
+            }
+            OTA_ANDROID_ROM_TYPE -> {
+                val currentROM = ShellStateUtil.getROMVersion()
+                val isValid = isBuildVersionHigherThanCurrentVersion(newVersion = it.version, currentVersion = currentROM)
+                val newStatus = if (isValid) UpdateStatus.PROCESSING else UpdateStatus.VERSION_ERROR
+                val completedOn = if (newStatus == UpdateStatus.VERSION_ERROR) Timestamp.now() else null
+                if (newStatus == UpdateStatus.VERSION_ERROR) {
+                    remoteMeterControlRepository.updateBoardShutdownMinsDelayAfterAcc(MeasureBoardUtils.DEFAULT_MEASURE_BOARD_ACC_OFF_DELAY_MINS) // set back to default shutdown delay
+                }
+                remoteMeterControlRepository.writeUpdateResultToFireStore(it.copy(status = newStatus, completedOn = completedOn)).await()
                 isValid
             }
             else -> false
@@ -146,23 +183,18 @@ class MainViewModel @Inject constructor(
     private var heartbeatJob: Job? = null
     private var busModelJob: Job? = null
 
-    private fun isBuildVersionHigherThanCurrentVersion(version: String): Boolean {
-        val currentVersionCode = "${BuildConfig.VERSION_NAME}.${BuildConfig.VERSION_CODE}" // Assuming current version is in the form 6.5.3.1034
+    private fun isBuildVersionHigherThanCurrentVersion(newVersion: String, currentVersion: String): Boolean {
+        val currentVersionParts = currentVersion.split(".").map { it.toInt() }
+        val newVersionParts = newVersion.split(".").map { it.toInt() }
 
-        // Convert both version codes to integer arrays for comparison
-        val currentVersionParts = currentVersionCode.split(".").map { it.toInt() }
-        val newVersionParts = version.split(".").map { it.toInt() }
-
-        // Compare version parts
         for (i in 0 until minOf(currentVersionParts.size, newVersionParts.size)) {
             if (newVersionParts[i] > currentVersionParts[i]) {
-                return true // New version is higher
+                return true
             } else if (newVersionParts[i] < currentVersionParts[i]) {
-                return false // Current version is higher
+                return false
             }
         }
 
-        // If the parts are equal, compare by length (i.e., higher version may have more sub-version numbers)
         return newVersionParts.size > currentVersionParts.size
     }
 
@@ -172,6 +204,7 @@ class MainViewModel @Inject constructor(
             launch { observeHeartBeatInterval() }
             launch { observeMeterAndTripInfo() }
             launch { observeTripData() }
+            launch { observeFirstHeartbeat() }
             launch { observeFirebaseAuthSuccess() }
             launch { observeShowLoginToggle() }
             launch { observeShowConnectionIconsToggle() }
@@ -180,6 +213,70 @@ class MainViewModel @Inject constructor(
             launch { observeReInitMCURepository() }
             launch { observeMCUHeartbeatSignal() }
             launch { observeBusModelSignal() }
+            launch { observe4GModuleRestart() }
+            launch { observeIsSimCardAvailable() }
+            launch { observeMeterLocation() }
+            launch { observeAndroidGpsLastUpdateTime() }
+            launch { observeMeterPrefStartAccInquiry()  }
+        }
+    }
+
+    private suspend fun observeMeterPrefStartAccInquiry() {
+        meterPreferenceRepository.getStartAccInquiryFromDriverTrigger().collectLatest {
+            if (it) {
+                startACCStatusInquiries()
+                meterPreferenceRepository.saveStartAccInquiryFromDriverTrigger(false)
+            }
+        }
+    }
+
+    private suspend fun observeAndroidGpsLastUpdateTime() {
+        meterPreferenceRepository.getAndroidGpsLastUpdateTime().collectLatest { lastUpdateTime ->
+            if (lastUpdateTime == 0L && _isAMapStopped.value) {
+                AmapLocationUtils.getInstance().startLocation()
+                _isAMapStopped.value = false
+                Log.d(TAG, "observeAndroidGpsLastUpdateTime: Starting AmapLocationUtils")
+            } else if (lastUpdateTime != null && lastUpdateTime > 0L && !_isAMapStopped.value) {
+                AmapLocationUtils.getInstance().stopLocation()
+                _isAMapStopped.value = true
+                Log.d(TAG, "observeAndroidGpsLastUpdateTime: Stopping AmapLocationUtils due to last update time: $lastUpdateTime")
+            }
+        }
+    }
+
+    private suspend fun observeMeterLocation() {
+        dashManagerConfig.meterLocation.collectLatest {
+            updateLocationIconVisibility(isVisible = it.gpsType != NOT_SET)
+            when (it.gpsType) {
+                is AndroidGPS -> {
+                    AmapLocationUtils.getInstance().stopLocation()
+                    meterPreferenceRepository.saveAndroidGpsLastUpdateTime(
+                        System.currentTimeMillis()
+                    )
+                    Log.d(TAG, "observeMeterLocation: Stopping AmapLocationUtils and saving Android GPS last update time")
+                }
+                else -> {
+                    // reset android gps last update time if the time is higher than 2 mins
+                    val lastUpdateTime = meterPreferenceRepository.getAndroidGpsLastUpdateTime().firstOrNull() ?: 0L
+                    if (System.currentTimeMillis() - lastUpdateTime > 2 * 60 * 1000) {
+                        meterPreferenceRepository.saveAndroidGpsLastUpdateTime(0L)
+                        Log.d(TAG, "observeMeterLocation: Resetting Android GPS last update time to 0")
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun observe4GModuleRestart() {
+        moduleRestartManager.isRestarting.collectLatest { isRestarting ->
+            update4GModuleRestarting(isRestarting)
+            if (isRestarting) {
+                val latestRestartEvent = moduleRestartManager.restartHistory.firstOrNull()?.getOrNull(0)
+                remoteMeterControlRepository.write4GModuleRestarting(
+                    timestamp = latestRestartEvent?.timestamp ?: Timestamp.now().seconds,
+                    reason = latestRestartEvent?.reason ?: "Unknown reason"
+                )
+            }
         }
     }
 
@@ -265,11 +362,25 @@ class MainViewModel @Inject constructor(
         _clearApplicationCache.value = boolean
     }
 
+    /**
+     * Trigger manual 4G module restart (bypasses rate limiting)
+     */
+    fun triggerManualModuleRestart() {
+        viewModelScope.launch {
+            try {
+                Log.i("MainViewModel", "Manual 4G module restart triggered from UI")
+                moduleRestartManager.manualRestart()
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error triggering manual module restart", e)
+            }
+        }
+    }
+
     fun snoozeUpdate(update: Update?) {
         viewModelScope.launch(ioDispatcher) {
             update?.let {
                 val snoozedUpdate = it.snoozeForADay()
-                remoteMeterControlRepository.writeUpdateResultToFireStore(snoozedUpdate)
+                remoteMeterControlRepository.writeUpdateResultToFireStore(snoozedUpdate).await()
             }
         }
     }
@@ -305,8 +416,8 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private suspend fun tryInternetTasks() {
-        Log.d(TAG, "Trying internet tasks")
+    private suspend fun tryInternetTasks(onInit: Boolean = false) {
+        Log.d(TAG, "Trying internet tasks - onInit: $onInit")
         val headers = firebaseAuthRepository.getHeaders()
         if (!headers.containsKey(AUTHORIZATION_HEADER)) {
             firebaseAuthRepository.initToken(viewModelScope)
@@ -314,6 +425,9 @@ class MainViewModel @Inject constructor(
         } else if (!DashManager.Companion.isInitialized) {
             remoteMeterControlRepository.initDashManager(viewModelScope)
             Log.d(TAG, "FirebaseAuth headers already present - calling dashManager.init()")
+        } else {
+            remoteMeterControlRepository.checkForMostRelevantOTAUpdate()
+            Log.d(TAG, "DashManager already initialized - checking for OTA updates")
         }
         networkTimeRepository.fetchNetworkTime()?.let { networkTime ->
             if (!isMCUTimeSet) {
@@ -358,6 +472,14 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private suspend fun observeFirstHeartbeat() {
+        TripDataStore.hasReceivedAtLeastOneHeartBeat.collectLatest {
+            if(it) {
+                startACCStatusInquiries()
+            }
+        }
+    }
+
     private suspend fun observeBusModelSignal() {
         DeviceDataStore.isMCUHeartbeatActive.collectLatest { isMCUHeartbeatActive ->
             toolbarUiDataUpdateMutex.withLock {
@@ -392,6 +514,15 @@ class MainViewModel @Inject constructor(
                         Toast.makeText(context, TAG_RESTARTING_MCU_COMMUNICATION, Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        }
+    }
+
+    private suspend fun observeIsSimCardAvailable() {
+        DeviceDataStore.isSimCardAvailable.collectLatest { isSimCardAvailable ->
+            Log.d(TAG, "Is SIM card available: $isSimCardAvailable")
+            if (!isSimCardAvailable) {
+                updateSignalStrength(0)
             }
         }
     }
@@ -431,6 +562,8 @@ class MainViewModel @Inject constructor(
                         }
                     }
                 }
+                backlightOffDelay = it.settings?.accOffTurnOffBacklightDelaySeconds
+                switchPowerModeDelay = it.settings?.accOffSwitchToLowPowerModeDelaySeconds
             }
 
             manageDashPayColor(tripPaidStatus, meterInfo?.session != null)
@@ -454,8 +587,18 @@ class MainViewModel @Inject constructor(
         remoteMeterControlRepository.heartBeatInterval.collectLatest { interval ->
             if (interval > 0) {
                 while (true) {
-                    remoteMeterControlRepository.sendHeartBeat()
-                    delay(interval* 1000L)
+                    try {
+                        currentCoroutineContext().ensureActive() // Check for cancellation
+                        remoteMeterControlRepository.sendHeartBeat()
+                        delay(interval * 1000L)
+                    } catch (e: CancellationException) {
+                        Log.d(TAG, "HeartBeat interval observer cancelled")
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error in heartbeat interval: ${e.message}", e)
+                        Sentry.captureException(e)
+                        delay(interval * 1000L)
+                    }
                 }
             }
         }
@@ -515,6 +658,17 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    private fun update4GModuleRestarting(isRestarting: Boolean) {
+        if (_topAppBarUiState.value.show4GModuleRestarting == isRestarting) return
+        viewModelScope.launch {
+            toolbarUiDataUpdateMutex.withLock {
+                _topAppBarUiState.value = _topAppBarUiState.value.copy(
+                    show4GModuleRestarting = isRestarting
+                )
+            }
+        }
+    }
+
     fun setWifiIconVisibility(isVisible: Boolean) {
         viewModelScope.launch {
             toolbarUiDataUpdateMutex.withLock {
@@ -544,13 +698,14 @@ class MainViewModel @Inject constructor(
         remoteMeterControlRepository.observeFlows(viewModelScope)
         tripRepository.initObservers(viewModelScope)
         observeFlows()
-        startACCStatusInquiries()
+        startMemoryMonitoring()
         observeInternetStatus()
         observeDriverInfo()
         disableADBByDefaultForProd()
         setCrashlyticsKeys()
         viewModelScope.launch(ioDispatcher) {
             tripFileManager.initializeTrips()
+            tryInternetTasks(onInit = true)
         }
         Log.d(TAG, "MainViewModel initialized")
     }
@@ -569,18 +724,70 @@ class MainViewModel @Inject constructor(
     }
 
     private fun startACCStatusInquiries() {
+        if (accEnquiryJob?.isActive == true) {
+            Log.d(TAG, "ACC status inquiries already running")
+            return
+        }
         accEnquiryJob = viewModelScope.launch(ioDispatcher) {
             while (true) {
-                inquireApplicationStatus()
-                delay(INQUIRE_ACC_STATUS_INTERVAL)
+                try {
+                    currentCoroutineContext().ensureActive() // Check for cancellation
+                    inquireApplicationStatus()
+                    delay(INQUIRE_ACC_STATUS_INTERVAL)
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "ACC status inquiries cancelled")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in ACC status inquiry: ${e.message}", e)
+                    Sentry.captureException(e)
+                    delay(INQUIRE_ACC_STATUS_INTERVAL)
+                }
+            }
+        }
+    }
+
+    private fun startMemoryMonitoring() {
+        memoryMonitoringJob = viewModelScope.launch(ioDispatcher) {
+            while (true) {
+                try {
+                    currentCoroutineContext().ensureActive() // Check for cancellation
+                    val runtime = Runtime.getRuntime()
+                    val usedMemory = runtime.totalMemory() - runtime.freeMemory()
+                    val maxMemory = runtime.maxMemory()
+                    val memoryPercent = (usedMemory * 100 / maxMemory).toInt()
+
+                    if (memoryPercent > 80) {
+                        Log.w(TAG, "High memory usage: $memoryPercent% (${usedMemory / 1024 / 1024}MB / ${maxMemory / 1024 / 1024}MB)")
+                        Sentry.captureMessage("High memory usage: $memoryPercent%")
+
+                        // Suggest garbage collection when memory is high
+                        if (memoryPercent > 90) {
+                            System.gc()
+                            Log.w(TAG, "Triggered garbage collection due to high memory usage")
+                        }
+                    } else if (memoryPercent > 60) {
+                        // Log moderate memory usage less frequently
+                        Log.d(TAG, "Memory usage: $memoryPercent%")
+                    }
+
+                    delay(MEMORY_CHECK_INTERVAL)
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "Memory monitoring cancelled")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in memory monitoring: ${e.message}", e)
+                    delay(MEMORY_CHECK_INTERVAL)
+                }
             }
         }
     }
 
     private suspend fun inquireApplicationStatus() {
-        val acc = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio75/value")
-        if (acc == ACC_SLEEP_STATUS) {
-            sleepDevice()
+        if (ShellStateUtil.isACCSleeping()) {
+            delay(500) // DASH-2699: wait 500ms and check again to avoid false positives
+            if (ShellStateUtil.isACCSleeping()) {
+                sleepDevice()
+            }
         } else {
             wakeUpDevice()
         }
@@ -588,29 +795,97 @@ class MainViewModel @Inject constructor(
 
     private suspend fun sleepDevice() {
         val isTripInProgress = TripDataStore.isTripInProgress.firstOrNull() ?: false
-        if (isTripInProgress || _isScreenOff.value) return
+        val isROMUpdateInProgress = aValidUpdate.firstOrNull()?.type == OTA_ANDROID_ROM_TYPE
+        if (isTripInProgress || _isScreenOff.value || isROMUpdateInProgress) {
+            Log.d(TAG, "sleepDevice: Skipping sleep - isTripInProgress: $isTripInProgress, isScreenOff: ${_isScreenOff.value}, isROMUpdateInProgress: $isROMUpdateInProgress")
+            return
+        }
+
 
         sleepJob = viewModelScope.launch(ioDispatcher) {
-            delay(BACKLIGHT_OFF_DELAY)
-            if (!isTripInProgress) {
+            Log.d(TAG, "sleepDevice: Device is going to sleep - backlightOffDelay: $backlightOffDelay, switchPowerModeDelay: $switchPowerModeDelay")
+            delay((backlightOffDelay ?: BACKLIGHT_OFF_DELAY).toLong() * 1000)
+            if (!isTripInProgress && !isROMUpdateInProgress) {
                 _isScreenOff.value = true
+                val logMap1 = mapOf(
+                    LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                    LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                    LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                    LogConstant.DEVICE_TIME to Timestamp.now(),
+                    "acc_status" to "turning_off_backlight"
+                )
+                remoteMeterControlRepository.writeToLoggingCollection(logMap1)
                 toggleBackLight(false)
+
+                val isMeterOnline = internetConnectivityObserver.internetStatus.firstOrNull() == InternetConnectivityObserver.Status.InternetAvailable
+                meterPreferenceRepository.saveWasMeterOnlineAtLastAccOff(isMeterOnline)
+
+                val logMap2 = mapOf(
+                    LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                    LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                    LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                    LogConstant.DEVICE_TIME to Timestamp.now(),
+                    "acc_status" to "starting_sleep_mode_in ${ (switchPowerModeDelay ?: TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY).toLong() / 1000} seconds"
+                )
+                remoteMeterControlRepository.writeToLoggingCollection(logMap2)
                 switchToLowPowerMode()
                 DeviceDataStore.setIsDeviceAsleep(isAsleep = true)
                 dashManagerConfig.setIsDeviceAsleep(isAsleep = true)
                 Log.d(TAG, "sleepDevice: Device is in sleep mode")
+
+                // Start shutdown timer - device will shutdown after x minutes in low power mode
+                shutdownJob?.cancel()
+                shutdownJob = viewModelScope.launch(ioDispatcher) {
+                    val powerOffTimeInMCU = DeviceDataStore.meteringBoardInfo.firstOrNull()?.getFormattedPowerOffTime()?.toLongOrNull()
+                    val logMap3 = mapOf(
+                        LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                        LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                        LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                        LogConstant.DEVICE_TIME to Timestamp.now(),
+                        "acc_status" to "turning off device in ${ (powerOffTimeInMCU ?: SHUTDOWN_DELAY_MINS_AFTER_LOW_POWER_MODE).toLong()} minutes"
+                    )
+                    remoteMeterControlRepository.writeToLoggingCollection(logMap3)
+
+                    delay((powerOffTimeInMCU ?: SHUTDOWN_DELAY_MINS_AFTER_LOW_POWER_MODE) * 60 * 1000) // Convert minutes to milliseconds
+                    Log.d(TAG, "sleepDevice: Starting shutdown after 15 minutes in low power mode")
+                    val logMap4 = mapOf(
+                        LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                        LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                        LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                        LogConstant.DEVICE_TIME to Timestamp.now(),
+                        "acc_status" to "shutting_down"
+                    )
+                    remoteMeterControlRepository.writeToLoggingCollection(logMap4)
+
+                    // Notify measure board before shutting down
+                    measureBoardRepository.notifyShutdown()
+                    delay(500) // Give measure board time to receive the command
+
+                    systemControlRepository.shutdownDevice()
+                }
             }
         }
     }
 
-    private fun wakeUpDevice() {
+    private suspend fun wakeUpDevice() {
         sleepJob?.cancel()
+        shutdownJob?.cancel()
+
         if (!_isScreenOff.value) return
 
         toggleBackLight(true)
         _isScreenOff.value = false
         DeviceDataStore.setIsDeviceAsleep(isAsleep = false)
         dashManagerConfig.setIsDeviceAsleep(isAsleep = false)
+        peripheralControlRepository.initHardware()
+        val logMap = mapOf(
+            LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+            LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+            LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+            LogConstant.DEVICE_TIME to Timestamp.now(),
+            "acc_status" to "wakeup"
+        )
+        remoteMeterControlRepository.writeToLoggingCollection(logMap)
         Log.d(TAG, "wakeUpDevice: Device is in wake up mode")
     }
 
@@ -629,8 +904,9 @@ class MainViewModel @Inject constructor(
     private fun switchToLowPowerMode() {
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$TAG::LowPowerModeWakelock")
-        wakeLock.acquire(TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY) // Acquire for 1 minute
+        wakeLock.acquire((switchPowerModeDelay ?: TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY).toLong() * 1000)
         wakeLock.release()
+        Log.d(TAG, "switchToLowPowerMode: Device switched to low power mode")
     }
 
     private fun onUsbConnected() {
@@ -711,16 +987,18 @@ class MainViewModel @Inject constructor(
         accEnquiryJob?.cancel()
         busModelJob?.cancel()
         heartbeatJob?.cancel()
+        memoryMonitoringJob?.cancel()
     }
 
     companion object {
         private const val TAG = "MainViewModel"
         private const val INQUIRE_ACC_STATUS_INTERVAL = 5000L // 5 seconds
-        private const val BACKLIGHT_OFF_DELAY = 10_000L // 10 seconds
-        private const val TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY = 60_000L // 1 minute - standby mode
+        private const val BACKLIGHT_OFF_DELAY = 10 // 10 seconds
+        private const val TURN_OFF_DEVICE_AFTER_BACKLIGHT_OFF_DELAY = 60 // 1 minute - standby mode
+        private const val SHUTDOWN_DELAY_MINS_AFTER_LOW_POWER_MODE = 15L // 15 minutes
         private const val TOOLBAR_UI_DATE_FORMAT = "M月d日 HH:mm"
         private const val MCU_DATE_FORMAT = "yyyyMMddHHmm"
-        private const val ACC_SLEEP_STATUS = "1"
         const val TAG_RESTARTING_MCU_COMMUNICATION = "Restarting MCU communication"
+        private const val MEMORY_CHECK_INTERVAL = 5000L // 5 seconds
     }
 }

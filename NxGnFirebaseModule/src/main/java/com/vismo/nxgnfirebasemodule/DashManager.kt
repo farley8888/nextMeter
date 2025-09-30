@@ -1,6 +1,7 @@
 package com.vismo.nxgnfirebasemodule
 
 import android.util.Log
+import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
@@ -28,7 +29,6 @@ import com.vismo.nxgnfirebasemodule.model.Settings
 import com.vismo.nxgnfirebasemodule.model.TripSession
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
-import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.isCompleted
 import com.vismo.nxgnfirebasemodule.model.shouldPrompt
 import com.vismo.nxgnfirebasemodule.util.Constant.AUDIT_COLLECTION
@@ -48,11 +48,13 @@ import com.vismo.nxgnfirebasemodule.util.LogConstant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.Date
 import java.util.UUID
 import javax.inject.Inject
 
@@ -96,7 +98,7 @@ class DashManager @Inject constructor(
 
     private var externalScope: CoroutineScope? = null
 
-    fun init(scope: CoroutineScope, mostRecentlyCompletedUpdateId: String?) {
+    fun init(scope: CoroutineScope) {
         externalScope = scope
         setMeterInfoToSettings()
         meterSdkConfigurationListener()
@@ -104,29 +106,10 @@ class DashManager @Inject constructor(
             launch { observeMeterLicensePlate() }
             launch { observeMeterDeviceId() }
         }
+        isMCUParamsUpdateRequired(isAtInitialization = true)
         checkForMostRelevantOTAUpdate()
-        writeUpdateStatus(mostRecentlyCompletedUpdateId)
         isInitialized = true
         Log.d(TAG, "DashManager initialized")
-    }
-
-    private fun writeUpdateStatus(mostRecentlyCompletedUpdateId: String?) {
-        externalScope?.launch {
-            if (!mostRecentlyCompletedUpdateId.isNullOrBlank()) {
-                val updatesCollection = getMeterDocument()
-                    .collection(UPDATES_COLLECTION)
-
-                updatesCollection
-                    .document(mostRecentlyCompletedUpdateId)
-                    .update("status", UpdateStatus.COMPLETE.name)
-                    .addOnSuccessListener {
-                        Log.d(TAG, "writeUpdateStatus COMPLETE successfully")
-                    }
-                    .addOnFailureListener {
-                        Log.e(TAG, "writeUpdateStatus COMPLETE error", it)
-                    }
-            }
-        }
     }
 
     private suspend fun observeMeterDeviceId() {
@@ -205,7 +188,8 @@ class DashManager @Inject constructor(
             getMeterDocument()
                 .update(
                     FieldPath.of("settings", "meter_software_version"), DashManagerConfig.meterSoftwareVersion,
-                    FieldPath.of("settings", "sim_iccid"), DashManagerConfig.simIccId
+                    FieldPath.of("settings", "sim_iccid"), DashManagerConfig.simIccId,
+                    FieldPath.of("settings", "meter_android_rom_version"), DashManagerConfig.androidRomVersion
                 )
                 .addOnSuccessListener {
                     Log.d(TAG, "setMeterInfoToSettings successfully")
@@ -272,8 +256,9 @@ class DashManager @Inject constructor(
             )
     }
 
-    fun isMCUParamsUpdateRequired() {
+    fun isMCUParamsUpdateRequired(isAtInitialization: Boolean = false) {
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            if (isAtInitialization) delay(10_000L) // wait for the initial heartbeats to slow down
             _mcuParamsUpdateRequired.value = null
             val mcuParamsUpdateCollection = getMeterDocument()
                 .collection(UPDATE_MCU_PARAMS)
@@ -290,8 +275,9 @@ class DashManager @Inject constructor(
                             json.substring(0, json.length - 1) + ",\"id\":\"${latestDocument.id}\"}"
                         val update = gson.fromJson(json, UpdateMCUParamsRequest::class.java)
 
-                        if (!update.isCompleted()) {
+                        if (!update.isCompleted() && ((isAtInitialization && update.kValue == null) || !isAtInitialization)) { // we only want to update at initialization if kValue is not in the request
                             _mcuParamsUpdateRequired.value = update
+                            Log.d(TAG, "isMCUParamsUpdateRequired - value set to: $update")
                         }
                         Log.d(TAG, "isMCUParamsUpdateRequired $json")
                     }
@@ -382,6 +368,22 @@ class DashManager @Inject constructor(
         }
     }
 
+    fun write4GModuleRestarting(
+        timestamp: Long,
+        reason: String,
+    ) {
+        externalScope?.launch(ioDispatcher + exceptionHandler) {
+            val map = mapOf(
+                LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                LogConstant.ACTION to LogConstant.MODULE_4G_RESTARTING,
+                "restarted_at" to Timestamp(Date(timestamp)),
+                "reason" to reason,
+                LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+            )
+            writeToLoggingCollection(map)
+        }
+    }
+
     fun endTripDocumentListener() {
         tripDocumentListener?.remove()
         tripDocumentListener = null
@@ -425,7 +427,9 @@ class DashManager @Inject constructor(
     }
 
     fun setMCUInfoOnFirestore(mcuInfo: McuInfo) {
+        Log.d(TAG, "setMCUInfoOnFirestore - mcuInfo: $mcuInfo")
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            Log.d(TAG, "setMCUInfoOnFirestore - mcuInfo: $mcuInfo")
             val json = gson.toJson(mcuInfo.copy(
                 updatedAt = Timestamp.now(),
                 status = McuInfoStatus.UPDATED
@@ -434,6 +438,8 @@ class DashManager @Inject constructor(
 
             getMeterDocument()
                 .set(mapOf(MCU_INFO to map), SetOptions.merge())
+
+            Log.d(TAG, "setMCUInfoOnFirestore successfully - mcuInfo: $mcuInfo, meterdocument: ${getMeterDocument().path}")
         }
     }
 
@@ -474,6 +480,8 @@ class DashManager @Inject constructor(
         val auditTrailEntry = updatedTripMap.toMutableMap().apply {
             put("audit_time", Timestamp.now())
             put("updated_by", "Meter")
+            put("gps_type", dashManagerConfig.meterLocation.value.gpsType.toString())
+            put("location", dashManagerConfig.meterLocation.value.geoPoint)
         }.toFirestoreFormat()
 
         // Add an audit trail document
@@ -503,9 +511,14 @@ class DashManager @Inject constructor(
         }
     }
 
-    private fun checkForMostRelevantOTAUpdate() {
+     fun checkForMostRelevantOTAUpdate() {
         // apk or firmware updates
         externalScope?.launch(ioDispatcher + exceptionHandler) {
+            if (_mostRelevantUpdate.value != null || _tripInFirestore.value != null) {
+                Log.d(TAG, "checkForUpdates - already has a most relevant update or there is an ongoing trip, skipping check")
+                return@launch
+            }
+            delay(10_000L) // wait for the initial heartbeats to slow down
             _mostRelevantUpdate.value = null
             val updatesCollection = getMeterDocument()
                 .collection(UPDATES_COLLECTION)
@@ -549,24 +562,25 @@ class DashManager @Inject constructor(
         }
     }
 
-    fun writeUpdateResult(update: Update) {
-        externalScope?.launch(ioDispatcher + exceptionHandler) {
-            val json = gson.toJson(update)
-            val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
+    fun writeUpdateResult(update: Update): Task<Void> {
+        val updatedData = update.copy(
+            lastUpdatedOn = Timestamp.now(),
+        )
+        val json = gson.toJson(updatedData)
+        val map = (gson.fromJson(json, Map::class.java) as Map<String, Any?>).toFirestoreFormat()
 
-            val updatesCollection = getMeterDocument()
-                .collection(UPDATES_COLLECTION)
+        val updatesCollection = getMeterDocument()
+            .collection(UPDATES_COLLECTION)
 
-            updatesCollection
-                .document(update.id)
-                .set(map, SetOptions.merge())
-                .addOnSuccessListener {
-                    Log.d(TAG, "updateMostRelevantUpdate successfully")
-                }
-                .addOnFailureListener {
-                    Log.e(TAG, "updateMostRelevantUpdate error", it)
-                }
-        }
+        return updatesCollection
+            .document(updatedData.id)
+            .set(map, SetOptions.merge())
+            .addOnSuccessListener {
+                Log.d(TAG, "Firestore update successful for update ID: ${updatedData.id}")
+            }
+            .addOnFailureListener {
+                Log.e(TAG, "Firestore update failed for update ID: ${updatedData.id}", it)
+            }
     }
 
     fun sendHeartbeat() {

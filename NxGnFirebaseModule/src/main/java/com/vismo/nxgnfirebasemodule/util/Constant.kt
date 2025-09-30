@@ -19,6 +19,7 @@ object Constant {
     const val COMPLETED_ON = "completed_on"
     const val OTA_METERAPP_TYPE = "METERAPP"
     const val OTA_FIRMWARE_TYPE = "FIRMWARE"
+    const val OTA_ANDROID_ROM_TYPE = "ANDROIDROM"
 }
 
 object LogConstant {
@@ -27,6 +28,8 @@ object LogConstant {
     const val ACTION = "action"
     const val ACTION_PULSE_COUNTER = "pulse_counter"
     const val ACTION_METER_LOCKED = "meter_locked"
+    const val ACTION_ACC_STATUS_CHANGE = "acc_status_change"
+    const val MODULE_4G_RESTARTING = "4G_MODULE_RESTARTING"
     const val TRIP_ID = "trip_id"
     const val ABNORMAL_PULSE_COUNTER = "abnormal_pulse_counter"
     const val OVER_SPEED_COUNTER = "over_speed_counter"

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -66,25 +67,49 @@ fun UpdateScreen(
                 }
                 is UpdateState.Downloading -> {
                     // Downloading UI
-                    val progress = (updateState as UpdateState.Downloading).progress
-                    Text("下载: $progress%", style = Typography.headlineMedium, textAlign = TextAlign.Center)
+                    val download = (updateState as UpdateState.Downloading)
+                    Text(text = if (download.progress > 0) {
+                        "下载: ${download.progress}%"
+                    } else {
+                        "下载..."
+                    }, style = Typography.headlineMedium, textAlign = TextAlign.Center)
+                    if (download.isCancellable) {
+                        Text("整個更新需時約 15 分鐘。如暫時不方便，您可選擇暫時跳過更新，在下次著車時再處理", style = Typography.bodyMedium, textAlign = TextAlign.Center)
+                        Button(
+                            onClick = {
+                                viewModel.skipAndroidROMOta()
+                                navigateToMeterOps()
+                            },
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("暫且跳過")
+                        }
+                    }
 
                 }
                 is UpdateState.Installing -> {
-                    Text(text = "安装", style = Typography.headlineMedium)
+                    Text(text = "安装中，請稍候", style = Typography.headlineMedium)
                 }
                 is UpdateState.Success -> {
-                    Text(text = "更新成功。正在重新啟動應用程式。請稍候...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
+                    Text(text = "更新成功。正在重新啟動。請稍候...", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Green)
                 }
                 is UpdateState.Error -> {
                     val error = (updateState as UpdateState.Error)
-                    Text("誤差: ${error.message}", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
+                    Text("出錯: ${error.message}", style = Typography.headlineMedium, color = androidx.compose.ui.graphics.Color.Red)
                     showRetryDialog.value = error.allowRetry
                 }
 
                 is UpdateState.NoUpdateFound -> {
                     Text("未找到更新", style = Typography.headlineMedium)
-                    // remove this screen from the backstack
+                    Button(
+                        onClick = {
+                            viewModel.skipAndroidROMOta()
+                            navigateToMeterOps()
+                        },
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text("跳過並繼續")
+                    }
                 }
             }
         }
@@ -97,7 +122,7 @@ fun UpdateScreen(
         content = {
             GenericDialogContent(
                 title = "更新失敗",
-                message = "軟件下載失敗，請重新嘗試。",
+                message = "下載失敗，請重試。",
                 confirmButtonText = "稍後再試",
                 cancelButtonText = "重試",
                 onConfirm = {

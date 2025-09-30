@@ -6,4 +6,5 @@ data class DriverPairUiData(
     val licensePlate: String = "",
     val versionName: String = "",
     val deviceSerialNumber: String = "",
+    val isReceivedFirstHeartBeat: Boolean = false,
 )

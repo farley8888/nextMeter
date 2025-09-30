@@ -20,6 +20,13 @@ class GPS(val speed: Double, val bearing: Double) : GPSType() {
         return "GPS"
     }
 }
+
+class AndroidGPS(val speed: Double, val bearing: Double) : GPSType() {
+    override fun toString(): String {
+        return "AndroidGPS"
+    }
+}
+
 object NOT_SET: GPSType() {
     override fun toString(): String {
         return "NOT_SET"

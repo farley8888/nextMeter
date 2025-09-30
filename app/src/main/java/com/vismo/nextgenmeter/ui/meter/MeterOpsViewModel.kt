@@ -275,76 +275,7 @@ class MeterOpsViewModel @Inject constructor(
                 }
                 ttsUtil.setLanguagePref(newLanguagePref)
                 meterPreferenceRepository.saveSelectedLocale(newLanguagePref.toLanguageCode())
-                connectToWifiLegacy(context = context, ssid = "WeWork", password = "P@ssw0rd")
             }
-        }
-    }
-
-    private suspend fun connectToWifiLegacy(context: Context, ssid: String?, password: String?) {
-        try {
-            if (ssid == null || password == null) {
-                Toast.makeText(context, "SSID is null", Toast.LENGTH_SHORT).show()
-                Log.e("WiFiConnection", "SSID or password is null")
-                return
-            }
-
-            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-
-            // Check if WiFi is enabled
-            if (!wifiManager.isWifiEnabled) {
-                wifiManager.isWifiEnabled = true // Enable WiFi if it's disabled
-                // Wait for WiFi to be enabled
-                delay(1000)
-            }
-
-            // Remove existing configurations for this network
-            val configuredNetworks = wifiManager.configuredNetworks
-            configuredNetworks?.forEach { config ->
-                if (config.SSID == "\"$ssid\"") {
-                    wifiManager.removeNetwork(config.networkId)
-                }
-            }
-
-            // Create a WiFi configuration
-            val wifiConfig = WifiConfiguration().apply {
-                SSID = "\"$ssid\""
-                preSharedKey = "\"$password\""
-                allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK)
-
-                // Enable all allowed protocols, authentications, and key management
-                allowedProtocols.set(WifiConfiguration.Protocol.RSN)
-                allowedProtocols.set(WifiConfiguration.Protocol.WPA)
-                allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK)
-                allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP)
-                allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP)
-                allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40)
-                allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP104)
-                allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP)
-                allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP)
-            }
-
-            // Add the WiFi configuration to the system
-            val networkId = wifiManager.addNetwork(wifiConfig)
-            Log.d("WiFiConnection", "Added network with ID: $networkId")
-
-            if (networkId != -1) {
-                // Disconnect from current network
-                wifiManager.disconnect()
-
-                // Enable and connect to the new network
-                val enableSuccess = wifiManager.enableNetwork(networkId, true)
-                Log.d("WiFiConnection", "Enable network result: $enableSuccess")
-
-                val reconnectSuccess = wifiManager.reconnect()
-                Log.d("WiFiConnection", "Reconnect result: $reconnectSuccess")
-            } else {
-                Log.e("WiFiConnection", "Failed to add network configuration for $ssid")
-                Toast.makeText(context, "Failed to connect to $ssid", Toast.LENGTH_SHORT).show()
-            }
-        } catch (e: Exception) {
-            Log.e("WiFiConnection", "Error connecting to WiFi", e)
-            e.printStackTrace()
-            Toast.makeText(context, "Error connecting to WiFi: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
