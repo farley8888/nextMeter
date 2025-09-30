@@ -1,9 +1,6 @@
 package com.vismo.nextgenmeter.module
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
@@ -42,10 +39,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
 
 @Module
@@ -78,11 +71,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesFirebaseFirestore(
-        @ApplicationContext context: Context,
-        @IoDispatcher ioDispatcher: CoroutineDispatcher,
-        meterPreferenceRepository: MeterPreferenceRepository
-    ): FirebaseFirestore {
+    fun providesFirebaseFirestore(): FirebaseFirestore {
         val settings = FirebaseFirestoreSettings.Builder()
             .setLocalCacheSettings(
                 PersistentCacheSettings.newBuilder()
@@ -93,26 +82,6 @@ object AppModule {
 
         return FirebaseFirestore.getInstance().apply {
             firestoreSettings = settings
-
-            // Do conditional cache clearing off the main thread
-            CoroutineScope(ioDispatcher).launch {
-                val shouldClear = meterPreferenceRepository.getWasMeterOnlineAtLastAccOff().firstOrNull() == true
-                val isTripOngoing = !meterPreferenceRepository.getOngoingTripId().firstOrNull().isNullOrBlank()
-                Log.d("firestoreSettings", "Should clear Firestore persistence cache (was meter online at last acc off) - $shouldClear, isTripOngoing - $isTripOngoing")
-
-                val cm = context.getSystemService(ConnectivityManager::class.java)
-                val isOnline = cm.activeNetwork?.let { net ->
-                    cm.getNetworkCapabilities(net)
-                        ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
-                } ?: false
-                Log.d("firestoreSettings", "Is device online - $isOnline")
-
-                if (shouldClear && isOnline && !isTripOngoing) {
-                    clearPersistence().addOnCompleteListener {
-                        Log.d("firestoreSettings", "Is Firestore persistence cache cleared - ${it.isSuccessful}")
-                    }
-                }
-            }
         }
     }
 
@@ -122,7 +91,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLogsStorageReference(storage: com.google.firebase.storage.FirebaseStorage): com.google.firebase.storage.StorageReference {
+    fun provideLogsStorageReference(storage: FirebaseStorage): com.google.firebase.storage.StorageReference {
         return storage.reference.child("dash-meter-logs")
     }
 
