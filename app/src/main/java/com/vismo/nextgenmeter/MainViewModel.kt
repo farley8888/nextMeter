@@ -861,7 +861,8 @@ class MainViewModel @Inject constructor(
                     measureBoardRepository.notifyShutdown()
                     delay(500) // Give measure board time to receive the command
 
-                    systemControlRepository.shutdownDevice()
+                    // Disable shutdown temporarily 
+                    // systemControlRepository.shutdownDevice()
                 }
             }
         }
