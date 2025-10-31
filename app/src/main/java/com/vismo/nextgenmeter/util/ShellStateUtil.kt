@@ -30,6 +30,9 @@ object ShellStateUtil {
             if (currentStatus != lastStatus && lastStatus != null) {
                 statusChanges++
                 Log.d(TAG, "ACC status change detected at iteration $iteration: $lastStatus -> $currentStatus (total changes: $statusChanges)")
+                Log.d(TAG, "ACC signal unstable - returning false due to status change")
+                logFinalSummary(allReadings, statusChanges)
+                return false
             }
             
             if (currentStatus == lastStatus) {
@@ -44,12 +47,8 @@ object ShellStateUtil {
                 Log.d(TAG, "ACC debounce progress: ${iteration + 1}/500, current status: $currentStatus, consecutive: $consecutiveCount, changes: $statusChanges")
             }
             
-            // If we've reached the required consecutive count, return the status
-            if (consecutiveCount >= DEBOUNCE_CONFIRMATION_COUNT) {
-                Log.d(TAG, "ACC debounce completed early at iteration ${iteration + 1}: status=$currentStatus, total_changes=$statusChanges")
-                logFinalSummary(allReadings, statusChanges)
-                return currentStatus
-            }
+            // Only return early if we've completed all iterations with same status
+            // Remove early return to always test full 500 iterations
             
             delay(DEBOUNCE_CHECK_INTERVAL)
         }
