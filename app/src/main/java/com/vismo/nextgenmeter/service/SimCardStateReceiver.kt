@@ -47,13 +47,23 @@ class SimCardStateReceiver : BroadcastReceiver() {
             // Get SIM state from intent extras
             val simState = intent.getStringExtra("state") ?: intent.getStringExtra("ss")
             val reason = intent.getStringExtra("reason")
-            
+
             Log.d(TAG, "🔍 SIM state: $simState, reason: $reason")
-            
+
             // Check if SIM has a problem
             val hasSimProblem = when (simState?.uppercase()) {
+                // Problem states
                 "ABSENT", "NOT_READY", "UNKNOWN", "CARD_IO_ERROR" -> true
+
+                // OK states - SIM is functioning properly
                 "READY", "LOADED" -> false
+
+                // Transitional states - SIM is initializing (not a problem)
+                "IMSI", "PIN_REQUIRED", "PUK_REQUIRED", "NETWORK_LOCKED" -> {
+                    Log.d(TAG, "ℹ️ SIM in transitional state: $simState (this is normal)")
+                    false
+                }
+
                 null -> true  // No state reported = problem
                 else -> {
                     Log.w(TAG, "⚠️ Unknown SIM state: $simState, treating as problem")
