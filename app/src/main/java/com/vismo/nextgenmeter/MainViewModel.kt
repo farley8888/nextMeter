@@ -793,8 +793,8 @@ class MainViewModel @Inject constructor(
     private suspend fun sleepDevice() {
         val isTripInProgress = TripDataStore.isTripInProgress.firstOrNull() ?: false
         val isROMUpdateInProgress = aValidUpdate.firstOrNull()?.type == OTA_ANDROID_ROM_TYPE
-        if (isTripInProgress || _isScreenOff.value || isROMUpdateInProgress) {
-            Log.d(TAG, "sleepDevice: Skipping sleep - isTripInProgress: $isTripInProgress, isScreenOff: ${_isScreenOff.value}, isROMUpdateInProgress: $isROMUpdateInProgress")
+        if (isTripInProgress || _isScreenOff.value || isROMUpdateInProgress || sleepJob?.isActive == true) {
+            Log.d(TAG, "sleepDevice: Skipping sleep - isTripInProgress: $isTripInProgress, isScreenOff: ${_isScreenOff.value}, isROMUpdateInProgress: $isROMUpdateInProgress, sleepJobActive: ${sleepJob?.isActive}")
             return
         }
 
