@@ -198,6 +198,27 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
                     event // Keep event (0.1% chance)
                 }
             }
+
+            options.beforeSendTransaction = SentryOptions.BeforeSendTransactionCallback { transaction, _ ->
+                // Filter out DataStore file operations to reduce noise
+                val spans = transaction.spans
+                val hasOnlyDataStoreOperations = spans.all { span ->
+                    span.operation == "file.read" && span.description?.contains("preferences_pb") == true ||
+                    span.operation == "file.write" && span.description?.contains("preferences_pb") == true
+                }
+
+                // Drop transaction if it only contains DataStore operations
+                if (hasOnlyDataStoreOperations && spans.isNotEmpty()) {
+                    null
+                } else {
+                    // Keep transaction but filter out individual DataStore spans
+                    transaction.spans.removeAll { span ->
+                        (span.operation == "file.read" || span.operation == "file.write") &&
+                        span.description?.contains("preferences_pb") == true
+                    }
+                    transaction
+                }
+            }
         }
         setContent {
             CableMeterTheme {
