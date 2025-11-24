@@ -203,19 +203,30 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
                 // Filter out DataStore file operations to reduce noise
                 val spans = transaction.spans
                 val hasOnlyDataStoreOperations = spans.all { span ->
-                    span.operation == "file.read" && span.description?.contains("preferences_pb") == true ||
-                    span.operation == "file.write" && span.description?.contains("preferences_pb") == true
+                    span.op == "file.read" && span.description?.contains("preferences_pb") == true ||
+                    span.op == "file.write" && span.description?.contains("preferences_pb") == true
                 }
 
                 // Drop transaction if it only contains DataStore operations
                 if (hasOnlyDataStoreOperations && spans.isNotEmpty()) {
+                    Log.d(TAG, "Sentry: Dropped transaction '${transaction.transaction}' - only contains DataStore operations")
                     null
                 } else {
                     // Keep transaction but filter out individual DataStore spans
-                    transaction.spans.removeAll { span ->
-                        (span.operation == "file.read" || span.operation == "file.write") &&
+                    val filteredCount = transaction.spans.count { span ->
+                        (span.op == "file.read" || span.op == "file.write") &&
                         span.description?.contains("preferences_pb") == true
                     }
+
+                    transaction.spans.removeAll { span ->
+                        (span.op == "file.read" || span.op == "file.write") &&
+                        span.description?.contains("preferences_pb") == true
+                    }
+
+                    if (filteredCount > 0) {
+                        Log.d(TAG, "Sentry: Filtered $filteredCount DataStore span(s) from transaction '${transaction.transaction}'")
+                    }
+                    Log.d(TAG, "Sentry: Sending transaction '${transaction.transaction}' with ${transaction.spans.size} span(s)")
                     transaction
                 }
             }
