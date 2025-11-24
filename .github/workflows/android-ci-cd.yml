@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: ["main" , "develop"]
 
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (e.g., v8.2.5)
+
 
 jobs:
   get-commits:
