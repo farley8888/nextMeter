@@ -783,7 +783,7 @@ class MainViewModel @Inject constructor(
     }
 
     private suspend fun inquireApplicationStatus() {
-        if (ShellStateUtil.isACCSleepingDebounced()) {
+        if (ShellStateUtil.isACCSleepingDebounced(remoteMeterControlRepository)) {
             sleepDevice()
         } else {
             wakeUpDevice()
@@ -858,8 +858,7 @@ class MainViewModel @Inject constructor(
                     measureBoardRepository.notifyShutdown()
                     delay(500) // Give measure board time to receive the command
 
-                    // Disable shutdown temporarily 
-                    // systemControlRepository.shutdownDevice()
+                    systemControlRepository.shutdownDevice()
                 }
             }
         }

@@ -1,7 +1,11 @@
 package com.vismo.nextgenmeter.util
 
 import android.util.Log
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.ilin.util.ShellUtils
+import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
+import com.vismo.nxgnfirebasemodule.util.LogConstant
 import kotlinx.coroutines.delay
 
 object ShellStateUtil {
@@ -15,7 +19,7 @@ object ShellStateUtil {
         return acc == ACC_SLEEP_STATUS
     }
     
-    suspend fun isACCSleepingDebounced(): Boolean {
+    suspend fun isACCSleepingDebounced(remoteMeterControlRepository: RemoteMeterControlRepository? = null): Boolean {
         var consecutiveCount = 0
         var lastStatus: Boolean? = null
         var statusChanges = 0
@@ -56,7 +60,28 @@ object ShellStateUtil {
         val finalStatus = lastStatus ?: false
         Log.d(TAG, "ACC debounce completed all 500 iterations: final_status=$finalStatus, total_changes=$statusChanges")
         logFinalSummary(allReadings, statusChanges)
-        
+
+        // Log to Firebase
+        remoteMeterControlRepository?.let { repo ->
+            val trueCount = allReadings.count { it }
+            val falseCount = allReadings.count { !it }
+            val stability = if (statusChanges == 0) "STABLE" else if (statusChanges < 10) "MOSTLY_STABLE" else "UNSTABLE"
+
+            val logMap = mapOf(
+                LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                LogConstant.ACTION to "ACC_DEBOUNCE_CHECK",
+                LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                LogConstant.DEVICE_TIME to Timestamp.now(),
+                "final_status" to (if (finalStatus) "sleeping" else "awake"),
+                "true_count" to trueCount,
+                "false_count" to falseCount,
+                "status_changes" to statusChanges,
+                "stability" to stability,
+                "total_readings" to allReadings.size
+            )
+            repo.writeToLoggingCollection(logMap)
+        }
+
         // If we complete all checks without reaching consecutive count, return the last status
         return finalStatus
     }
