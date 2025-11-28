@@ -4,7 +4,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
+import com.vismo.nxgnfirebasemodule.util.LogConstant
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -25,6 +28,7 @@ class SimCardStateReceiver : BroadcastReceiver() {
     @InstallIn(SingletonComponent::class)
     interface SimCardStateReceiverEntryPoint {
         fun moduleRestartManager(): ModuleRestartManager
+        fun remoteMeterControlRepository(): com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
     }
     
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -71,6 +75,20 @@ class SimCardStateReceiver : BroadcastReceiver() {
                 }
             }
             
+            // Log to Firebase if state changed or there's a problem
+            val stateChanged = lastSimState != simState
+            val problemStatusChanged = lastHasSimProblem != hasSimProblem
+
+            if (stateChanged || problemStatusChanged || hasSimProblem) {
+                logToFirebase(context, simState, reason, hasSimProblem, stateChanged, problemStatusChanged)
+            } else {
+                Log.d(TAG, "📊 Skipped Firebase logging - No state change and no problem")
+            }
+
+            // Update last known state
+            lastSimState = simState
+            lastHasSimProblem = hasSimProblem
+
             if (hasSimProblem) {
                 Log.w(TAG, "❌ SIM problem detected: $simState - checking if 4G restart needed")
                 DeviceDataStore.setIsSimCardAvailable(false)
@@ -80,12 +98,61 @@ class SimCardStateReceiver : BroadcastReceiver() {
                 DeviceDataStore.setIsSimCardAvailable(true)
                 resetNoNetworkZoneDetection(context)
             }
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "💥 Error handling SIM state change", e)
         }
     }
-    
+
+    private fun logToFirebase(
+        context: Context,
+        simState: String?,
+        reason: String?,
+        hasSimProblem: Boolean,
+        stateChanged: Boolean,
+        problemStatusChanged: Boolean
+    ) {
+        try {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                SimCardStateReceiverEntryPoint::class.java
+            )
+            val remoteMeterControlRepository = entryPoint.remoteMeterControlRepository()
+
+            val logReason = when {
+                stateChanged && problemStatusChanged && hasSimProblem -> "state_and_problem_status_changed_with_problem"
+                stateChanged && problemStatusChanged -> "state_and_problem_status_changed"
+                stateChanged && hasSimProblem -> "state_changed_with_problem"
+                stateChanged -> "state_changed"
+                problemStatusChanged && hasSimProblem -> "problem_status_changed_with_problem"
+                problemStatusChanged -> "problem_status_changed"
+                hasSimProblem -> "has_problem"
+                else -> "unknown"
+            }
+
+            val logMap = mapOf(
+                LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                LogConstant.ACTION to "SIM_STATE_CHANGE",
+                LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                LogConstant.DEVICE_TIME to Timestamp.now(),
+                "sim_state" to (simState ?: "unknown"),
+                "previous_sim_state" to (lastSimState ?: "unknown"),
+                "reason" to (reason ?: "unknown"),
+                "has_problem" to hasSimProblem,
+                "previous_has_problem" to (lastHasSimProblem ?: false),
+                "state_changed" to stateChanged,
+                "problem_status_changed" to problemStatusChanged,
+                "log_reason" to logReason
+            )
+
+            remoteMeterControlRepository.writeToLoggingCollection(logMap)
+            Log.d(TAG, "📊 Logged to Firebase - Reason: $logReason, State: $simState, Problem: $hasSimProblem")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "💥 Error logging SIM state to Firebase", e)
+        }
+    }
+
     private fun resetNoNetworkZoneDetection(context: Context) {
         try {
             // Get ModuleRestartManager using EntryPointAccessors
@@ -151,5 +218,12 @@ class SimCardStateReceiver : BroadcastReceiver() {
     
     companion object {
         private const val TAG = "SimCardStateReceiver"
+
+        // Track last SIM state to only log on changes
+        @Volatile
+        private var lastSimState: String? = null
+
+        @Volatile
+        private var lastHasSimProblem: Boolean? = null
     }
 } 

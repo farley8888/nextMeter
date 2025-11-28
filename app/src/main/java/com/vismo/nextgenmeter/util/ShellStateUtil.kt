@@ -13,6 +13,9 @@ object ShellStateUtil {
     private const val ACC_SLEEP_STATUS = "1"
     private const val DEBOUNCE_CHECK_INTERVAL = 2L // 2ms
     private const val DEBOUNCE_CONFIRMATION_COUNT = 500 // 500 confirmations needed
+
+    // Track last ACC status to only log on changes
+    private var lastAccStatus: Boolean? = null
     
     fun isACCSleeping(): Boolean {
         val acc = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio75/value")
@@ -61,26 +64,47 @@ object ShellStateUtil {
         Log.d(TAG, "ACC debounce completed all 500 iterations: final_status=$finalStatus, total_changes=$statusChanges")
         logFinalSummary(allReadings, statusChanges)
 
-        // Log to Firebase
-        remoteMeterControlRepository?.let { repo ->
-            val trueCount = allReadings.count { it }
-            val falseCount = allReadings.count { !it }
-            val stability = if (statusChanges == 0) "STABLE" else if (statusChanges < 10) "MOSTLY_STABLE" else "UNSTABLE"
+        // Only log to Firebase on status change or instability to reduce log volume
+        val statusChanged = lastAccStatus != finalStatus
+        val isUnstable = statusChanges > 0
 
-            val logMap = mapOf(
-                LogConstant.CREATED_BY to LogConstant.CABLE_METER,
-                LogConstant.ACTION to "ACC_DEBOUNCE_CHECK",
-                LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
-                LogConstant.DEVICE_TIME to Timestamp.now(),
-                "final_status" to (if (finalStatus) "sleeping" else "awake"),
-                "true_count" to trueCount,
-                "false_count" to falseCount,
-                "status_changes" to statusChanges,
-                "stability" to stability,
-                "total_readings" to allReadings.size
-            )
-            repo.writeToLoggingCollection(logMap)
+        if (statusChanged || isUnstable) {
+            remoteMeterControlRepository?.let { repo ->
+                val trueCount = allReadings.count { it }
+                val falseCount = allReadings.count { !it }
+                val stability = if (statusChanges == 0) "STABLE" else if (statusChanges < 10) "MOSTLY_STABLE" else "UNSTABLE"
+
+                val logReason = when {
+                    statusChanged && isUnstable -> "status_change_and_unstable"
+                    statusChanged -> "status_change"
+                    isUnstable -> "unstable_signal"
+                    else -> "unknown"
+                }
+
+                val logMap = mapOf(
+                    LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                    LogConstant.ACTION to "ACC_DEBOUNCE_CHECK",
+                    LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                    LogConstant.DEVICE_TIME to Timestamp.now(),
+                    "final_status" to (if (finalStatus) "sleeping" else "awake"),
+                    "previous_status" to (lastAccStatus?.let { if (it) "sleeping" else "awake" } ?: "unknown"),
+                    "true_count" to trueCount,
+                    "false_count" to falseCount,
+                    "status_changes" to statusChanges,
+                    "stability" to stability,
+                    "total_readings" to allReadings.size,
+                    "log_reason" to logReason
+                )
+                repo.writeToLoggingCollection(logMap)
+
+                Log.d(TAG, "Logged to Firebase - Reason: $logReason")
+            }
+        } else {
+            Log.d(TAG, "Skipped Firebase logging - No status change and stable signal")
         }
+
+        // Update last known status
+        lastAccStatus = finalStatus
 
         // If we complete all checks without reaching consecutive count, return the last status
         return finalStatus
