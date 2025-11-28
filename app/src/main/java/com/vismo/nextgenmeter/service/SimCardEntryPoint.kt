@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.service
 
+import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -8,4 +9,5 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 interface SimCardStateReceiverEntryPoint {
     fun moduleRestartManager(): ModuleRestartManager
+    fun remoteMeterControlRepository(): RemoteMeterControlRepository
 } 
