@@ -990,6 +990,23 @@ class MainViewModel @Inject constructor(
 
     fun getMeterSdkConfiguration() = remoteMeterControlRepository.meterSdkConfiguration.value
 
+    fun logKeyPressToFirebase(keyCode: Int, scanCode: Int, repeatCount: Int, isLongPress: Boolean) {
+        viewModelScope.launch(ioDispatcher) {
+            remoteMeterControlRepository.writeToLoggingCollection(
+                mapOf(
+                    LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                    LogConstant.ACTION to "KEY_PRESS_NAVIGATION",
+                    LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                    LogConstant.DEVICE_TIME to Timestamp.now(),
+                    "key_code" to keyCode,
+                    "scan_code" to scanCode,
+                    "repeat_count" to repeatCount,
+                    "is_long_press" to isLongPress
+                )
+            )
+        }
+    }
+
     fun resetSnackBarContent() {
         _snackBarContent.value = null
     }

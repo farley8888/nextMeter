@@ -359,9 +359,12 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
             val repeatCount = event.repeatCount
             val isLongPress = event.isLongPress
 
-            // Log key press if enabled via configuration
+            // Always log locally to Android logcat
+            Log.d(TAG, "onKeyDown: keyCode=$keyCode, scanCode=$scanCode, repeatCount=$repeatCount, isLongPress=$isLongPress")
+
+            // Send to Firebase if keylog is enabled via configuration
             if (mainViewModel.getMeterSdkConfiguration().isKeyLogEnabled) {
-                Log.d(TAG, "onKeyDown: keyCode=$keyCode, scanCode=$scanCode, repeatCount=$repeatCount, isLongPress=$isLongPress")
+                mainViewModel.logKeyPressToFirebase(keyCode, scanCode, repeatCount, isLongPress)
             }
 
             if (scanCode == 248 && repeatCount == 0 && !isLongPress && !isCurrentScreenMeterOps() && !isCurrentScreenUpdateApk()) {

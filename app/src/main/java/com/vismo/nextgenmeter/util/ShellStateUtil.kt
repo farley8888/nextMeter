@@ -32,9 +32,8 @@ object ShellStateUtil {
         // Check if detailed ACC logging is enabled
         val isDetailedLoggingEnabled = remoteMeterControlRepository?.meterSdkConfiguration?.value.isDetailAccLogEnabled
 
-        if (isDetailedLoggingEnabled) {
-            Log.d(TAG, "Starting debounced ACC sleep check with 500 iterations")
-        }
+        // Always log to Android logcat
+        Log.d(TAG, "Starting debounced ACC sleep check with 500 iterations")
 
         repeat(DEBOUNCE_CONFIRMATION_COUNT) { iteration ->
             val currentStatus = isACCSleeping()
@@ -42,11 +41,10 @@ object ShellStateUtil {
 
             if (currentStatus != lastStatus && lastStatus != null) {
                 statusChanges++
-                if (isDetailedLoggingEnabled) {
-                    Log.d(TAG, "ACC status change detected at iteration $iteration: $lastStatus -> $currentStatus (total changes: $statusChanges)")
-                    Log.d(TAG, "ACC signal unstable - returning false due to status change")
-                    logFinalSummary(allReadings, statusChanges, isDetailedLoggingEnabled)
-                }
+                // Always log to Android logcat
+                Log.d(TAG, "ACC status change detected at iteration $iteration: $lastStatus -> $currentStatus (total changes: $statusChanges)")
+                Log.d(TAG, "ACC signal unstable - returning false due to status change")
+                logFinalSummary(allReadings, statusChanges)
                 return false
             }
 
@@ -57,8 +55,8 @@ object ShellStateUtil {
                 lastStatus = currentStatus
             }
 
-            // Log every 100 iterations for visibility (only if detailed logging enabled)
-            if (isDetailedLoggingEnabled && (iteration + 1) % 100 == 0) {
+            // Always log every 100 iterations to Android logcat for visibility
+            if ((iteration + 1) % 100 == 0) {
                 Log.d(TAG, "ACC debounce progress: ${iteration + 1}/500, current status: $currentStatus, consecutive: $consecutiveCount, changes: $statusChanges")
             }
 
@@ -69,15 +67,15 @@ object ShellStateUtil {
         }
 
         val finalStatus = lastStatus ?: false
+        // Always log to Android logcat
         Log.d(TAG, "ACC debounce completed all 500 iterations: final_status=$finalStatus, total_changes=$statusChanges")
-        if (isDetailedLoggingEnabled) {
-            logFinalSummary(allReadings, statusChanges, isDetailedLoggingEnabled)
-        }
+        logFinalSummary(allReadings, statusChanges)
 
-        // Only log to Firebase on status change or instability to reduce log volume
+        // Firebase logging logic - only log on status change or instability
         val statusChanged = lastAccStatus != finalStatus
         val isUnstable = statusChanges > 0
 
+        // Only send to Firebase when there's something important to report
         if (statusChanged || isUnstable) {
             remoteMeterControlRepository?.let { repo ->
                 val trueCount = allReadings.count { it }
@@ -91,23 +89,43 @@ object ShellStateUtil {
                     else -> "unknown"
                 }
 
-                val logMap = mapOf(
-                    LogConstant.CREATED_BY to LogConstant.CABLE_METER,
-                    LogConstant.ACTION to "ACC_DEBOUNCE_CHECK",
-                    LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
-                    LogConstant.DEVICE_TIME to Timestamp.now(),
-                    "final_status" to (if (finalStatus) "sleeping" else "awake"),
-                    "previous_status" to (lastAccStatus?.let { if (it) "sleeping" else "awake" } ?: "unknown"),
-                    "true_count" to trueCount,
-                    "false_count" to falseCount,
-                    "status_changes" to statusChanges,
-                    "stability" to stability,
-                    "total_readings" to allReadings.size,
-                    "log_reason" to logReason
-                )
-                repo.writeToLoggingCollection(logMap)
+                // When detailed logging is enabled, include extra debugging info
+                val logMap = if (isDetailedLoggingEnabled) {
+                    mapOf(
+                        LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                        LogConstant.ACTION to "ACC_DEBOUNCE_CHECK_DETAILED",
+                        LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                        LogConstant.DEVICE_TIME to Timestamp.now(),
+                        "final_status" to (if (finalStatus) "sleeping" else "awake"),
+                        "previous_status" to (lastAccStatus?.let { if (it) "sleeping" else "awake" } ?: "unknown"),
+                        "true_count" to trueCount,
+                        "false_count" to falseCount,
+                        "status_changes" to statusChanges,
+                        "stability" to stability,
+                        "total_readings" to allReadings.size,
+                        "log_reason" to logReason,
+                        "first_10_readings" to allReadings.take(10).toString(),
+                        "last_10_readings" to allReadings.takeLast(10).toString()
+                    )
+                } else {
+                    mapOf(
+                        LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                        LogConstant.ACTION to "ACC_DEBOUNCE_CHECK",
+                        LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                        LogConstant.DEVICE_TIME to Timestamp.now(),
+                        "final_status" to (if (finalStatus) "sleeping" else "awake"),
+                        "previous_status" to (lastAccStatus?.let { if (it) "sleeping" else "awake" } ?: "unknown"),
+                        "true_count" to trueCount,
+                        "false_count" to falseCount,
+                        "status_changes" to statusChanges,
+                        "stability" to stability,
+                        "total_readings" to allReadings.size,
+                        "log_reason" to logReason
+                    )
+                }
 
-                Log.d(TAG, "Logged to Firebase - Reason: $logReason")
+                repo.writeToLoggingCollection(logMap)
+                Log.d(TAG, "Logged to Firebase${if (isDetailedLoggingEnabled) " (detailed)" else ""} - Reason: $logReason")
             }
         } else {
             Log.d(TAG, "Skipped Firebase logging - No status change and stable signal")
@@ -120,10 +138,8 @@ object ShellStateUtil {
         return finalStatus
     }
     
-    private fun logFinalSummary(allReadings: List<Boolean>, statusChanges: Int, isDetailedLoggingEnabled: Boolean) {
-        // Only log detailed summary if detailed logging is enabled
-        if (!isDetailedLoggingEnabled) return
-
+    private fun logFinalSummary(allReadings: List<Boolean>, statusChanges: Int) {
+        // Always log summary to Android logcat
         val trueCount = allReadings.count { it }
         val falseCount = allReadings.count { !it }
         val stability = if (statusChanges == 0) "STABLE" else if (statusChanges < 10) "MOSTLY_STABLE" else "UNSTABLE"

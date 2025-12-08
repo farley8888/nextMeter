@@ -509,51 +509,43 @@ class DashManager @Inject constructor(
                     .addOnFailureListener { exception ->
                         Log.e(TAG, "writeToLoggingsCollection error", exception)
 
-                        // Check if this is a database corruption error
+                        // Check if this is a database corruption error - LOG ONLY
                         val isCorruptionError = exception.message?.contains("database disk image is malformed") == true ||
                                 exception.message?.contains("SQLiteDatabaseCorruptException") == true ||
                                 exception.cause?.javaClass?.simpleName?.contains("SQLiteDatabaseCorruptException") == true
 
                         if (isCorruptionError) {
-                            Log.e(TAG, "⚠️ Firestore database corruption detected! Attempting to clear cache...")
-                            handleDatabaseCorruption()
+                            Log.e(TAG, "🚨 FIRESTORE DATABASE CORRUPTION DETECTED!")
+                            Log.e(TAG, "🚨 Error message: ${exception.message}")
+                            Log.e(TAG, "🚨 Exception type: ${exception.javaClass.simpleName}")
+                            Log.e(TAG, "🚨 Cause: ${exception.cause?.javaClass?.simpleName}")
+                            Log.e(TAG, "🚨 App will continue in online-only mode for this session")
+                            // DO NOT attempt automatic fixes - too risky
                         }
                     }
             } catch (e: Exception) {
                 Log.e(TAG, "writeToLoggingsCollection exception caught", e)
 
-                // Check if this is a database corruption error in the catch block
+                // Check if this is a database corruption error in the catch block - LOG ONLY
                 val isCorruptionError = e.message?.contains("database disk image is malformed") == true ||
                         e.message?.contains("SQLiteDatabaseCorruptException") == true ||
                         e.javaClass.simpleName.contains("SQLiteDatabaseCorruptException") ||
                         e.cause?.javaClass?.simpleName?.contains("SQLiteDatabaseCorruptException") == true
 
                 if (isCorruptionError) {
-                    Log.e(TAG, "⚠️ Firestore database corruption detected in catch! Attempting to clear cache...")
-                    handleDatabaseCorruption()
+                    Log.e(TAG, "🚨 FIRESTORE DATABASE CORRUPTION DETECTED IN CATCH!")
+                    Log.e(TAG, "🚨 Error message: ${e.message}")
+                    Log.e(TAG, "🚨 Exception type: ${e.javaClass.simpleName}")
+                    Log.e(TAG, "🚨 Cause: ${e.cause?.javaClass?.simpleName}")
+                    Log.e(TAG, "🚨 Stack trace:", e)
+                    Log.e(TAG, "🚨 App will continue in online-only mode for this session")
+                    // DO NOT attempt automatic fixes - too risky
                 }
             }
         }
     }
 
-    private fun handleDatabaseCorruption() {
-        try {
-            // Clear Firestore persistence cache to recover from corruption
-            firestore.clearPersistence()
-                .addOnSuccessListener {
-                    Log.i(TAG, "✅ Firestore cache cleared successfully after corruption")
-                }
-                .addOnFailureListener { e ->
-                    Log.e(TAG, "❌ Failed to clear Firestore cache after corruption", e)
-                    // If clearing fails, we may need to terminate and restart the app
-                    Log.e(TAG, "⚠️ App may need to be restarted to recover from database corruption")
-                }
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Exception while trying to clear Firestore cache", e)
-        }
-    }
-
-     fun checkForMostRelevantOTAUpdate() {
+    fun checkForMostRelevantOTAUpdate() {
         // apk or firmware updates
         externalScope?.launch(ioDispatcher + exceptionHandler) {
             if (_mostRelevantUpdate.value != null || _tripInFirestore.value != null) {
