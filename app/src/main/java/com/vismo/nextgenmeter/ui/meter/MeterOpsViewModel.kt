@@ -23,6 +23,7 @@ import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.LogShippingRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
+import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_EN
 import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_ZH_CN
@@ -35,6 +36,7 @@ import com.vismo.nextgenmeter.util.LocaleHelper
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nextgenmeter.util.TtsUtil
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
+import com.vismo.nxgnfirebasemodule.model.isKeyLogEnabled
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -59,7 +61,8 @@ class MeterOpsViewModel @Inject constructor(
     private val peripheralControlRepository: PeripheralControlRepository,
     private val localeHelper: LocaleHelper,
     private val ttsUtil: TtsUtil,
-    private val meterPreferenceRepository: MeterPreferenceRepository
+    private val meterPreferenceRepository: MeterPreferenceRepository,
+    private val remoteMeterControlRepository: RemoteMeterControlRepository
 ) : ViewModel() {
 
     private val TAG = "MeterOpsViewModel"
@@ -320,6 +323,11 @@ class MeterOpsViewModel @Inject constructor(
         repeatCount: Int,
         isLongPress: Boolean
     ) {
+        // Log key press if enabled via configuration
+        if (remoteMeterControlRepository.meterSdkConfiguration.value.isKeyLogEnabled) {
+            Log.d(TAG, "handleKeyEvent: code=$code, repeatCount=$repeatCount, isLongPress=$isLongPress")
+        }
+
         if (isLongPress || repeatCount > 1) {
             // handle long press
             handleLongPress(code, repeatCount)

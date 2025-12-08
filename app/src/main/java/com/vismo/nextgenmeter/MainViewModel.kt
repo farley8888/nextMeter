@@ -55,6 +55,7 @@ import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateStatus
 import com.vismo.nxgnfirebasemodule.model.snoozeForADay
+import com.vismo.nxgnfirebasemodule.model.isShutdownEnabled
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_ANDROID_ROM_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_FIRMWARE_TYPE
 import com.vismo.nxgnfirebasemodule.util.Constant.OTA_METERAPP_TYPE
@@ -845,20 +846,34 @@ class MainViewModel @Inject constructor(
 
                     delay((powerOffTimeInMCU ?: SHUTDOWN_DELAY_MINS_AFTER_LOW_POWER_MODE) * 60 * 1000) // Convert minutes to milliseconds
                     Log.d(TAG, "sleepDevice: Starting shutdown after 15 minutes in low power mode")
-                    val logMap4 = mapOf(
-                        LogConstant.CREATED_BY to LogConstant.CABLE_METER,
-                        LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
-                        LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
-                        LogConstant.DEVICE_TIME to Timestamp.now(),
-                        "acc_status" to "shutting_down"
-                    )
-                    remoteMeterControlRepository.writeToLoggingCollection(logMap4)
 
-                    // Notify measure board before shutting down
-                    measureBoardRepository.notifyShutdown()
-                    delay(500) // Give measure board time to receive the command
+                    // Check if shutdown is enabled via configuration
+                    if (remoteMeterControlRepository.meterSdkConfiguration.value.isShutdownEnabled) {
+                        val logMap4 = mapOf(
+                            LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                            LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                            LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                            LogConstant.DEVICE_TIME to Timestamp.now(),
+                            "acc_status" to "shutting_down"
+                        )
+                        remoteMeterControlRepository.writeToLoggingCollection(logMap4)
 
-                    systemControlRepository.shutdownDevice()
+                        // Notify measure board before shutting down
+                        measureBoardRepository.notifyShutdown()
+                        delay(500) // Give measure board time to receive the command
+
+                        systemControlRepository.shutdownDevice()
+                    } else {
+                        Log.d(TAG, "sleepDevice: Shutdown disabled via configuration, device will remain in low power mode")
+                        val logMap4 = mapOf(
+                            LogConstant.CREATED_BY to LogConstant.CABLE_METER,
+                            LogConstant.ACTION to LogConstant.ACTION_ACC_STATUS_CHANGE,
+                            LogConstant.SERVER_TIME to FieldValue.serverTimestamp(),
+                            LogConstant.DEVICE_TIME to Timestamp.now(),
+                            "acc_status" to "shutdown_skipped_config_disabled"
+                        )
+                        remoteMeterControlRepository.writeToLoggingCollection(logMap4)
+                    }
                 }
             }
         }
@@ -972,6 +987,8 @@ class MainViewModel @Inject constructor(
     fun emitBeepSound() {
         measureBoardRepository.emitBeepSound(5, 0, 1)
     }
+
+    fun getMeterSdkConfiguration() = remoteMeterControlRepository.meterSdkConfiguration.value
 
     fun resetSnackBarContent() {
         _snackBarContent.value = null

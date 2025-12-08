@@ -5,6 +5,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
+import com.vismo.nxgnfirebasemodule.model.isDetailAccLogEnabled
 import com.vismo.nxgnfirebasemodule.util.LogConstant
 import kotlinx.coroutines.delay
 
@@ -27,42 +28,51 @@ object ShellStateUtil {
         var lastStatus: Boolean? = null
         var statusChanges = 0
         val allReadings = mutableListOf<Boolean>()
-        
-        Log.d(TAG, "Starting debounced ACC sleep check with 500 iterations")
-        
+
+        // Check if detailed ACC logging is enabled
+        val isDetailedLoggingEnabled = remoteMeterControlRepository?.meterSdkConfiguration?.value.isDetailAccLogEnabled
+
+        if (isDetailedLoggingEnabled) {
+            Log.d(TAG, "Starting debounced ACC sleep check with 500 iterations")
+        }
+
         repeat(DEBOUNCE_CONFIRMATION_COUNT) { iteration ->
             val currentStatus = isACCSleeping()
             allReadings.add(currentStatus)
-            
+
             if (currentStatus != lastStatus && lastStatus != null) {
                 statusChanges++
-                Log.d(TAG, "ACC status change detected at iteration $iteration: $lastStatus -> $currentStatus (total changes: $statusChanges)")
-                Log.d(TAG, "ACC signal unstable - returning false due to status change")
-                logFinalSummary(allReadings, statusChanges)
+                if (isDetailedLoggingEnabled) {
+                    Log.d(TAG, "ACC status change detected at iteration $iteration: $lastStatus -> $currentStatus (total changes: $statusChanges)")
+                    Log.d(TAG, "ACC signal unstable - returning false due to status change")
+                    logFinalSummary(allReadings, statusChanges, isDetailedLoggingEnabled)
+                }
                 return false
             }
-            
+
             if (currentStatus == lastStatus) {
                 consecutiveCount++
             } else {
                 consecutiveCount = 1
                 lastStatus = currentStatus
             }
-            
-            // Log every 100 iterations for visibility
-            if ((iteration + 1) % 100 == 0) {
+
+            // Log every 100 iterations for visibility (only if detailed logging enabled)
+            if (isDetailedLoggingEnabled && (iteration + 1) % 100 == 0) {
                 Log.d(TAG, "ACC debounce progress: ${iteration + 1}/500, current status: $currentStatus, consecutive: $consecutiveCount, changes: $statusChanges")
             }
-            
+
             // Only return early if we've completed all iterations with same status
             // Remove early return to always test full 500 iterations
-            
+
             delay(DEBOUNCE_CHECK_INTERVAL)
         }
-        
+
         val finalStatus = lastStatus ?: false
         Log.d(TAG, "ACC debounce completed all 500 iterations: final_status=$finalStatus, total_changes=$statusChanges")
-        logFinalSummary(allReadings, statusChanges)
+        if (isDetailedLoggingEnabled) {
+            logFinalSummary(allReadings, statusChanges, isDetailedLoggingEnabled)
+        }
 
         // Only log to Firebase on status change or instability to reduce log volume
         val statusChanged = lastAccStatus != finalStatus
@@ -110,11 +120,14 @@ object ShellStateUtil {
         return finalStatus
     }
     
-    private fun logFinalSummary(allReadings: List<Boolean>, statusChanges: Int) {
+    private fun logFinalSummary(allReadings: List<Boolean>, statusChanges: Int, isDetailedLoggingEnabled: Boolean) {
+        // Only log detailed summary if detailed logging is enabled
+        if (!isDetailedLoggingEnabled) return
+
         val trueCount = allReadings.count { it }
         val falseCount = allReadings.count { !it }
         val stability = if (statusChanges == 0) "STABLE" else if (statusChanges < 10) "MOSTLY_STABLE" else "UNSTABLE"
-        
+
         Log.d(TAG, "ACC Debounce Summary:")
         Log.d(TAG, "  Total readings: ${allReadings.size}")
         Log.d(TAG, "  True readings: $trueCount (${trueCount * 100 / allReadings.size}%)")

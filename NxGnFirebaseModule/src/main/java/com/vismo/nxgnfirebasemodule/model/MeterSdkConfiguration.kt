@@ -13,6 +13,9 @@ data class CommonConfig(
     @SerializedName("heartbeat_interval") val heartbeatInterval: Int,
     @SerializedName("dash_fee_rate") val dashFeeRate: Double,
     @SerializedName("dash_fee_constant") val dashFeeConstant: Double,
+    @SerializedName("is_enabled_key_log") val isEnabledKeyLog: Boolean? = false,
+    @SerializedName("is_enabled_shutdown") val isEnabledShutdown: Boolean? = true,
+    @SerializedName("is_enabled_detail_acc_log") val isEnabledDetailAccLog: Boolean? = false,
 )
 
 data class OperatingAreaConfig(
