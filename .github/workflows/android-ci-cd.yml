@@ -196,7 +196,7 @@ jobs:
                         {
                           "title": "Version:",
                           "value": "${{ needs.build-android.outputs.filename }}"
-                        },
+                        }
                       ]
                     },
                     {
@@ -205,7 +205,7 @@ jobs:
                       "wrap": true
                     } 
                   ],
-                  "actions": ${{ steps.aggregate-all-links.outputs.links }},
+                  "actions": ${{ steps.aggregate-all-links.outputs.links }}
                 }
               }
             ]
