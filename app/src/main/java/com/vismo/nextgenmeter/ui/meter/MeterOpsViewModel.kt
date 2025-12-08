@@ -5,6 +5,8 @@ import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.util.Log
 import android.widget.Toast
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -23,6 +25,7 @@ import com.vismo.nextgenmeter.module.IoDispatcher
 import com.vismo.nextgenmeter.repository.LogShippingRepository
 import com.vismo.nextgenmeter.repository.MeterPreferenceRepository
 import com.vismo.nextgenmeter.repository.PeripheralControlRepository
+import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nextgenmeter.service.DeviceGodCodeUnlockState
 import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_EN
 import com.vismo.nextgenmeter.ui.meter.TtsLanguagePref.Companion.KEY_ZH_CN
@@ -35,6 +38,7 @@ import com.vismo.nextgenmeter.util.LocaleHelper
 import com.vismo.nextgenmeter.util.MeasureBoardUtils
 import com.vismo.nextgenmeter.util.TtsUtil
 import com.vismo.nxgnfirebasemodule.model.TripPaidStatus
+import com.vismo.nxgnfirebasemodule.model.isKeyLogEnabled
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -59,7 +63,8 @@ class MeterOpsViewModel @Inject constructor(
     private val peripheralControlRepository: PeripheralControlRepository,
     private val localeHelper: LocaleHelper,
     private val ttsUtil: TtsUtil,
-    private val meterPreferenceRepository: MeterPreferenceRepository
+    private val meterPreferenceRepository: MeterPreferenceRepository,
+    private val remoteMeterControlRepository: RemoteMeterControlRepository
 ) : ViewModel() {
 
     private val TAG = "MeterOpsViewModel"
@@ -320,6 +325,39 @@ class MeterOpsViewModel @Inject constructor(
         repeatCount: Int,
         isLongPress: Boolean
     ) {
+        // Always log locally to Android logcat
+        Log.d(TAG, "handleKeyEvent: code=$code, repeatCount=$repeatCount, isLongPress=$isLongPress")
+
+        // Send to Firebase if keylog is enabled via configuration
+        if (remoteMeterControlRepository.meterSdkConfiguration.value.isKeyLogEnabled) {
+            viewModelScope.launch(ioDispatcher) {
+                val keyName = when(code) {
+                    248 -> "Ready for hire/Navigation"
+                    249 -> "Start/Resume trip"
+                    250 -> "Pause trip"
+                    251 -> "Settings"
+                    252 -> "Toggle flag"
+                    253 -> "Add extras \$10"
+                    254 -> "Add extras \$1"
+                    255 -> "Print/Recent trip"
+                    else -> "Unknown"
+                }
+
+                remoteMeterControlRepository.writeToLoggingCollection(
+                    mapOf(
+                        "created_by" to "cable_meter",
+                        "action" to "KEY_PRESS",
+                        "server_time" to FieldValue.serverTimestamp(),
+                        "device_time" to Timestamp.now(),
+                        "key_code" to code,
+                        "key_name" to keyName,
+                        "repeat_count" to repeatCount,
+                        "is_long_press" to isLongPress
+                    )
+                )
+            }
+        }
+
         if (isLongPress || repeatCount > 1) {
             // handle long press
             handleLongPress(code, repeatCount)

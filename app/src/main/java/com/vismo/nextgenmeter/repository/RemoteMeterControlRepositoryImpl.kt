@@ -1,5 +1,6 @@
 package com.vismo.nextgenmeter.repository
 
+import android.content.Context
 import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.firebase.Timestamp
@@ -16,6 +17,8 @@ import com.vismo.nxgnfirebasemodule.DashManagerConfig
 import com.vismo.nxgnfirebasemodule.model.McuInfo
 import com.vismo.nxgnfirebasemodule.model.Update
 import com.vismo.nxgnfirebasemodule.model.UpdateMCUParamsRequest
+import com.vismo.nxgnfirebasemodule.model.isFirestoreCorruptionAutoFixEnabled
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +29,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class RemoteMeterControlRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val dashManager: DashManager,
     private val measureBoardRepository: MeasureBoardRepository,
     private val logShippingRepository: LogShippingRepository,
@@ -116,6 +120,20 @@ class RemoteMeterControlRepositoryImpl @Inject constructor(
                         if (meterInfo.mcuInfo?.status == McuInfoStatus.REQUESTED) {
                             measureBoardRepository.enquireParameters()
                         }
+                    }
+                }
+            }
+
+            // Cache Firestore corruption auto-fix flag to SharedPreferences
+            // This allows MainApplication to read it during crash handling
+            launch {
+                dashManager.meterSdkConfig.collectLatest { config ->
+                    config?.let {
+                        val prefs = context.getSharedPreferences("meter_config_cache", Context.MODE_PRIVATE)
+                        prefs.edit()
+                            .putBoolean("is_enabled_firestore_corruption_auto_fix", it.isFirestoreCorruptionAutoFixEnabled)
+                            .apply()
+                        Log.d(TAG, "Cached Firestore corruption auto-fix flag: ${it.isFirestoreCorruptionAutoFixEnabled}")
                     }
                 }
             }

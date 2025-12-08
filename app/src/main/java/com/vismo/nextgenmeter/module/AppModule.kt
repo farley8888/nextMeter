@@ -249,12 +249,14 @@ object AppModule {
     @Singleton
     @Provides
     fun providesRemoteMCUControlRepository(
+        @ApplicationContext context: Context,
         dashManager: DashManager,
         measureBoardRepository: MeasureBoardRepository,
         logShippingRepository: LogShippingRepository,
         meterPreferenceRepository: MeterPreferenceRepository
     ): RemoteMeterControlRepository {
         return RemoteMeterControlRepositoryImpl(
+            context = context,
             dashManager = dashManager,
             measureBoardRepository = measureBoardRepository,
             logShippingRepository = logShippingRepository,

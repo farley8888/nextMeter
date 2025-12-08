@@ -69,6 +69,7 @@ import com.vismo.nxgnfirebasemodule.model.AndroidGPS
 import com.vismo.nxgnfirebasemodule.model.GPS
 import com.vismo.nxgnfirebasemodule.model.MeterLocation
 import com.vismo.nxgnfirebasemodule.model.canBeSnoozed
+import com.vismo.nxgnfirebasemodule.model.isKeyLogEnabled
 import com.vismo.nxgnfirebasemodule.util.DashUtil
 import dagger.hilt.android.AndroidEntryPoint
 import io.sentry.SentryOptions
@@ -357,6 +358,14 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
             val scanCode = event.scanCode
             val repeatCount = event.repeatCount
             val isLongPress = event.isLongPress
+
+            // Always log locally to Android logcat
+            Log.d(TAG, "onKeyDown: keyCode=$keyCode, scanCode=$scanCode, repeatCount=$repeatCount, isLongPress=$isLongPress")
+
+            // Send to Firebase if keylog is enabled via configuration
+            if (mainViewModel.getMeterSdkConfiguration().isKeyLogEnabled) {
+                mainViewModel.logKeyPressToFirebase(keyCode, scanCode, repeatCount, isLongPress)
+            }
 
             if (scanCode == 248 && repeatCount == 0 && !isLongPress && !isCurrentScreenMeterOps() && !isCurrentScreenUpdateApk()) {
                 navigateToMeterOpsScreen() // navigate to the MeterOps screen from any other screen
