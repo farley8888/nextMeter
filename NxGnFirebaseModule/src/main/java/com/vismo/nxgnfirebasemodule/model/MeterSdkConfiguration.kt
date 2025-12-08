@@ -17,6 +17,7 @@ data class CommonConfig(
     @SerializedName("is_enabled_shutdown") val isEnabledShutdown: Boolean? = true,
     @SerializedName("is_enabled_detail_acc_log") val isEnabledDetailAccLog: Boolean? = false,
     @SerializedName("is_enabled_firestore_corruption_auto_fix") val isEnabledFirestoreCorruptionAutoFix: Boolean? = false,
+    @SerializedName("acc_debounce_count") val accDebounceCount: Int? = 500,
 )
 
 data class OperatingAreaConfig(

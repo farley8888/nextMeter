@@ -6,6 +6,7 @@ import com.google.firebase.firestore.FieldValue
 import com.ilin.util.ShellUtils
 import com.vismo.nextgenmeter.repository.RemoteMeterControlRepository
 import com.vismo.nxgnfirebasemodule.model.isDetailAccLogEnabled
+import com.vismo.nxgnfirebasemodule.model.accDebounceCount
 import com.vismo.nxgnfirebasemodule.util.LogConstant
 import kotlinx.coroutines.delay
 
@@ -13,29 +14,32 @@ object ShellStateUtil {
     private const val TAG = "ShellStateUtil"
     private const val ACC_SLEEP_STATUS = "1"
     private const val DEBOUNCE_CHECK_INTERVAL = 2L // 2ms
-    private const val DEBOUNCE_CONFIRMATION_COUNT = 500 // 500 confirmations needed
+    private const val DEFAULT_DEBOUNCE_COUNT = 500 // Default if config not available
 
     // Track last ACC status to only log on changes
     private var lastAccStatus: Boolean? = null
-    
+
     fun isACCSleeping(): Boolean {
         val acc = ShellUtils.execShellCmd("cat /sys/class/gpio/gpio75/value")
         return acc == ACC_SLEEP_STATUS
     }
-    
+
     suspend fun isACCSleepingDebounced(remoteMeterControlRepository: RemoteMeterControlRepository? = null): Boolean {
         var consecutiveCount = 0
         var lastStatus: Boolean? = null
         var statusChanges = 0
         val allReadings = mutableListOf<Boolean>()
 
+        // Get debounce count from Firebase config (default 500)
+        val debounceCount = remoteMeterControlRepository?.meterSdkConfiguration?.value.accDebounceCount
+
         // Check if detailed ACC logging is enabled
         val isDetailedLoggingEnabled = remoteMeterControlRepository?.meterSdkConfiguration?.value.isDetailAccLogEnabled
 
         // Always log to Android logcat
-        Log.d(TAG, "Starting debounced ACC sleep check with 500 iterations")
+        Log.d(TAG, "Starting debounced ACC sleep check with $debounceCount iterations")
 
-        repeat(DEBOUNCE_CONFIRMATION_COUNT) { iteration ->
+        repeat(debounceCount) { iteration ->
             val currentStatus = isACCSleeping()
             allReadings.add(currentStatus)
 
@@ -57,18 +61,18 @@ object ShellStateUtil {
 
             // Always log every 100 iterations to Android logcat for visibility
             if ((iteration + 1) % 100 == 0) {
-                Log.d(TAG, "ACC debounce progress: ${iteration + 1}/500, current status: $currentStatus, consecutive: $consecutiveCount, changes: $statusChanges")
+                Log.d(TAG, "ACC debounce progress: ${iteration + 1}/$debounceCount, current status: $currentStatus, consecutive: $consecutiveCount, changes: $statusChanges")
             }
 
             // Only return early if we've completed all iterations with same status
-            // Remove early return to always test full 500 iterations
+            // Remove early return to always test full debounce count iterations
 
             delay(DEBOUNCE_CHECK_INTERVAL)
         }
 
         val finalStatus = lastStatus ?: false
         // Always log to Android logcat
-        Log.d(TAG, "ACC debounce completed all 500 iterations: final_status=$finalStatus, total_changes=$statusChanges")
+        Log.d(TAG, "ACC debounce completed all $debounceCount iterations: final_status=$finalStatus, total_changes=$statusChanges")
         logFinalSummary(allReadings, statusChanges)
 
         // Firebase logging logic - only log on status change or instability
@@ -103,6 +107,7 @@ object ShellStateUtil {
                         "status_changes" to statusChanges,
                         "stability" to stability,
                         "total_readings" to allReadings.size,
+                        "debounce_count_configured" to debounceCount,
                         "log_reason" to logReason,
                         "first_10_readings" to allReadings.take(10).toString(),
                         "last_10_readings" to allReadings.takeLast(10).toString()
@@ -120,6 +125,7 @@ object ShellStateUtil {
                         "status_changes" to statusChanges,
                         "stability" to stability,
                         "total_readings" to allReadings.size,
+                        "debounce_count_configured" to debounceCount,
                         "log_reason" to logReason
                     )
                 }

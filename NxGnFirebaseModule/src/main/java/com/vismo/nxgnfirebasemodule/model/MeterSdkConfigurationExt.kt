@@ -33,3 +33,13 @@ val MeterSdkConfiguration?.isDetailAccLogEnabled: Boolean
  */
 val MeterSdkConfiguration?.isFirestoreCorruptionAutoFixEnabled: Boolean
     get() = this?.common?.isEnabledFirestoreCorruptionAutoFix ?: false
+
+/**
+ * Returns the ACC debounce confirmation count
+ * Number of consecutive readings needed to confirm ACC status change
+ * Higher value = more stable but slower detection
+ * Lower value = faster detection but less stable
+ * Default: 500 (500 readings × 2ms = 1 second debounce time)
+ */
+val MeterSdkConfiguration?.accDebounceCount: Int
+    get() = this?.common?.accDebounceCount ?: 500
