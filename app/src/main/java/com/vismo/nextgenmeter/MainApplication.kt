@@ -10,6 +10,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nxgnfirebasemodule.util.LogConstant
+import kotlinx.coroutines.flow.first
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -91,8 +92,9 @@ class MainApplication : Application() {
             Log.d(TAG, "Attempting to log corruption to Firebase...")
 
             // Get device ID and meter identifier
-            val deviceId = runBlocking { DeviceDataStore.deviceId.first() }
-            val licensePlate = runBlocking { DeviceDataStore.licensePlate.first() }
+            val deviceIdData = runBlocking { DeviceDataStore.deviceIdData.first() }
+            val deviceId = deviceIdData?.deviceId ?: "unknown"
+            val licensePlate = deviceIdData?.licensePlate ?: "unknown"
 
             // Build the log entry
             val logMap = mapOf(
