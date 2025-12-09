@@ -56,6 +56,8 @@ import javax.inject.Inject
 import com.vismo.nextgenmeter.model.MeteringBoardInfo
 import com.vismo.nextgenmeter.util.ShellStateUtil
 import java.util.Calendar
+import com.vismo.nxgnfirebasemodule.DashManager
+import com.vismo.nxgnfirebasemodule.model.isKeyLogEnabled
 
 @Suppress("detekt.TooManyFunctions")
 class MeasureBoardRepositoryImpl @Inject constructor(
@@ -63,6 +65,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     private val dashManagerConfig: DashManagerConfig,
     private val meterPreferenceRepository: MeterPreferenceRepository,
+    private val dashManager: DashManager,
 ) : MeasureBoardRepository {
     private var mBusModel: BusModel? = null
     private var taskChannel = Channel<suspend () -> Unit>(capacity = 50, onBufferOverflow = BufferOverflow.DROP_OLDEST)
@@ -413,6 +416,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         meterPreferenceRepository.saveOngoingTripId("", 0L)
         addTask {
             // after a trip ends, MCU will only continue sending IDLE heartbeats after it receives this response
+            logMeasureBoardCommand("TRIP_END_RESPONSE", Command.CMD_END_RESPONSE)
             mBusModel?.write(Command.CMD_END_RESPONSE)
         }
     }
@@ -445,11 +449,12 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         val offsetInt = offset.toInt(16)
         val firmwareBytes =
             MeasureBoardUtils.getPatchMeterBoardFirmwareCmd(fileName, version, offsetInt)
-        mBusModel?.sendCmd(firmwareBytes)
         val total = MeasureBoardUtils.getFirmwareTotalOffset(fileName)
         val progress =
             Math.round(((total.toDouble() - offsetInt.toDouble()) / total.toDouble()) * 100)
                 .toInt()
+        logMeasureBoardCommand("PATCH_FIRMWARE_DATA", "version: $version, offset: $offsetInt, progress: $progress%")
+        mBusModel?.sendCmd(firmwareBytes)
 
         if (progress == 100) {
             DeviceDataStore.setFirmwareUpdateComplete(true)
@@ -580,6 +585,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun enquireParameters() {
         addTask {
+            logMeasureBoardCommand("ENQUIRE_PARAMETERS", Command.CMD_PARAMETERS_ENQUIRY)
             mBusModel?.write(Command.CMD_PARAMETERS_ENQUIRY)
             delay(200)
         }
@@ -587,7 +593,9 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun getMeteringBoardInfo() {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getMeteringBoardInfoCmd())
+            val cmd = MeasureBoardUtils.getMeteringBoardInfoCmd()
+            logMeasureBoardCommand("GET_METERING_BOARD_INFO", cmd)
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
@@ -599,6 +607,7 @@ class MeasureBoardRepositoryImpl @Inject constructor(
                     kValue = kValue,
                     powerOffTimeInMins = boardShutdownMinsDelayAfterAcc
                 )
+                logMeasureBoardCommand("UPDATE_K_VALUE", "kValue: $kValue, shutdownDelay: $boardShutdownMinsDelayAfterAcc, cmd: $cmd")
                 mBusModel?.write(cmd)
                 Log.d(TAG, "updateKValue: $kValue, boardShutdownMinsDelayAfterAcc: $boardShutdownMinsDelayAfterAcc")
                 Log.d(TAG, "updateKValue cmd: $cmd")
@@ -613,7 +622,9 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun updateLicensePlate(licensePlate: String) {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getWritingDataIntoMeasureBoardCmd(licensePlate = licensePlate))
+            val cmd = MeasureBoardUtils.getWritingDataIntoMeasureBoardCmd(licensePlate = licensePlate)
+            logMeasureBoardCommand("UPDATE_LICENSE_PLATE", "licensePlate: $licensePlate, cmd: $cmd")
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
@@ -622,14 +633,14 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         startPrice: Int, stepPrice: Int, stepPrice2nd:Int, threshold:Int
     ) {
         addTask {
-            mBusModel?.write(
-                MeasureBoardUtils.getUpdatePriceParamCmd(
-                    startPrice,
-                    stepPrice,
-                    stepPrice2nd,
-                    threshold,
-                )
+            val cmd = MeasureBoardUtils.getUpdatePriceParamCmd(
+                startPrice,
+                stepPrice,
+                stepPrice2nd,
+                threshold,
             )
+            logMeasureBoardCommand("UPDATE_PRICE_PARAMS", "startPrice: $startPrice, stepPrice: $stepPrice, stepPrice2nd: $stepPrice2nd, threshold: $threshold, cmd: $cmd")
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
@@ -640,63 +651,81 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         repeatCount: Int,
     ) {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getBeepSoundCmd(duration, interval, repeatCount))
+            val cmd = MeasureBoardUtils.getBeepSoundCmd(duration, interval, repeatCount)
+            logMeasureBoardCommand("EMIT_BEEP", "duration: $duration, interval: $interval, repeat: $repeatCount, cmd: $cmd")
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
 
     override fun writeStartTripCommand(tripId: String) {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getStartTripCmd(tripId = tripId))
+            val cmd = MeasureBoardUtils.getStartTripCmd(tripId = tripId)
+            logMeasureBoardCommand("START_TRIP", "tripId: $tripId, cmd: $cmd")
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
 
     override fun writeResumeTripCommand() {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getContinueTripCmd())
+            val cmd = MeasureBoardUtils.getContinueTripCmd()
+            logMeasureBoardCommand("RESUME_TRIP", cmd)
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
 
     override fun writeEndTripCommand() {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getEndTripCmd())
+            val cmd = MeasureBoardUtils.getEndTripCmd()
+            logMeasureBoardCommand("END_TRIP", cmd)
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
 
     override fun writePauseTripCommand() {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getPauseTripCmd())
+            val cmd = MeasureBoardUtils.getPauseTripCmd()
+            logMeasureBoardCommand("PAUSE_TRIP", cmd)
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
 
     override fun writeStartAndPauseTripCommand(tripId: String) {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getStartPauseTripCmd(tripId))
+            val cmd = MeasureBoardUtils.getStartPauseTripCmd(tripId)
+            logMeasureBoardCommand("START_AND_PAUSE_TRIP", "tripId: $tripId, cmd: $cmd")
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
 
     override fun writeAddExtrasCommand(extrasAmount: Int) {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getUpdateExtrasCmd("$extrasAmount"))
+            val cmd = MeasureBoardUtils.getUpdateExtrasCmd("$extrasAmount")
+            logMeasureBoardCommand("ADD_EXTRAS", "amount: $extrasAmount, cmd: $cmd")
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
 
     override fun unlockMeter() {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getUnlockCmd()) ?: false
+            val cmd = MeasureBoardUtils.getUnlockCmd()
+            logMeasureBoardCommand("UNLOCK_METER", cmd)
+            mBusModel?.write(cmd) ?: false
             delay(200)
         }
     }
 
     override fun updateMeasureBoardTime(formattedDateStr: String) {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getUpdateTimeCmd(formattedDateStr = formattedDateStr))
+            val cmd = MeasureBoardUtils.getUpdateTimeCmd(formattedDateStr = formattedDateStr)
+            logMeasureBoardCommand("UPDATE_TIME", "time: $formattedDateStr, cmd: $cmd")
+            mBusModel?.write(cmd)
             delay(200)
         }
     }
@@ -705,12 +734,12 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         meterPreferenceRepository.saveFirmwareFilenameForOTA(fileName)
         val version = (fileName.split("/").lastOrNull() ?: "").substringBefore(".")
         addTask {
-            mBusModel?.write(
-                MeasureBoardUtils.getRequestPatchMeterBoardFirmwareCmd(
-                    fileName,
-                    version
-                )!!.toHexString().replace(" ", "")
-            )
+            val cmd = MeasureBoardUtils.getRequestPatchMeterBoardFirmwareCmd(
+                fileName,
+                version
+            )!!.toHexString().replace(" ", "")
+            logMeasureBoardCommand("REQUEST_PATCH_FIRMWARE", "fileName: $fileName, version: $version, cmd: $cmd")
+            mBusModel?.write(cmd)
         }
     }
 
@@ -734,7 +763,9 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun notifyShutdown() {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.getShutdownNotificationCmd())
+            val cmd = MeasureBoardUtils.getShutdownNotificationCmd()
+            logMeasureBoardCommand("NOTIFY_SHUTDOWN", cmd)
+            mBusModel?.write(cmd)
             delay(200)
             Log.d(TAG, "notifyShutdown: Shutdown notification sent to measure board")
         }
@@ -742,7 +773,9 @@ class MeasureBoardRepositoryImpl @Inject constructor(
 
     override fun notifyAndroidFirmwareVersion(androidFirmwareVersion: String) {
         addTask {
-            mBusModel?.write(MeasureBoardUtils.sendAndroidFirmwareVersionCmd(androidFirmwareVersion))
+            val cmd = MeasureBoardUtils.sendAndroidFirmwareVersionCmd(androidFirmwareVersion)
+            logMeasureBoardCommand("NOTIFY_ANDROID_FIRMWARE_VERSION", "version: $androidFirmwareVersion, cmd: $cmd")
+            mBusModel?.write(cmd)
             delay(200)
             Log.d(TAG, "notifyAndroidFirmwareVersion: Android firmware version notification sent to measure board: $androidFirmwareVersion")
         }
@@ -776,6 +809,21 @@ class MeasureBoardRepositoryImpl @Inject constructor(
         Log.d(TAG, "stopCommunication")
     }
 
+    /**
+     * Logs measure board command if is_enabled_key_log is enabled in SDK configuration
+     * @param commandName The name of the command being sent
+     * @param commandData The raw command data being sent (optional)
+     */
+    private fun logMeasureBoardCommand(commandName: String, commandData: Any? = null) {
+        if (dashManager.meterSdkConfig.value.isKeyLogEnabled) {
+            val logMessage = buildString {
+                append("MeasureBoardCommand: $commandName")
+                commandData?.let { append(" | Data: $it") }
+            }
+            Log.d(TAG, logMessage)
+            Sentry.addBreadcrumb(logMessage, "MeasureBoardCommand")
+        }
+    }
 
     /**
      * xor Checksum algo

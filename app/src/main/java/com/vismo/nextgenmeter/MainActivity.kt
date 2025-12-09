@@ -48,7 +48,9 @@ import com.ilin.util.AmapLocationUtils
 import com.vismo.nextgenmeter.datastore.DeviceDataStore
 import com.vismo.nextgenmeter.datastore.TripDataStore
 import com.vismo.nextgenmeter.repository.MeasureBoardRepositoryImpl
+import com.vismo.nextgenmeter.repository.NavigationLogger
 import com.vismo.nextgenmeter.repository.UsbEventReceiver
+import javax.inject.Inject
 import com.vismo.nextgenmeter.service.SimCardTest
 import com.vismo.nextgenmeter.service.StorageBroadcastReceiver
 import com.vismo.nextgenmeter.service.USBReceiverStatus
@@ -56,6 +58,7 @@ import com.vismo.nextgenmeter.service.UsbBroadcastReceiver
 import com.vismo.nextgenmeter.service.WifiBroadcastReceiver
 import com.vismo.nextgenmeter.service.WifiStateChangeListener
 import com.vismo.nextgenmeter.ui.NavigationGraph
+import com.vismo.nextgenmeter.ui.NavigationObserver
 import com.vismo.nextgenmeter.ui.shared.GenericDialogContent
 import com.vismo.nextgenmeter.ui.shared.GlobalDialog
 import com.vismo.nextgenmeter.ui.shared.GlobalSnackbarDelegate
@@ -92,6 +95,9 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
     private var usbBroadcastReceiver: UsbBroadcastReceiver? = null
     private val wifiReceiver = WifiBroadcastReceiver(this)
     private var simCardTest: SimCardTest? = null
+
+    @Inject
+    lateinit var navigationLogger: NavigationLogger
 
     private fun registerStorageReceiver() {
         storageReceiver = StorageBroadcastReceiver()
@@ -293,6 +299,12 @@ class MainActivity : ComponentActivity(), UsbEventReceiver, WifiStateChangeListe
                                 navController = navController!!,
                                 innerPadding = innerPadding,
                                 snackbarDelegate = snackbarDelegate
+                            )
+
+                            // Observe navigation changes and log page transitions
+                            NavigationObserver(
+                                navController = navController!!,
+                                navigationLogger = navigationLogger
                             )
 
                             GlobalToastHolder()

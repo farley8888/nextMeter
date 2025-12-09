@@ -674,6 +674,17 @@ class DashManager @Inject constructor(
     }
 
     /**
+     * Logs page navigation event to Firebase Firestore
+     * @param navigationData Map containing navigation details (from_page, to_page, timestamp, etc.)
+     */
+    fun logPageNavigation(navigationData: Map<String, Any?>) {
+        val logData = navigationData.toMutableMap().apply {
+            put("log_type", "page_navigation")
+        }
+        writeToLoggingCollection(logData)
+    }
+
+    /**
      * update the value of triggerLogUpload in the settings of the meter document
      */
     fun setTriggerLogUpload(booleanValue: Boolean) {

@@ -204,13 +204,15 @@ object AppModule {
         @ApplicationContext context: Context,
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
         dashManagerConfig: DashManagerConfig,
-        meterPreferenceRepository: MeterPreferenceRepository
+        meterPreferenceRepository: MeterPreferenceRepository,
+        dashManager: DashManager
     ): MeasureBoardRepository {
         return MeasureBoardRepositoryImpl(
             context = context,
             ioDispatcher = ioDispatcher,
             dashManagerConfig = dashManagerConfig,
-            meterPreferenceRepository = meterPreferenceRepository
+            meterPreferenceRepository = meterPreferenceRepository,
+            dashManager = dashManager
         )
     }
 

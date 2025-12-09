@@ -14,6 +14,7 @@ data class CommonConfig(
     @SerializedName("dash_fee_rate") val dashFeeRate: Double,
     @SerializedName("dash_fee_constant") val dashFeeConstant: Double,
     @SerializedName("is_enabled_key_log") val isEnabledKeyLog: Boolean? = false,
+    @SerializedName("is_enabled_page_log") val isEnabledPageLog: Boolean? = false,
     @SerializedName("is_enabled_shutdown") val isEnabledShutdown: Boolean? = true,
     @SerializedName("is_enabled_detail_acc_log") val isEnabledDetailAccLog: Boolean? = false,
     @SerializedName("is_enabled_firestore_corruption_auto_fix") val isEnabledFirestoreCorruptionAutoFix: Boolean? = false,

@@ -12,6 +12,13 @@ val MeterSdkConfiguration?.isKeyLogEnabled: Boolean
     get() = this?.common?.isEnabledKeyLog ?: false
 
 /**
+ * Returns true if page navigation logging is enabled in the configuration
+ * Default: false
+ */
+val MeterSdkConfiguration?.isPageLogEnabled: Boolean
+    get() = this?.common?.isEnabledPageLog ?: false
+
+/**
  * Returns true if system shutdown is enabled in the configuration
  * Default: true (shutdown is enabled by default for safety)
  */
