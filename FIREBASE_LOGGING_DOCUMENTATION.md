@@ -5,6 +5,8 @@ This document explains all Firebase logs in the Cable Meter Android application.
 ---
 
 ## Table of Contents
+
+### Firebase Logs (Firestore Collection)
 1. [Page Navigation Logs](#1-page-navigation-logs)
 2. [Meter Locked Logs](#2-meter-locked-logs)
 3. [4G Module Restarting Logs](#3-4g-module-restarting-logs)
@@ -13,6 +15,13 @@ This document explains all Firebase logs in the Cable Meter Android application.
 6. [SIM State Change Logs](#6-sim-state-change-logs)
 7. [Key Press Logs](#7-key-press-logs)
 8. [Pulse Counter Logs](#8-pulse-counter-logs)
+
+### Local Logs (Device Storage & Cloud Services)
+9. [Android Logcat Upload](#1-android-logcat-upload) - Remote log capture via Firebase Storage
+10. [Measure Board Serial Data Log](#2-measure-board-serial-data-log-flog) - Raw MCU communication
+11. [Measure Board Crash Log](#3-measure-board-crash-log) - Module crash dumps
+12. [Sentry Error Monitoring](#4-sentry-error-monitoring) - Real-time error tracking
+13. [Firebase Crashlytics](#5-firebase-crashlytics) - App crash reporting
 
 ---
 
@@ -1224,9 +1233,273 @@ db.collection('meters/ABC123/loggings')
 
 ---
 
+---
+
+## Local Logs (Device Storage)
+
+In addition to Firebase logs, the app also writes logs to local device storage for debugging and diagnostic purposes.
+
+### 1. Android Logcat Upload
+
+**Type:** System-wide Android debug logs
+**Trigger:** Remote controlled via `trigger_log_upload` flag in meter settings
+**Location in Code:** `app/src/main/java/com/vismo/nextgenmeter/repository/LogShippingRepository.kt`
+
+**How It Works:**
+1. Admin sets `trigger_log_upload = true` in Firebase (`meters/{meter_id}/settings/trigger_log_upload`)
+2. App detects the flag change
+3. Executes `logcat -d` command to capture all Android system logs
+4. Compresses logs to `.gz` format
+5. Uploads to Firebase Storage (NOT Firestore)
+6. Deletes local files after successful upload
+7. Sets `trigger_log_upload` back to `false`
+
+**File Details:**
+- **Name format:** `logcat_YYYYMMDD_HHmmss.txt.gz`
+- **Example:** `logcat_20251209_103045.txt.gz`
+- **Local path:** `/data/data/com.vismo.nextgenmeter/files/logcat/`
+- **Upload destination:** Firebase Storage bucket: `{license_plate}/logcat_*.txt.gz`
+- **Compression:** GZIP compressed (reduces file size by ~80%)
+
+**Use Cases:**
+- **Remote debugging:** Admin can trigger log collection from any meter remotely
+- **Post-incident analysis:** Capture logs after a crash or error
+- **Customer support:** Collect full system logs for troubleshooting
+- **Compliance:** Archive logs for regulatory requirements
+
+**How to Trigger:**
+1. Go to Firebase Console → `meters/{meter_id}`
+2. Update: `settings.trigger_log_upload = true`
+3. Wait 1-2 minutes for next heartbeat
+4. Download logs from Firebase Storage
+
+**Important Notes:**
+- Logs contain ALL Android debug output (very detailed)
+- May include sensitive information - handle with care
+- Large files (typically 1-5 MB compressed)
+- Automatic cleanup after successful upload
+- Upload timeout: 60 seconds per file
+
+---
+
+### 2. Measure Board Serial Data Log (FLog)
+
+**Type:** Raw serial communication between Android and measure board (MCU)
+**Trigger:** Always running when app is active
+**Location in Code:** `measure-board-module/src/main/java/com/ilin/util/FLog.java`
+
+**How It Works:**
+- Continuously logs all serial port communication
+- Writes binary data as hexadecimal strings
+- Uses background thread to prevent UI blocking
+- Configurable logging levels
+
+**File Details:**
+- **Name:** `hireSerialData.txt`
+- **Location:** `/sdcard/hireSerialData.txt` (external storage)
+- **Format:** Text file with hex dump
+- **Rotation:** No automatic rotation (can grow large)
+
+**Log Format:**
+```
+2025-12-09 10:30:45.123
+FF AA 55 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E 1F 20 21
+...
+```
+
+**What's Logged:**
+- All commands sent TO measure board
+- All responses FROM measure board
+- Timestamps for each transaction
+- Binary data in hexadecimal format
+
+**Logging Modes:**
+- `STDOUT` (0) - Only log to Android logcat
+- `NONE` (-1) - No logging
+- `BOTH` (1) - Log to logcat AND file
+- `ONLY_FILE` (2) - **Default** - Only write to file
+
+**Use Cases:**
+- **Protocol debugging:** Verify command/response sequences
+- **Firmware issues:** Diagnose measure board communication problems
+- **Tampering detection:** Audit trail of all board interactions
+- **Performance analysis:** Identify slow or failed commands
+
+**Important Notes:**
+- File can grow very large over time (100+ MB)
+- No automatic cleanup - manual deletion required
+- Requires external storage permission
+- Raw binary data - needs specialized tools to interpret
+
+---
+
+### 3. Measure Board Crash Log
+
+**Type:** Crash dumps from measure board module
+**Trigger:** Automatic on module crash/exception
+**Location in Code:** `measure-board-module/src/main/java/com/ilin/atelec/CrashHandler.java`
+
+**How It Works:**
+- Catches uncaught exceptions in measure board module
+- Writes crash message to file
+- Terminates process after logging
+
+**File Details:**
+- **Name:** `ChargeStubCrash.txt`
+- **Location:** `/sdcard/eclectric/ChargeStubCrash.txt` (external storage)
+- **Format:** Text file with timestamp and error message
+
+**Log Format:**
+```
+2025-12-09 10:30:45 NullPointerException at com.ilin.atelec.Module.process()
+2025-12-09 11:15:22 IOException: Failed to read from serial port
+```
+
+**What's Logged:**
+- Timestamp of crash
+- Exception type
+- Error message
+- Stack trace (limited)
+
+**Use Cases:**
+- **Module stability:** Track measure board module crashes
+- **Bug reports:** Evidence for firmware/software issues
+- **Pattern analysis:** Identify recurring crash causes
+
+**Important Notes:**
+- Only logs measure board module crashes (not main app)
+- Appends to existing file (never overwrites)
+- No size limit - can grow indefinitely
+- Requires external storage permission
+
+---
+
+### 4. Sentry Error Monitoring
+
+**Type:** Cloud-based error and crash tracking
+**Trigger:** Automatic on errors, manual breadcrumbs
+**Service:** Sentry.io cloud platform
+
+**What's Logged:**
+- **Crashes:** All uncaught exceptions
+- **Errors:** Captured exceptions
+- **Breadcrumbs:** Navigation, state changes, custom events
+- **Context:** User ID (license plate), device info, app version
+- **Performance:** Transaction traces (optional)
+
+**Logged Events:**
+1. All measure board command logs (when `is_enabled_key_log = true`)
+2. All page navigation (when `is_enabled_page_log = true`)
+3. Application crashes
+4. MCU communication restarts
+5. Cache clearing operations
+6. Custom error captures
+
+**Location in Code:**
+- Main integration: `app/src/main/java/com/vismo/nextgenmeter/MainViewModel.kt`
+- Breadcrumbs added throughout codebase via `Sentry.addBreadcrumb()`
+
+**Use Cases:**
+- **Real-time monitoring:** See crashes as they happen
+- **Release tracking:** Compare crash rates across versions
+- **User sessions:** Replay user actions before crash
+- **Performance:** Identify slow operations
+
+**Dashboard Access:**
+- Sentry dashboard (credentials required)
+- Filter by license plate (user ID)
+- Search by error type
+
+---
+
+### 5. Firebase Crashlytics
+
+**Type:** Google's crash reporting service
+**Trigger:** Automatic on main app crashes
+**Service:** Firebase Crashlytics console
+
+**What's Logged:**
+- **Fatal crashes:** App terminating exceptions
+- **ANRs:** Application Not Responding events
+- **Custom keys:** License plate, session info
+- **Logs:** Leading up to crash
+
+**Location in Code:**
+- `app/src/main/java/com/vismo/nextgenmeter/MainViewModel.kt`
+- User ID set to license plate: `crashlytics.setUserId(savedLicensePlate)`
+
+**Use Cases:**
+- **Crash-free metrics:** Track app stability %
+- **Issue prioritization:** Most impacted users
+- **Version comparison:** Crash rates by version
+- **Stack trace analysis:** Debug production crashes
+
+**Dashboard Access:**
+- Firebase Console → Crashlytics
+- Group by license plate
+- Automatic alerts for new crash types
+
+---
+
+## Local vs Firebase Logs Summary
+
+| Log Type | Storage | Upload | Retention | Use Case |
+|----------|---------|--------|-----------|----------|
+| Logcat Upload | Local + Firebase Storage | Manual trigger | Until deleted | Remote debugging |
+| Serial Data (FLog) | Local only | Never | Manual cleanup | Protocol debugging |
+| Crash Log | Local only | Never | Manual cleanup | Module crash tracking |
+| Sentry | Cloud only | Real-time | 90 days | Error monitoring |
+| Crashlytics | Cloud only | Real-time | 90 days | Crash reporting |
+| Firebase Loggings | Firestore | Real-time | Forever* | Operational logs |
+
+*Firebase loggings retention depends on Firestore TTL policies (if configured)
+
+---
+
+## Storage Paths Reference
+
+**Android Internal Storage:**
+```
+/data/data/com.vismo.nextgenmeter/
+├── files/
+│   └── logcat/
+│       ├── logcat_20251209_103045.txt.gz
+│       └── logcat_20251209_150000.txt.gz
+```
+
+**External Storage (SD Card):**
+```
+/sdcard/
+├── hireSerialData.txt          (Serial communication log)
+└── eclectric/
+    └── ChargeStubCrash.txt     (Measure board crashes)
+```
+
+**Firebase Storage:**
+```
+gs://{bucket}/
+└── {license_plate}/
+    ├── logcat_20251209_103045.txt.gz
+    └── logcat_20251209_150000.txt.gz
+```
+
+**Firestore:**
+```
+meters/
+└── {meter_id}/
+    └── loggings/
+        ├── {doc_id_1}  (page_navigation log)
+        ├── {doc_id_2}  (meter_locked log)
+        └── ...
+```
+
+---
+
 ## Version History
 
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-12-09 | 1.0 | Initial documentation with all current log types |
+| 2025-12-09 | 1.1 | Added local logs section (logcat, FLog, crash logs, Sentry, Crashlytics) |
 
