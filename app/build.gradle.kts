@@ -34,13 +34,15 @@ android {
         create("myConfig") {
             // Use absolute path for keystore.properties
             val keystoreFile = file("$rootDir/keystore.properties")
-            val keystoreProperties = Properties()
-            keystoreProperties.load(keystoreFile.inputStream())
+            if (keystoreFile.exists()) {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(keystoreFile.inputStream())
 
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
-            storeFile = file(keystoreProperties.getProperty("storeFile"))
-            storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
         }
     }
 
@@ -61,7 +63,9 @@ android {
         getByName("debug") {
             isMinifyEnabled = false
             isDebuggable = true
-            signingConfig = signingConfigs.getByName("myConfig")
+            if (file("$rootDir/keystore.properties").exists()) {
+                signingConfig = signingConfigs.getByName("myConfig")
+            }
         }
         getByName("release") {
             isMinifyEnabled = false
@@ -70,7 +74,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.getByName("myConfig")
+            if (file("$rootDir/keystore.properties").exists()) {
+                signingConfig = signingConfigs.getByName("myConfig")
+            }
         }
     }
     compileOptions {
